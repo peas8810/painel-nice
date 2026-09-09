@@ -1,8 +1,1 @@
-{
-  "ok": false,
-  "synced_at": null,
-  "health": null,
-  "stats": null,
-  "projects": {"ok": true, "total": 0, "projects": []},
-  "message": "Aguardando primeira sincronização automática do GitHub Actions."
-}
+{"ok":true,"synced_at":"2026-09-09T20:54:17.323725Z","health":{"ok":true,"service":"NICE Protocolos","version":"1.1","rows":1,"updated_at":"2026-09-09T20:54:12.578Z"},"stats":{"ok":true,"stats":{"abertos":0,"aguardando_relatorio":0,"atrasados":0,"finalizados":1,"por_status":{"FINALIZADO":1}}},"projects":{"ok":true,"total":1,"projects":[{"id":"NICE-2026-00001","responsavel":"sdfg","titulo":"Projeto de Extensão - Extra Curricular","curso":"xfghgfhd","unidade":"Sim","status":"FINALIZADO","data_protocolo":"2026-09-09T20:07:20.583Z","data_inicio":"2026-09-09T03:00:00.000Z","prazo_relatorio":"2026-09-27T03:00:00.000Z"}],"public_fields":["id","responsavel","titulo","curso","unidade","status","data_protocolo","data_inicio","prazo_relatorio"]},"source":"Google Apps Script via GitHub Actions"}
