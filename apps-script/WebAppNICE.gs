@@ -1,7 +1,8 @@
 const NICE_API = Object.freeze({
   SPREADSHEET_ID: '1midUEo4zaK2uyI_bJvD2NK2Efy1gYC0Ny_qHVJw_CVE',
   CONTROL_SHEET: 'CONTROLE_NICE',
-  CACHE_SECONDS: 30
+  CACHE_SECONDS: 30,
+  PUBLIC_LIST_LIMIT: 500
 });
 
 function doGet(e) {
@@ -12,6 +13,7 @@ function doGet(e) {
     if (action === 'health') payload = niceApiHealth_();
     else if (action === 'stats') payload = niceApiStats_();
     else if (action === 'protocol') payload = niceApiProtocol_(String(p.id || '').toUpperCase());
+    else if (action === 'projects') payload = niceApiProjects_(String(p.q || ''), String(p.status || ''), Number(p.limit || NICE_API.PUBLIC_LIST_LIMIT));
     else payload = {ok:false,error:'Ação não reconhecida.'};
     return niceApiOutput_(payload, p.callback);
   } catch (err) {
@@ -21,12 +23,12 @@ function doGet(e) {
 
 function niceApiHealth_() {
   const sh = niceApiSheet_();
-  return {ok:true,service:'NICE Protocolos',version:'1.0',rows:Math.max(0,sh.getLastRow()-1),updated_at:new Date().toISOString()};
+  return {ok:true,service:'NICE Protocolos',version:'1.1',rows:Math.max(0,sh.getLastRow()-1),updated_at:new Date().toISOString()};
 }
 
 function niceApiStats_() {
   const cache = CacheService.getScriptCache();
-  const cached = cache.get('nice_api_stats_v1');
+  const cached = cache.get('nice_api_stats_v2');
   if (cached) return JSON.parse(cached);
   const sh = niceApiSheet_();
   const values = sh.getDataRange().getValues();
@@ -35,9 +37,9 @@ function niceApiStats_() {
   const counts = {};
   let abertos=0,aguardando=0,atrasados=0,finalizados=0;
   for (let i=1;i<values.length;i++) {
-    const id = String(values[i][h.ID_NICE] || '').trim();
+    const id = niceApiCell_(values[i], h, 'ID_NICE');
     if (!id) continue;
-    const status = String(values[i][h.STATUS] || 'SEM_STATUS').trim().toUpperCase();
+    const status = String(niceApiCell_(values[i], h, 'STATUS') || 'SEM_STATUS').trim().toUpperCase();
     counts[status]=(counts[status]||0)+1;
     if (!['FINALIZADO','CANCELADO'].includes(status)) abertos++;
     if (status==='AGUARDANDO_RELATORIO') aguardando++;
@@ -45,8 +47,55 @@ function niceApiStats_() {
     if (status==='FINALIZADO') finalizados++;
   }
   const out={ok:true,stats:{abertos,aguardando_relatorio:aguardando,atrasados,finalizados,por_status:counts}};
-  cache.put('nice_api_stats_v1',JSON.stringify(out),NICE_API.CACHE_SECONDS);
+  cache.put('nice_api_stats_v2',JSON.stringify(out),NICE_API.CACHE_SECONDS);
   return out;
+}
+
+function niceApiProjects_(q, statusFilter, limit) {
+  const sh = niceApiSheet_();
+  const values = sh.getDataRange().getValues();
+  if (values.length < 2) return {ok:true,total:0,projects:[]};
+
+  const h = niceApiMapHeaders_(values[0]);
+  const query = niceApiNorm_(q);
+  const wantedStatus = String(statusFilter || '').trim().toUpperCase();
+  const max = Math.min(Math.max(Number(limit) || NICE_API.PUBLIC_LIST_LIMIT, 1), NICE_API.PUBLIC_LIST_LIMIT);
+  const projects = [];
+
+  for (let i=values.length-1;i>=1;i--) {
+    const row = values[i];
+    const id = String(niceApiCell_(row,h,'ID_NICE') || '').trim().toUpperCase();
+    if (!id) continue;
+
+    const status = String(niceApiCell_(row,h,'STATUS') || '').trim().toUpperCase();
+    if (wantedStatus && status !== wantedStatus) continue;
+
+    const responsavel = niceApiPublicText_(niceApiCell_(row,h,'RESPONSAVEL'));
+    const titulo = niceApiPublicText_(niceApiCell_(row,h,'TITULO_ACAO'));
+    const curso = niceApiPublicText_(niceApiCell_(row,h,'CURSO'));
+    const unidade = niceApiPublicText_(niceApiCell_(row,h,'UNIDADE'));
+
+    if (query) {
+      const haystack = niceApiNorm_([id,responsavel,titulo,curso,unidade,status].join(' '));
+      if (!haystack.includes(query)) continue;
+    }
+
+    projects.push({
+      id:id,
+      responsavel:responsavel,
+      titulo:titulo,
+      curso:curso,
+      unidade:unidade,
+      status:status,
+      data_protocolo:niceApiIso_(niceApiCell_(row,h,'DATA_PROTOCOLO')),
+      data_inicio:niceApiIso_(niceApiCell_(row,h,'DATA_INICIO')),
+      prazo_relatorio:niceApiIso_(niceApiCell_(row,h,'PRAZO_RELATORIO'))
+    });
+
+    if (projects.length >= max) break;
+  }
+
+  return {ok:true,total:projects.length,projects:projects,public_fields:['id','responsavel','titulo','curso','unidade','status','data_protocolo','data_inicio','prazo_relatorio']};
 }
 
 function niceApiProtocol_(id) {
@@ -56,24 +105,25 @@ function niceApiProtocol_(id) {
   const values=sh.getDataRange().getValues();
   const h=niceApiMapHeaders_(values[0]);
   for (let i=1;i<values.length;i++) {
-    if (String(values[i][h.ID_NICE]||'').trim().toUpperCase()!==id) continue;
-    const status=String(values[i][h.STATUS]||'').toUpperCase();
-    const dataRelatorio=niceApiIso_(values[i][h.DATA_RELATORIO]);
-    const encerradoRaw=String(values[i][h.ENCERRADO]||'').toUpperCase();
+    if (String(niceApiCell_(values[i],h,'ID_NICE')||'').trim().toUpperCase()!==id) continue;
+    const status=String(niceApiCell_(values[i],h,'STATUS')||'').toUpperCase();
+    const dataRelatorio=niceApiIso_(niceApiCell_(values[i],h,'DATA_RELATORIO'));
+    const encerradoRaw=String(niceApiCell_(values[i],h,'ENCERRADO')||'').toUpperCase();
     return {ok:true,protocol:{
-      id,
-      status,
-      titulo:niceApiPublicText_(values[i][h.TITULO_ACAO]),
-      curso:niceApiPublicText_(values[i][h.CURSO]),
-      unidade:niceApiPublicText_(values[i][h.UNIDADE]),
-      data_protocolo:niceApiIso_(values[i][h.DATA_PROTOCOLO]),
-      data_inicio:niceApiIso_(values[i][h.DATA_INICIO]),
-      data_fim:niceApiIso_(values[i][h.DATA_FIM]),
-      prazo_relatorio:niceApiIso_(values[i][h.PRAZO_RELATORIO]),
+      id:id,
+      status:status,
+      responsavel:niceApiPublicText_(niceApiCell_(values[i],h,'RESPONSAVEL')),
+      titulo:niceApiPublicText_(niceApiCell_(values[i],h,'TITULO_ACAO')),
+      curso:niceApiPublicText_(niceApiCell_(values[i],h,'CURSO')),
+      unidade:niceApiPublicText_(niceApiCell_(values[i],h,'UNIDADE')),
+      data_protocolo:niceApiIso_(niceApiCell_(values[i],h,'DATA_PROTOCOLO')),
+      data_inicio:niceApiIso_(niceApiCell_(values[i],h,'DATA_INICIO')),
+      data_fim:niceApiIso_(niceApiCell_(values[i],h,'DATA_FIM')),
+      prazo_relatorio:niceApiIso_(niceApiCell_(values[i],h,'PRAZO_RELATORIO')),
       data_relatorio:dataRelatorio,
       relatorio_recebido:!!dataRelatorio,
       encerrado:encerradoRaw==='SIM'||status==='FINALIZADO',
-      link_form_relatorio:niceApiSafePublicUrl_(values[i][h.LINK_FORM_RELATORIO])
+      link_form_relatorio:niceApiSafePublicUrl_(niceApiCell_(values[i],h,'LINK_FORM_RELATORIO'))
     }};
   }
   return {ok:true,protocol:null};
@@ -90,6 +140,10 @@ function niceApiMapHeaders_(headers) {
   const out={}; headers.forEach((v,i)=>out[String(v).trim()]=i); return out;
 }
 
+function niceApiCell_(row, h, name) {
+  return Object.prototype.hasOwnProperty.call(h,name) ? row[h[name]] : '';
+}
+
 function niceApiIso_(v) {
   if (!v) return '';
   if (Object.prototype.toString.call(v)==='[object Date]'&&!isNaN(v)) return v.toISOString();
@@ -98,6 +152,10 @@ function niceApiIso_(v) {
 
 function niceApiPublicText_(v) {
   return String(v==null?'':v).replace(/[<>]/g,'').trim().slice(0,300);
+}
+
+function niceApiNorm_(v) {
+  return String(v==null?'':v).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/\s+/g,' ').trim();
 }
 
 function niceApiSafePublicUrl_(v) {
