@@ -1,0 +1,8 @@
+{
+  "ok": false,
+  "synced_at": null,
+  "health": null,
+  "stats": null,
+  "projects": {"ok": true, "total": 0, "projects": []},
+  "message": "Aguardando primeira sincronização automática do GitHub Actions."
+}
