@@ -1,0 +1,38 @@
+name: fix docintel exact
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/fix_docintel_exact.py'
+      - '.github/workflows/fix-docintel-exact.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Build validated JSON documentary payload
+        run: python scripts/fix_docintel_exact.py
+      - name: Validate generated JavaScript
+        run: node --check docintel_json_v2.js
+      - name: Commit validated assets
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html docintel_payload_v2.json docintel_json_v2.js
+          if git diff --cached --quiet; then
+            echo "No changes"
+            exit 0
+          fi
+          git commit -m "fix: remove atob da Inteligência Documental [skip ci]"
+          git push
