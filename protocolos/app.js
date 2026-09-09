@@ -65,6 +65,29 @@
   function n(v){ return Number(v || 0); }
   function setText(id,v){ const el=$(id); if(el) el.textContent=v; }
 
+  function labelStatus(s){
+    return ({
+      PROTOCOLADO:'Protocolado', EM_ANALISE:'Em análise', APROVADO:'Aprovado',
+      AGUARDANDO_REALIZACAO:'Aguardando realização', AGUARDANDO_RELATORIO:'Aguardando relatório',
+      RELATORIO_EM_ATRASO:'Relatório em atraso', FINALIZADO:'Finalizado', CANCELADO:'Cancelado'
+    })[s] || String(s || '').replaceAll('_',' ');
+  }
+
+  function pillClass(s){
+    if (s === 'FINALIZADO') return 'finalizado';
+    if (s === 'RELATORIO_EM_ATRASO') return 'atraso';
+    if (s === 'AGUARDANDO_RELATORIO') return 'relatorio';
+    if (s === 'APROVADO') return 'aprovado';
+    if (s === 'CANCELADO') return 'cancelado';
+    return '';
+  }
+
+  function fmtDate(v){
+    if (!v) return '—';
+    const d = new Date(v);
+    return isNaN(d) ? esc(v) : d.toLocaleDateString('pt-BR');
+  }
+
   function renderStats(data){
     const s = data.stats || data;
     setText('#kOpen', F.format(n(s.abertos)));
@@ -82,25 +105,58 @@
       .join('') || '<div class="result empty">Nenhum dado de status disponível.</div>';
   }
 
-  function labelStatus(s){
-    return ({
-      PROTOCOLADO:'Protocolado', EM_ANALISE:'Em análise', APROVADO:'Aprovado',
-      AGUARDANDO_REALIZACAO:'Aguardando realização', AGUARDANDO_RELATORIO:'Aguardando relatório',
-      RELATORIO_EM_ATRASO:'Relatório em atraso', FINALIZADO:'Finalizado', CANCELADO:'Cancelado'
-    })[s] || String(s || '').replaceAll('_',' ');
+  function renderProjects(data){
+    const body = $('#projectTableBody');
+    const meta = $('#projectCount');
+    if (!body) return;
+    const projects = Array.isArray(data?.projects) ? data.projects : [];
+    if (meta) meta.textContent = projects.length === 1 ? '1 projeto exibido' : `${F.format(projects.length)} projetos exibidos`;
+
+    if (!projects.length) {
+      body.innerHTML = '<tr><td colspan="7" class="table-empty">Nenhum projeto encontrado para os filtros informados.</td></tr>';
+      return;
+    }
+
+    body.innerHTML = projects.map(p => {
+      const place = [p.curso,p.unidade].filter(Boolean).join(' · ') || '—';
+      return `<tr class="project-row" data-id="${esc(p.id)}">
+        <td><button class="protocol-link" type="button" data-protocol="${esc(p.id)}">${esc(p.id)}</button></td>
+        <td class="responsavel-cell">${esc(p.responsavel || '—')}</td>
+        <td class="title-cell">${esc(p.titulo || '—')}</td>
+        <td>${esc(place)}</td>
+        <td><span class="pill ${pillClass(p.status)}">${esc(labelStatus(p.status))}</span></td>
+        <td>${fmtDate(p.data_protocolo)}</td>
+        <td>${fmtDate(p.data_inicio)}</td>
+      </tr>`;
+    }).join('');
+
+    body.querySelectorAll('[data-protocol]').forEach(btn => {
+      btn.addEventListener('click', ()=>{
+        const id = btn.getAttribute('data-protocol');
+        const input = $('#protocolInput');
+        if (input) input.value = id;
+        consultar(id);
+        document.querySelector('#consulta')?.scrollIntoView({behavior:'smooth',block:'start'});
+      });
+    });
   }
 
-  function pillClass(s){
-    if (s === 'FINALIZADO') return 'finalizado';
-    if (s === 'RELATORIO_EM_ATRASO') return 'atraso';
-    if (s === 'AGUARDANDO_RELATORIO') return 'relatorio';
-    return '';
-  }
-
-  function fmtDate(v){
-    if (!v) return '—';
-    const d = new Date(v);
-    return isNaN(d) ? esc(v) : d.toLocaleDateString('pt-BR');
+  async function carregarProjetos(){
+    const body = $('#projectTableBody');
+    const q = String($('#projectSearch')?.value || '').trim();
+    const status = String($('#projectStatus')?.value || '').trim();
+    if (!API) {
+      if (body) body.innerHTML = '<tr><td colspan="7" class="table-empty">A lista pública ficará disponível assim que o Web App do Apps Script for conectado.</td></tr>';
+      return;
+    }
+    if (body) body.innerHTML = '<tr><td colspan="7" class="table-empty">Atualizando projetos…</td></tr>';
+    try {
+      const data = await jsonp('projects',{q,status,limit:500});
+      renderProjects(data);
+    } catch (err) {
+      if (body) body.innerHTML = `<tr><td colspan="7" class="table-empty error-text">${esc(err.message || 'Falha ao carregar os projetos.')}</td></tr>`;
+      setText('#projectCount','Falha ao atualizar a lista pública.');
+    }
   }
 
   function renderProtocol(p){
@@ -119,7 +175,8 @@
         <span class="pill ${pillClass(p.status)}">${esc(labelStatus(p.status))}</span>
       </div>
       <div class="details">
-        <div class="detail"><span>Ação</span><strong>${esc(p.titulo || '—')}</strong></div>
+        <div class="detail"><span>Responsável pela submissão</span><strong>${esc(p.responsavel || '—')}</strong></div>
+        <div class="detail"><span>Título da ação</span><strong>${esc(p.titulo || '—')}</strong></div>
         <div class="detail"><span>Curso</span><strong>${esc(p.curso || '—')}</strong></div>
         <div class="detail"><span>Unidade</span><strong>${esc(p.unidade || '—')}</strong></div>
         <div class="detail"><span>Data do protocolo</span><strong>${fmtDate(p.data_protocolo)}</strong></div>
@@ -160,13 +217,14 @@
 
   async function initBackend(){
     if (!API) {
-      setBackendState('warn','Aguardando publicação do backend','O portal já encaminha os dois formulários. A consulta e os indicadores ficarão ativos após conectar o Web App do Apps Script.');
+      setBackendState('warn','Aguardando publicação do backend','O portal já encaminha os formulários. A consulta, o painel público e os indicadores ficarão ativos após conectar o Web App do Apps Script.');
+      carregarProjetos();
       return;
     }
     try {
       const health = await jsonp('health');
       setBackendState('ok','Sistema conectado',`Base operacional disponível${health?.updated_at ? ' · '+new Date(health.updated_at).toLocaleString('pt-BR') : ''}.`);
-      const stats = await jsonp('stats');
+      const [stats] = await Promise.all([jsonp('stats'), carregarProjetos()]);
       renderStats(stats);
     } catch (err) {
       setBackendState('err','Falha na conexão',err.message || 'Não foi possível consultar o Apps Script.');
@@ -178,8 +236,26 @@
   const input = $('#protocolInput');
   if (input) input.addEventListener('keydown', e=>{ if(e.key==='Enter'){e.preventDefault();consultar();} });
 
+  const filterBtn = $('#projectFilterButton');
+  if (filterBtn) filterBtn.addEventListener('click', carregarProjetos);
+  const projectSearch = $('#projectSearch');
+  if (projectSearch) projectSearch.addEventListener('keydown', e=>{ if(e.key==='Enter'){e.preventDefault();carregarProjetos();} });
+  const projectStatus = $('#projectStatus');
+  if (projectStatus) projectStatus.addEventListener('change', carregarProjetos);
+  const clear = $('#projectClear');
+  if (clear) clear.addEventListener('click', ()=>{
+    if (projectSearch) projectSearch.value='';
+    if (projectStatus) projectStatus.value='';
+    carregarProjetos();
+  });
+
   initBackend();
   if (API && Number(C.REFRESH_SECONDS) > 0) {
-    setInterval(async()=>{ try { renderStats(await jsonp('stats')); } catch (_) {} }, Number(C.REFRESH_SECONDS)*1000);
+    setInterval(async()=>{
+      try {
+        renderStats(await jsonp('stats'));
+        await carregarProjetos();
+      } catch (_) {}
+    }, Number(C.REFRESH_SECONDS)*1000);
   }
 })();
