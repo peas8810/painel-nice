@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Sistema NICE de protocolos, acompanhamento de ações e relatórios finais da AlfaUnipac.">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <title>NICE | Sistema de Protocolos</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <div class="logo">N</div>
+      <div>
+        <h1>NICE · Sistema de Protocolos</h1>
+        <p>AlfaUnipac · Gestão de formalização, execução e relatório final</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <a href="../atual/">Painel Institucional</a>
+      <a href="#consulta">Consultar protocolo</a>
+    </div>
+  </header>
+
+  <nav class="bar">
+    <a class="active" href="#inicio">Início</a>
+    <a href="#acoes">Protocolar</a>
+    <a href="#consulta">Consulta</a>
+    <a href="#fluxo">Como funciona</a>
+  </nav>
+
+  <main>
+    <section id="inicio" class="hero">
+      <div>
+        <div class="eyebrow">Gestão documental integrada</div>
+        <h2>Um protocolo único acompanha a ação até o encerramento documental.</h2>
+        <p>O sistema foi preparado para transformar cada formalização em um chamado NICE. O chamado permanece aberto durante análise, realização da ação e entrega do relatório final, permitindo rastreabilidade completa e integração com a Inteligência Institucional.</p>
+      </div>
+      <div class="statebox" id="backendState">
+        <span>Integração em tempo real</span>
+        <strong><i class="dot"></i>Verificando sistema…</strong>
+        <small>Consultando a disponibilidade da camada operacional.</small>
+      </div>
+    </section>
+
+    <section id="acoes" class="actions">
+      <article class="action-card">
+        <div class="num">1</div>
+        <h3>Formalizar nova ação</h3>
+        <p>Registre projeto, evento, atividade extensionista ou outra ação institucional. Após o envio, o Apps Script gera o número NICE e abre o chamado.</p>
+        <a id="formProtocol" class="btn primary" target="_blank" rel="noopener">Abrir formulário de formalização</a>
+      </article>
+
+      <article class="action-card">
+        <div class="num">2</div>
+        <h3>Enviar relatório final</h3>
+        <p>O relatório será vinculado ao protocolo NICE correspondente. Quando validado, o chamado é encerrado e passa a integrar os indicadores institucionais.</p>
+        <a id="formReport" class="btn orange" target="_blank" rel="noopener">Abrir formulário de relatório</a>
+      </article>
+
+      <article class="action-card">
+        <div class="num">3</div>
+        <h3>Inteligência Institucional</h3>
+        <p>Acompanhe volume de ações, cobertura documental, alcance comunitário, Inteligência Documental e demais indicadores consolidados do NICE.</p>
+        <a id="panelLink" class="btn ghost">Abrir painel institucional</a>
+      </article>
+    </section>
+
+    <section class="kpis" aria-label="Indicadores operacionais">
+      <div class="kpi"><span>Chamados abertos</span><strong id="kOpen">—</strong><small>Protocolos ainda não encerrados</small></div>
+      <div class="kpi orange"><span>Aguardando relatório</span><strong id="kWaiting">—</strong><small>Ações realizadas sem relatório final</small></div>
+      <div class="kpi red"><span>Relatórios em atraso</span><strong id="kLate">—</strong><small>Prazo documental ultrapassado</small></div>
+      <div class="kpi green"><span>Finalizados</span><strong id="kClosed">—</strong><small>Ciclo documental concluído</small></div>
+    </section>
+
+    <section class="grid">
+      <div id="consulta" class="card">
+        <h2>Consultar protocolo</h2>
+        <p class="desc">Digite o número recebido na formalização. A consulta pública não exibe e-mail, nome do responsável nem links internos do Drive.</p>
+        <div class="search">
+          <input id="protocolInput" type="text" maxlength="15" autocomplete="off" spellcheck="false" placeholder="NICE-2026-00001" aria-label="Número do protocolo NICE">
+          <button id="searchProtocol" class="btn primary" type="button">Consultar</button>
+        </div>
+        <div id="protocolResult" class="result empty">Informe um protocolo para visualizar a situação do chamado.</div>
+      </div>
+
+      <div class="card">
+        <h2>Situação da base operacional</h2>
+        <p class="desc">Distribuição dos chamados pelo estágio atual do processo.</p>
+        <div id="statusList" class="status-list">
+          <div class="result empty">Os dados aparecerão quando o backend estiver conectado.</div>
+        </div>
+        <div class="notice">O Google Drive continua sendo o repositório documental. O GitHub Pages funciona como portal e interface pública; dados pessoais e arquivos internos não são publicados no repositório.</div>
+      </div>
+    </section>
+
+    <section id="fluxo" class="card">
+      <h2>Ciclo do protocolo NICE</h2>
+      <p class="desc">O encerramento ocorre apenas após o relatório final correspondente.</p>
+      <div class="timeline">
+        <div class="step"><i>1</i><div><strong>Protocolado</strong><p>O Google Forms registra a formalização e o sistema gera um identificador único, como NICE-2026-00001.</p></div></div>
+        <div class="step"><i>2</i><div><strong>Em análise</strong><p>O NICE confere a formalização e pode solicitar ajustes antes da aprovação.</p></div></div>
+        <div class="step"><i>3</i><div><strong>Aprovado / aguardando realização</strong><p>O projeto permanece aberto até a data prevista da atividade.</p></div></div>
+        <div class="step"><i>4</i><div><strong>Aguardando relatório</strong><p>Após a realização, inicia-se o acompanhamento do prazo para entrega documental.</p></div></div>
+        <div class="step"><i>5</i><div><strong>Relatório em atraso</strong><p>Se o prazo institucional for ultrapassado, a situação é atualizada automaticamente.</p></div></div>
+        <div class="step"><i>6</i><div><strong>Finalizado</strong><p>O relatório final é vinculado ao protocolo e o chamado é encerrado.</p></div></div>
+      </div>
+    </section>
+  </main>
+
+  <footer>NICE · Núcleo Integrado de Ciência e Extensão · Sistema institucional de protocolos e acompanhamento documental</footer>
+
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
