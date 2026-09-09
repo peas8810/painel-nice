@@ -1,0 +1,50 @@
+name: build docintel v2
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/build_docintel_v2.py'
+      - '.github/workflows/build-docintel-v2.yml'
+      - 'docintel_part1.js'
+      - 'docintel_part2.js'
+      - 'docintel_part3a.js'
+      - 'docintel_part3b.js'
+      - 'docintel_part4.js'
+      - 'docintel_v1.js'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Rebuild documentary intelligence payload
+        run: python scripts/build_docintel_v2.py
+
+      - name: Validate generated JavaScript
+        run: node --check docintel_json_v2.js
+
+      - name: Commit generated assets
+        run: |
+          if git diff --quiet -- index.html docintel_payload_v2.json docintel_json_v2.js; then
+            echo "No generated changes"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html docintel_payload_v2.json docintel_json_v2.js
+          git commit -m "fix: publica Inteligência Documental sem atob [skip ci]"
+          git push
