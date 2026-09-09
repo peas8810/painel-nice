@@ -1,0 +1,82 @@
+name: sync NICE live data
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '*/5 * * * *'
+  push:
+    paths:
+      - '.github/workflows/sync-nice-live.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sync-nice-live
+  cancel-in-progress: true
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Consultar backend NICE
+        shell: bash
+        run: |
+          set -euo pipefail
+          API='https://script.google.com/macros/s/AKfycby2HN1DU9SXupv2WlthavWzXMr5k1RsdpzDL-Dahd9NN2-TvDvEqT-wqMM6F9fP2DnY/exec'
+          curl -fsSL --retry 4 --retry-delay 2 --connect-timeout 15 --max-time 60 "$API?action=health" -o /tmp/health.json
+          curl -fsSL --retry 4 --retry-delay 2 --connect-timeout 15 --max-time 60 "$API?action=stats" -o /tmp/stats.json
+          curl -fsSL --retry 4 --retry-delay 2 --connect-timeout 15 --max-time 90 "$API?action=projects&limit=500" -o /tmp/projects.json
+
+      - name: Validar e gerar cache público
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          from datetime import datetime, timezone
+          from pathlib import Path
+
+          def load(path):
+              with open(path, 'r', encoding='utf-8') as f:
+                  return json.load(f)
+
+          health = load('/tmp/health.json')
+          stats = load('/tmp/stats.json')
+          projects = load('/tmp/projects.json')
+
+          if not health.get('ok'):
+              raise SystemExit('Health check NICE retornou falha')
+          if not stats.get('ok'):
+              raise SystemExit('Stats NICE retornou falha')
+          if not projects.get('ok'):
+              raise SystemExit('Projects NICE retornou falha')
+
+          out = {
+              'ok': True,
+              'synced_at': datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z'),
+              'health': health,
+              'stats': stats,
+              'projects': projects,
+              'source': 'Google Apps Script via GitHub Actions'
+          }
+          Path('protocolos/live-data.json').write_text(
+              json.dumps(out, ensure_ascii=False, separators=(',', ':')) + '\n',
+              encoding='utf-8'
+          )
+          PY
+
+      - name: Publicar somente se houver alteração
+        shell: bash
+        run: |
+          if git diff --quiet -- protocolos/live-data.json; then
+            echo 'Sem alterações na base pública.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add protocolos/live-data.json
+          git commit -m 'chore: sincroniza base pública NICE'
+          git push
