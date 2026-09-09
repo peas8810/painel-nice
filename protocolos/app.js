@@ -26,37 +26,55 @@
     box.innerHTML = `<span>Integração em tempo real</span><strong><i class="${dot}"></i>${esc(title)}</strong><small>${esc(detail)}</small>`;
   }
 
+  // JSONP compatível com Google Apps Script/ContentService.
+  // Usa callback global simples (niceJsonp.cbN), conforme o padrão oficial do Apps Script.
+  window.niceJsonp = window.niceJsonp || {};
+  let jsonpSeq = 0;
   function jsonp(action, params={}){
     return new Promise((resolve,reject)=>{
       if (!API) return reject(new Error('API_NAO_CONFIGURADA'));
-      const cb = '__nice_cb_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+
+      const key = 'cb' + (++jsonpSeq);
+      const callbackName = 'niceJsonp.' + key;
       const url = new URL(API);
       url.searchParams.set('action', action);
-      url.searchParams.set('callback', cb);
-      url.searchParams.set('_', Date.now());
+      url.searchParams.set('callback', callbackName);
       Object.entries(params).forEach(([k,v])=>url.searchParams.set(k,v));
 
       const script = document.createElement('script');
+      script.async = true;
+      script.referrerPolicy = 'no-referrer';
       let done = false;
+
       const cleanup = ()=>{
         if (script.parentNode) script.remove();
-        try { delete window[cb]; } catch (_) { window[cb] = undefined; }
+        try { delete window.niceJsonp[key]; } catch (_) { window.niceJsonp[key] = undefined; }
       };
+
       const timer = setTimeout(()=>{
         if (done) return;
-        done = true; cleanup(); reject(new Error('Tempo limite ao consultar o sistema.'));
-      }, 12000);
+        done = true;
+        cleanup();
+        reject(new Error('Tempo limite ao consultar o sistema.'));
+      }, 15000);
 
-      window[cb] = data => {
+      window.niceJsonp[key] = data => {
         if (done) return;
-        done = true; clearTimeout(timer); cleanup();
+        done = true;
+        clearTimeout(timer);
+        cleanup();
         if (data && data.ok === false) reject(new Error(data.error || 'Falha na consulta.'));
         else resolve(data);
       };
+
       script.onerror = ()=>{
         if (done) return;
-        done = true; clearTimeout(timer); cleanup(); reject(new Error('Não foi possível acessar o backend NICE.'));
+        done = true;
+        clearTimeout(timer);
+        cleanup();
+        reject(new Error('Não foi possível acessar o backend NICE.'));
       };
+
       script.src = url.toString();
       document.head.appendChild(script);
     });
@@ -224,8 +242,9 @@
     try {
       const health = await jsonp('health');
       setBackendState('ok','Sistema conectado',`Base operacional disponível${health?.updated_at ? ' · '+new Date(health.updated_at).toLocaleString('pt-BR') : ''}.`);
-      const [stats] = await Promise.all([jsonp('stats'), carregarProjetos()]);
+      const stats = await jsonp('stats');
       renderStats(stats);
+      await carregarProjetos();
     } catch (err) {
       setBackendState('err','Falha na conexão',err.message || 'Não foi possível consultar o Apps Script.');
     }
