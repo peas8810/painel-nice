@@ -19,6 +19,7 @@
     </div>
     <div class="header-actions">
       <a href="../atual/">Painel Institucional</a>
+      <a href="#acompanhamento">Acompanhar projetos</a>
       <a href="#consulta">Consultar protocolo</a>
     </div>
   </header>
@@ -26,6 +27,7 @@
   <nav class="bar">
     <a class="active" href="#inicio">Início</a>
     <a href="#acoes">Protocolar</a>
+    <a href="#acompanhamento">Acompanhamento</a>
     <a href="#consulta">Consulta</a>
     <a href="#fluxo">Como funciona</a>
   </nav>
@@ -35,7 +37,7 @@
       <div>
         <div class="eyebrow">Gestão documental integrada</div>
         <h2>Um protocolo único acompanha a ação até o encerramento documental.</h2>
-        <p>O sistema foi preparado para transformar cada formalização em um chamado NICE. O chamado permanece aberto durante análise, realização da ação e entrega do relatório final, permitindo rastreabilidade completa e integração com a Inteligência Institucional.</p>
+        <p>O sistema transforma cada formalização em um chamado NICE. O chamado permanece aberto durante análise, realização da ação e entrega do relatório final, permitindo rastreabilidade completa e integração com a Inteligência Institucional.</p>
       </div>
       <div class="statebox" id="backendState">
         <span>Integração em tempo real</span>
@@ -74,10 +76,66 @@
       <div class="kpi green"><span>Finalizados</span><strong id="kClosed">—</strong><small>Ciclo documental concluído</small></div>
     </section>
 
+    <section id="acompanhamento" class="card public-panel">
+      <div class="section-head">
+        <div>
+          <h2>Acompanhamento público dos projetos</h2>
+          <p class="desc">Lista institucional para acompanhamento dos protocolos. São exibidos o código NICE, nome do responsável pela submissão, título da ação, curso/unidade, status e datas de acompanhamento. E-mails, documentos e links internos permanecem privados.</p>
+        </div>
+        <span class="public-badge">Consulta pública</span>
+      </div>
+
+      <div class="project-filters">
+        <div class="field grow">
+          <label for="projectSearch">Pesquisar projeto</label>
+          <input id="projectSearch" type="search" placeholder="Código, nome, título, curso ou unidade">
+        </div>
+        <div class="field">
+          <label for="projectStatus">Status</label>
+          <select id="projectStatus">
+            <option value="">Todos</option>
+            <option value="PROTOCOLADO">Protocolado</option>
+            <option value="EM_ANALISE">Em análise</option>
+            <option value="APROVADO">Aprovado</option>
+            <option value="AGUARDANDO_REALIZACAO">Aguardando realização</option>
+            <option value="AGUARDANDO_RELATORIO">Aguardando relatório</option>
+            <option value="RELATORIO_EM_ATRASO">Relatório em atraso</option>
+            <option value="FINALIZADO">Finalizado</option>
+            <option value="CANCELADO">Cancelado</option>
+          </select>
+        </div>
+        <button id="projectFilterButton" class="btn primary" type="button">Atualizar lista</button>
+      </div>
+
+      <div class="project-meta">
+        <span id="projectCount">Aguardando conexão com a base operacional.</span>
+        <button id="projectClear" class="link-button" type="button">Limpar filtros</button>
+      </div>
+
+      <div class="public-table-wrap">
+        <table class="public-table">
+          <thead>
+            <tr>
+              <th>Protocolo</th>
+              <th>Responsável</th>
+              <th>Título da ação</th>
+              <th>Curso / Unidade</th>
+              <th>Status</th>
+              <th>Protocolado em</th>
+              <th>Data da ação</th>
+            </tr>
+          </thead>
+          <tbody id="projectTableBody">
+            <tr><td colspan="7" class="table-empty">Os projetos aparecerão quando o backend estiver conectado.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
     <section class="grid">
       <div id="consulta" class="card">
         <h2>Consultar protocolo</h2>
-        <p class="desc">Digite o número recebido na formalização. A consulta pública não exibe e-mail, nome do responsável nem links internos do Drive.</p>
+        <p class="desc">Digite o número recebido na formalização para visualizar os detalhes públicos e a situação atual do chamado.</p>
         <div class="search">
           <input id="protocolInput" type="text" maxlength="15" autocomplete="off" spellcheck="false" placeholder="NICE-2026-00001" aria-label="Número do protocolo NICE">
           <button id="searchProtocol" class="btn primary" type="button">Consultar</button>
@@ -91,7 +149,7 @@
         <div id="statusList" class="status-list">
           <div class="result empty">Os dados aparecerão quando o backend estiver conectado.</div>
         </div>
-        <div class="notice">O Google Drive continua sendo o repositório documental. O GitHub Pages funciona como portal e interface pública; dados pessoais e arquivos internos não são publicados no repositório.</div>
+        <div class="notice">O Google Drive continua sendo o repositório documental. O portal publica apenas os dados institucionais definidos para acompanhamento; e-mails, arquivos e links internos do Drive não são expostos.</div>
       </div>
     </section>
 
