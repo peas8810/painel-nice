@@ -2,6 +2,8 @@ name: sync NICE live data
 
 on:
   workflow_dispatch:
+  repository_dispatch:
+    types: [nice-sync]
   schedule:
     - cron: '*/5 * * * *'
   push:
@@ -22,14 +24,22 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Contexto da sincronização
+        shell: bash
+        run: |
+          echo "Evento: ${{ github.event_name }}"
+          echo "Motivo: ${{ github.event.client_payload.reason || 'agendado/manual' }}"
+          echo "Protocolo: ${{ github.event.client_payload.id || 'n/a' }}"
+
       - name: Consultar backend NICE
         shell: bash
         run: |
           set -euo pipefail
           API='https://script.google.com/macros/s/AKfycby2HN1DU9SXupv2WlthavWzXMr5k1RsdpzDL-Dahd9NN2-TvDvEqT-wqMM6F9fP2DnY/exec'
-          curl -fsSL --retry 4 --retry-delay 2 --connect-timeout 15 --max-time 60 "$API?action=health" -o /tmp/health.json
-          curl -fsSL --retry 4 --retry-delay 2 --connect-timeout 15 --max-time 60 "$API?action=stats" -o /tmp/stats.json
-          curl -fsSL --retry 4 --retry-delay 2 --connect-timeout 15 --max-time 90 "$API?action=projects&limit=500" -o /tmp/projects.json
+          BUST="$(date +%s%N)"
+          curl -fsSL --retry 4 --retry-delay 2 --connect-timeout 15 --max-time 60 "$API?action=health&_=$BUST" -o /tmp/health.json
+          curl -fsSL --retry 4 --retry-delay 2 --connect-timeout 15 --max-time 60 "$API?action=stats&_=$BUST" -o /tmp/stats.json
+          curl -fsSL --retry 4 --retry-delay 2 --connect-timeout 15 --max-time 90 "$API?action=projects&limit=500&_=$BUST" -o /tmp/projects.json
 
       - name: Validar e gerar cache público
         shell: bash
@@ -80,5 +90,3 @@ jobs:
           git add protocolos/live-data.json
           git commit -m 'chore: sincroniza base pública NICE'
           git push
-
-# toque técnico 2026-09-09: força sincronização imediata após homologação do protocolo 00002
