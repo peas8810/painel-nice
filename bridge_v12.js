@@ -1,6 +1,18 @@
 (()=>{
   if(window.__NICE_BRIDGE_V12)return;
   window.__NICE_BRIDGE_V12=true;
+
+  // Link permanente para o novo Sistema de Protocolos, sem interferir nas abas do painel.
+  const nav=document.querySelector('.tabs');
+  if(nav&&!document.getElementById('nice-protocolos-link')){
+    const a=document.createElement('a');
+    a.id='nice-protocolos-link';
+    a.href='protocolos/';
+    a.textContent='Protocolos';
+    a.style='border:0;background:#17365d;padding:10px 16px;border-radius:9px;font-weight:700;color:#fff;cursor:pointer;text-decoration:none;font:700 14px Segoe UI,Arial,sans-serif';
+    nav.appendChild(a);
+  }
+
   const show=msg=>{
     console.error(msg);
     let b=document.getElementById('nice-runtime-error');
@@ -21,9 +33,9 @@
       if(raw.n!==1320||raw.rn!==379||!raw.p||!raw.r)throw new Error('base incompleta');
       if(window.__NICE_UI_STARTED)return;
       const s=document.createElement('script');
-      s.src='dashboard_v12.js?v=12';
-      s.onload=()=>console.info('NICE: dashboard v12 carregado');
-      s.onerror=()=>show('Não foi possível carregar dashboard_v12.js.');
+      s.src='dashboard_v12.js?ts='+Date.now();
+      s.onload=()=>console.info('NICE: dashboard carregado');
+      s.onerror=()=>show('Não foi possível carregar o dashboard institucional.');
       document.body.appendChild(s);
     }catch(err){
       if(tries++<300){setTimeout(boot,50);return}
