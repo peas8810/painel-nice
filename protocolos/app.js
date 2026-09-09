@@ -26,26 +26,41 @@
     box.innerHTML = `<span>Integração em tempo real</span><strong><i class="${dot}"></i>${esc(title)}</strong><small>${esc(detail)}</small>`;
   }
 
-  // JSONP para Google Apps Script usando callback GLOBAL SIMPLES.
-  // O Apps Script foi validado manualmente com callback=teste; por isso evitamos
-  // nomes com ponto/namespace e reproduzimos exatamente esse padrão no portal.
-  let jsonpSeq = 0;
-  function jsonp(action, params={}){
+  // Transporte robusto para Google Apps Script.
+  // O endpoint é carregado em iframe invisível e devolve os dados via postMessage.
+  // Isso evita o bloqueio que alguns navegadores aplicam ao redirect do ContentService
+  // quando a resposta é carregada diretamente como <script> em outro domínio.
+  let requestSeq = 0;
+  function apiRequest(action, params={}){
     return new Promise((resolve,reject)=>{
       if (!API) return reject(new Error('API não configurada.'));
 
-      const cb = 'niceportalcb' + Date.now() + (++jsonpSeq);
+      const requestId = 'nice_' + Date.now() + '_' + (++requestSeq) + '_' + Math.random().toString(36).slice(2,9);
       const sep = API.includes('?') ? '&' : '?';
-      const query = new URLSearchParams({action, callback: cb, _: String(Date.now())});
+      const query = new URLSearchParams({
+        action,
+        transport:'bridge',
+        request_id:requestId,
+        _:String(Date.now())
+      });
       Object.entries(params).forEach(([k,v])=>query.set(k,String(v ?? '')));
 
-      const script = document.createElement('script');
-      script.async = true;
-      let done = false;
+      const iframe = document.createElement('iframe');
+      iframe.setAttribute('aria-hidden','true');
+      iframe.tabIndex = -1;
+      iframe.style.position = 'fixed';
+      iframe.style.left = '-9999px';
+      iframe.style.top = '-9999px';
+      iframe.style.width = '1px';
+      iframe.style.height = '1px';
+      iframe.style.border = '0';
+      iframe.style.opacity = '0';
+      iframe.src = API + sep + query.toString();
 
+      let done = false;
       const cleanup = ()=>{
-        if (script.parentNode) script.parentNode.removeChild(script);
-        try { delete window[cb]; } catch (_) { window[cb] = undefined; }
+        window.removeEventListener('message', onMessage);
+        if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
       };
 
       const timer = setTimeout(()=>{
@@ -53,27 +68,22 @@
         done = true;
         cleanup();
         reject(new Error('Tempo limite ao consultar o backend NICE.'));
-      }, 20000);
+      }, 25000);
 
-      window[cb] = data => {
+      const onMessage = event => {
+        const data = event && event.data;
+        if (!data || data.source !== 'NICE_API_BRIDGE' || data.request_id !== requestId) return;
         if (done) return;
         done = true;
         clearTimeout(timer);
         cleanup();
-        if (data && data.ok === false) reject(new Error(data.error || 'Falha na consulta.'));
-        else resolve(data);
+        const payload = data.payload;
+        if (payload && payload.ok === false) reject(new Error(payload.error || 'Falha na consulta.'));
+        else resolve(payload);
       };
 
-      script.onerror = ()=>{
-        if (done) return;
-        done = true;
-        clearTimeout(timer);
-        cleanup();
-        reject(new Error('O navegador não conseguiu carregar a resposta do Apps Script.'));
-      };
-
-      script.src = API + sep + query.toString();
-      document.head.appendChild(script);
+      window.addEventListener('message', onMessage);
+      document.body.appendChild(iframe);
     });
   }
 
@@ -166,7 +176,7 @@
     }
     if (body) body.innerHTML = '<tr><td colspan="7" class="table-empty">Atualizando projetos…</td></tr>';
     try {
-      const data = await jsonp('projects',{q,status,limit:500});
+      const data = await apiRequest('projects',{q,status,limit:500});
       renderProjects(data);
     } catch (err) {
       if (body) body.innerHTML = `<tr><td colspan="7" class="table-empty error-text">${esc(err.message || 'Falha ao carregar os projetos.')}</td></tr>`;
@@ -223,7 +233,7 @@
     }
     if (target) { target.className='result empty'; target.textContent='Consultando protocolo…'; }
     try {
-      const data = await jsonp('protocol', {id});
+      const data = await apiRequest('protocol', {id});
       renderProtocol(data.protocol || null);
     } catch (err) {
       if (target) { target.className='result empty'; target.textContent=err.message || 'Falha ao consultar protocolo.'; }
@@ -237,9 +247,9 @@
       return;
     }
     try {
-      const health = await jsonp('health');
+      const health = await apiRequest('health');
       setBackendState('ok','Sistema conectado',`Base operacional disponível${health?.updated_at ? ' · '+new Date(health.updated_at).toLocaleString('pt-BR') : ''}.`);
-      const stats = await jsonp('stats');
+      const stats = await apiRequest('stats');
       renderStats(stats);
       await carregarProjetos();
     } catch (err) {
@@ -269,7 +279,7 @@
   if (API && Number(C.REFRESH_SECONDS) > 0) {
     setInterval(async()=>{
       try {
-        renderStats(await jsonp('stats'));
+        renderStats(await apiRequest('stats'));
         await carregarProjetos();
       } catch (_) {}
     }, Number(C.REFRESH_SECONDS)*1000);
