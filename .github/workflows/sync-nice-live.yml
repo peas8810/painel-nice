@@ -80,3 +80,5 @@ jobs:
           git add protocolos/live-data.json
           git commit -m 'chore: sincroniza base pública NICE'
           git push
+
+# toque técnico 2026-09-09: força sincronização imediata após homologação do protocolo 00002
