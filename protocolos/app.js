@@ -26,39 +26,36 @@
     box.innerHTML = `<span>Integração em tempo real</span><strong><i class="${dot}"></i>${esc(title)}</strong><small>${esc(detail)}</small>`;
   }
 
-  // JSONP compatível com Google Apps Script/ContentService.
-  // Usa callback global simples (niceJsonp.cbN), conforme o padrão oficial do Apps Script.
-  window.niceJsonp = window.niceJsonp || {};
+  // JSONP para Google Apps Script usando callback GLOBAL SIMPLES.
+  // O Apps Script foi validado manualmente com callback=teste; por isso evitamos
+  // nomes com ponto/namespace e reproduzimos exatamente esse padrão no portal.
   let jsonpSeq = 0;
   function jsonp(action, params={}){
     return new Promise((resolve,reject)=>{
-      if (!API) return reject(new Error('API_NAO_CONFIGURADA'));
+      if (!API) return reject(new Error('API não configurada.'));
 
-      const key = 'cb' + (++jsonpSeq);
-      const callbackName = 'niceJsonp.' + key;
-      const url = new URL(API);
-      url.searchParams.set('action', action);
-      url.searchParams.set('callback', callbackName);
-      Object.entries(params).forEach(([k,v])=>url.searchParams.set(k,v));
+      const cb = 'niceportalcb' + Date.now() + (++jsonpSeq);
+      const sep = API.includes('?') ? '&' : '?';
+      const query = new URLSearchParams({action, callback: cb, _: String(Date.now())});
+      Object.entries(params).forEach(([k,v])=>query.set(k,String(v ?? '')));
 
       const script = document.createElement('script');
       script.async = true;
-      script.referrerPolicy = 'no-referrer';
       let done = false;
 
       const cleanup = ()=>{
-        if (script.parentNode) script.remove();
-        try { delete window.niceJsonp[key]; } catch (_) { window.niceJsonp[key] = undefined; }
+        if (script.parentNode) script.parentNode.removeChild(script);
+        try { delete window[cb]; } catch (_) { window[cb] = undefined; }
       };
 
       const timer = setTimeout(()=>{
         if (done) return;
         done = true;
         cleanup();
-        reject(new Error('Tempo limite ao consultar o sistema.'));
-      }, 15000);
+        reject(new Error('Tempo limite ao consultar o backend NICE.'));
+      }, 20000);
 
-      window.niceJsonp[key] = data => {
+      window[cb] = data => {
         if (done) return;
         done = true;
         clearTimeout(timer);
@@ -72,10 +69,10 @@
         done = true;
         clearTimeout(timer);
         cleanup();
-        reject(new Error('Não foi possível acessar o backend NICE.'));
+        reject(new Error('O navegador não conseguiu carregar a resposta do Apps Script.'));
       };
 
-      script.src = url.toString();
+      script.src = API + sep + query.toString();
       document.head.appendChild(script);
     });
   }
