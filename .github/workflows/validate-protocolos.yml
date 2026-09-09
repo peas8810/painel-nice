@@ -1,0 +1,38 @@
+name: validate protocolos
+
+on:
+  push:
+    paths:
+      - 'protocolos/**'
+      - 'apps-script/**'
+      - '.github/workflows/validate-protocolos.yml'
+  pull_request:
+    paths:
+      - 'protocolos/**'
+      - 'apps-script/**'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate browser JavaScript
+        run: |
+          node --check protocolos/app.js
+          node --check protocolos/config.js
+      - name: Validate Apps Script syntax
+        run: |
+          cp apps-script/SistemaNICE.gs /tmp/SistemaNICE.js
+          cp apps-script/WebAppNICE.gs /tmp/WebAppNICE.js
+          node --check /tmp/SistemaNICE.js
+          node --check /tmp/WebAppNICE.js
+      - name: Validate required portal files
+        run: |
+          test -s protocolos/index.html
+          test -s protocolos/styles.css
+          grep -q 'NICE-2026-00001' protocolos/index.html
+          grep -q 'FORM_PROTOCOLO_URL' protocolos/config.js
+          grep -q 'FORM_RELATORIO_URL' protocolos/config.js
