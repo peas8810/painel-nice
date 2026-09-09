@@ -8,6 +8,8 @@ const NICE_API = Object.freeze({
 function doGet(e) {
   const p = (e && e.parameter) || {};
   const action = String(p.action || 'health').toLowerCase();
+  const transport = String(p.transport || '').toLowerCase();
+
   try {
     let payload;
     if (action === 'health') payload = niceApiHealth_();
@@ -15,15 +17,26 @@ function doGet(e) {
     else if (action === 'protocol') payload = niceApiProtocol_(String(p.id || '').toUpperCase());
     else if (action === 'projects') payload = niceApiProjects_(String(p.q || ''), String(p.status || ''), Number(p.limit || NICE_API.PUBLIC_LIST_LIMIT));
     else payload = {ok:false,error:'Ação não reconhecida.'};
+
+    if (transport === 'bridge') return niceApiBridgeOutput_(payload, p.request_id);
     return niceApiOutput_(payload, p.callback);
   } catch (err) {
-    return niceApiOutput_({ok:false,error:'Falha interna da API NICE.'}, p.callback);
+    const payload = {ok:false,error:'Falha interna da API NICE.'};
+    if (transport === 'bridge') return niceApiBridgeOutput_(payload, p.request_id);
+    return niceApiOutput_(payload, p.callback);
   }
 }
 
 function niceApiHealth_() {
   const sh = niceApiSheet_();
-  return {ok:true,service:'NICE Protocolos',version:'1.1',rows:Math.max(0,sh.getLastRow()-1),updated_at:new Date().toISOString()};
+  return {
+    ok:true,
+    service:'NICE Protocolos',
+    version:'1.2',
+    rows:Math.max(0,sh.getLastRow()-1),
+    updated_at:new Date().toISOString(),
+    transport:'bridge'
+  };
 }
 
 function niceApiStats_() {
@@ -167,6 +180,33 @@ function niceApiSafePublicUrl_(v) {
 function niceApiOutput_(obj,callback) {
   const json=JSON.stringify(obj);
   const cb=String(callback||'').trim();
-  if (cb&&/^[A-Za-z_$][A-Za-z0-9_$.]*$/.test(cb)) return ContentService.createTextOutput(cb+'('+json+');').setMimeType(ContentService.MimeType.JAVASCRIPT);
+  if (cb&&/^[A-Za-z_$][A-Za-z0-9_$.]*$/.test(cb)) {
+    return ContentService.createTextOutput(cb+'('+json+');').setMimeType(ContentService.MimeType.JAVASCRIPT);
+  }
   return ContentService.createTextOutput(json).setMimeType(ContentService.MimeType.JSON);
+}
+
+/**
+ * Transporte alternativo para páginas estáticas (GitHub Pages).
+ * O Web App é carregado em um iframe invisível e envia a resposta ao portal
+ * através de window.postMessage. Isso evita as restrições de carregamento
+ * de subrecursos do redirect do ContentService em alguns navegadores.
+ */
+function niceApiBridgeOutput_(obj, requestId) {
+  const rid = String(requestId || '').replace(/[^A-Za-z0-9_-]/g,'').slice(0,120);
+  const safeJson = JSON.stringify(obj)
+    .replace(/</g,'\\u003c')
+    .replace(/>/g,'\\u003e')
+    .replace(/&/g,'\\u0026');
+  const ridJson = JSON.stringify(rid);
+
+  const html = '<!doctype html><html><head><meta charset="utf-8"></head><body>' +
+    '<script>(function(){' +
+    'var message={source:"NICE_API_BRIDGE",request_id:' + ridJson + ',payload:' + safeJson + '};' +
+    'try{window.parent.postMessage(message,"*");}catch(e){}' +
+    'try{if(window.top!==window.parent){window.top.postMessage(message,"*");}}catch(e){}' +
+    '})();<\\/script></body></html>';
+
+  return HtmlService.createHtmlOutput(html)
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
