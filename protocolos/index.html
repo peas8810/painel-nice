@@ -5,92 +5,127 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="description" content="Sistema NICE de protocolos, acompanhamento de ações e relatórios finais da AlfaUnipac.">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta name="theme-color" content="#17365d">
   <title>NICE | Sistema de Protocolos</title>
   <script>document.write('<link rel="stylesheet" href="styles.css?ts='+Date.now()+'">')</script>
 </head>
 <body>
+  <a class="skip-link" href="#conteudo">Ir para o conteúdo</a>
+
   <header class="top">
-    <div class="brand">
-      <div class="logo">N</div>
-      <div>
-        <h1>NICE · Sistema de Protocolos</h1>
-        <p>AlfaUnipac · Gestão de formalização, execução e relatório final</p>
+    <div class="top-inner">
+      <div class="brand">
+        <div class="logo" aria-hidden="true">N</div>
+        <div>
+          <h1>NICE · Sistema de Protocolos</h1>
+          <p>AlfaUnipac · Gestão de formalização, execução e relatório final</p>
+        </div>
       </div>
-    </div>
-    <div class="header-actions">
-      <a href="../atual/">Painel Institucional</a>
-      <a href="#acompanhamento">Acompanhar projetos</a>
-      <a href="#consulta">Consultar protocolo</a>
+      <div class="header-actions" aria-label="Acessos rápidos">
+        <a href="../atual/">Painel Institucional</a>
+        <a href="#acompanhamento">Acompanhar projetos</a>
+        <a href="#consulta">Consultar protocolo</a>
+      </div>
     </div>
   </header>
 
-  <nav class="bar">
-    <a class="active" href="#inicio">Início</a>
-    <a href="#acoes">Protocolar</a>
-    <a href="#acompanhamento">Acompanhamento</a>
-    <a href="#consulta">Consulta</a>
-    <a href="#fluxo">Como funciona</a>
+  <nav class="bar" aria-label="Navegação principal">
+    <div class="bar-inner">
+      <a class="active" href="#inicio">Início</a>
+      <a href="#acoes">Protocolar</a>
+      <a href="#acompanhamento">Acompanhamento</a>
+      <a href="#consulta">Consulta</a>
+      <a href="#fluxo">Como funciona</a>
+    </div>
   </nav>
 
-  <main>
+  <main id="conteudo">
     <section id="inicio" class="hero">
-      <div>
+      <div class="hero-copy">
         <div class="eyebrow">Gestão documental integrada</div>
-        <h2>Um protocolo único acompanha a ação até o encerramento documental.</h2>
-        <p>O sistema transforma cada formalização em um chamado NICE. O chamado permanece aberto durante análise, realização da ação e entrega do relatório final, permitindo rastreabilidade completa e integração com a Inteligência Institucional.</p>
+        <h2>Um protocolo único acompanha cada ação até o encerramento documental.</h2>
+        <p>Formalize, acompanhe e encerre projetos, eventos e ações institucionais em um único fluxo, com rastreabilidade do protocolo ao relatório final.</p>
+        <div class="hero-meta" aria-label="Principais características">
+          <span>Protocolo único</span>
+          <span>Rastreabilidade</span>
+          <span>Atualização automática</span>
+        </div>
       </div>
-      <div class="statebox" id="backendState">
-        <span>Integração em tempo real</span>
+      <div class="statebox" id="backendState" aria-live="polite">
+        <span>Integração operacional</span>
         <strong><i class="dot"></i>Verificando sistema…</strong>
         <small>Consultando a disponibilidade da camada operacional.</small>
       </div>
     </section>
 
-    <section id="acoes" class="actions">
-      <article class="action-card">
+    <section id="acoes" class="actions" aria-label="Principais ações">
+      <article class="action-card action-primary">
         <div class="num">1</div>
-        <h3>Formalizar nova ação</h3>
-        <p>Registre projeto, evento, atividade extensionista ou outra ação institucional. Após o envio, o Apps Script gera o número NICE e abre o chamado.</p>
+        <div class="action-content">
+          <h3>Formalizar nova ação</h3>
+          <p>Registre projeto, evento, atividade extensionista ou outra ação institucional. Ao enviar, o sistema gera o número NICE e abre o chamado.</p>
+        </div>
         <a id="formProtocol" class="btn primary" target="_blank" rel="noopener">Abrir formulário de formalização</a>
       </article>
 
-      <article class="action-card">
+      <article class="action-card action-report">
         <div class="num">2</div>
-        <h3>Enviar relatório final</h3>
-        <p>O relatório será vinculado ao protocolo NICE correspondente. Quando validado, o chamado é encerrado e passa a integrar os indicadores institucionais.</p>
+        <div class="action-content">
+          <h3>Enviar relatório final</h3>
+          <p>Vincule o relatório ao protocolo NICE correspondente. Após a validação, o chamado é encerrado e passa a integrar os indicadores institucionais.</p>
+        </div>
         <a id="formReport" class="btn orange" target="_blank" rel="noopener">Abrir formulário de relatório</a>
       </article>
 
-      <article class="action-card">
+      <article class="action-card action-insights">
         <div class="num">3</div>
-        <h3>Inteligência Institucional</h3>
-        <p>Acompanhe volume de ações, cobertura documental, alcance comunitário, Inteligência Documental e demais indicadores consolidados do NICE.</p>
+        <div class="action-content">
+          <h3>Inteligência Institucional</h3>
+          <p>Acompanhe volume de ações, cobertura documental, alcance comunitário, Inteligência Documental e demais indicadores consolidados do NICE.</p>
+        </div>
         <a id="panelLink" class="btn ghost">Abrir painel institucional</a>
       </article>
     </section>
 
     <section class="kpis" aria-label="Indicadores operacionais">
-      <div class="kpi"><span>Chamados abertos</span><strong id="kOpen">—</strong><small>Protocolos ainda não encerrados</small></div>
-      <div class="kpi orange"><span>Aguardando relatório</span><strong id="kWaiting">—</strong><small>Ações realizadas sem relatório final</small></div>
-      <div class="kpi red"><span>Relatórios em atraso</span><strong id="kLate">—</strong><small>Prazo documental ultrapassado</small></div>
-      <div class="kpi green"><span>Finalizados</span><strong id="kClosed">—</strong><small>Ciclo documental concluído</small></div>
+      <div class="kpi">
+        <div class="kpi-head"><span>Chamados abertos</span><i class="kpi-dot blue"></i></div>
+        <strong id="kOpen">—</strong>
+        <small>Protocolos ainda não encerrados</small>
+      </div>
+      <div class="kpi orange">
+        <div class="kpi-head"><span>Aguardando relatório</span><i class="kpi-dot orange"></i></div>
+        <strong id="kWaiting">—</strong>
+        <small>Ações realizadas sem relatório final</small>
+      </div>
+      <div class="kpi red">
+        <div class="kpi-head"><span>Relatórios em atraso</span><i class="kpi-dot red"></i></div>
+        <strong id="kLate">—</strong>
+        <small>Prazo documental ultrapassado</small>
+      </div>
+      <div class="kpi green">
+        <div class="kpi-head"><span>Finalizados</span><i class="kpi-dot green"></i></div>
+        <strong id="kClosed">—</strong>
+        <small>Ciclo documental concluído</small>
+      </div>
     </section>
 
     <section id="acompanhamento" class="card public-panel">
       <div class="section-head">
         <div>
+          <div class="section-kicker">Transparência institucional</div>
           <h2>Acompanhamento público dos projetos</h2>
-          <p class="desc">Lista institucional para acompanhamento dos protocolos. São exibidos o código NICE, nome do responsável pela submissão, título da ação, curso/unidade, status e datas de acompanhamento. E-mails, documentos e links internos permanecem privados.</p>
+          <p class="desc">Consulte protocolos por código, responsável, título, curso, unidade ou status. E-mails, documentos e links internos permanecem privados.</p>
         </div>
         <span class="public-badge">Consulta pública</span>
       </div>
 
-      <div class="project-filters">
+      <div class="project-filters" role="search" aria-label="Filtros de projetos">
         <div class="field grow">
           <label for="projectSearch">Pesquisar projeto</label>
-          <input id="projectSearch" type="search" placeholder="Código, nome, título, curso ou unidade">
+          <input id="projectSearch" type="search" placeholder="Código, responsável, título, curso ou unidade" autocomplete="off">
         </div>
-        <div class="field">
+        <div class="field status-field">
           <label for="projectStatus">Status</label>
           <select id="projectStatus">
             <option value="">Todos</option>
@@ -108,11 +143,11 @@
       </div>
 
       <div class="project-meta">
-        <span id="projectCount">Aguardando conexão com a base operacional.</span>
+        <span id="projectCount" aria-live="polite">Aguardando conexão com a base operacional.</span>
         <button id="projectClear" class="link-button" type="button">Limpar filtros</button>
       </div>
 
-      <div class="public-table-wrap">
+      <div class="public-table-wrap" tabindex="0" aria-label="Tabela de acompanhamento público">
         <table class="public-table">
           <thead>
             <tr>
@@ -132,42 +167,52 @@
       </div>
     </section>
 
-    <section class="grid">
-      <div id="consulta" class="card">
+    <section class="grid utility-grid">
+      <div id="consulta" class="card consult-card">
+        <div class="section-kicker">Consulta individual</div>
         <h2>Consultar protocolo</h2>
-        <p class="desc">Digite o número recebido na formalização para visualizar os detalhes públicos e a situação atual do chamado.</p>
+        <p class="desc">Digite o número NICE recebido na formalização para visualizar a situação atual e os dados públicos do chamado.</p>
         <div class="search">
           <input id="protocolInput" type="text" maxlength="15" autocomplete="off" spellcheck="false" placeholder="NICE-2026-00001" aria-label="Número do protocolo NICE">
           <button id="searchProtocol" class="btn primary" type="button">Consultar</button>
         </div>
-        <div id="protocolResult" class="result empty">Informe um protocolo para visualizar a situação do chamado.</div>
+        <div id="protocolResult" class="result empty" aria-live="polite">Informe um protocolo para visualizar a situação do chamado.</div>
       </div>
 
-      <div class="card">
+      <div class="card status-card">
+        <div class="section-kicker">Monitoramento</div>
         <h2>Situação da base operacional</h2>
         <p class="desc">Distribuição dos chamados pelo estágio atual do processo.</p>
-        <div id="statusList" class="status-list">
+        <div id="statusList" class="status-list" aria-live="polite">
           <div class="result empty">Os dados aparecerão quando o backend estiver conectado.</div>
         </div>
-        <div class="notice">O Google Drive continua sendo o repositório documental. O portal publica apenas os dados institucionais definidos para acompanhamento; e-mails, arquivos e links internos do Drive não são expostos.</div>
+        <div class="notice">O Google Drive permanece como repositório documental. O portal publica somente dados institucionais definidos para acompanhamento.</div>
       </div>
     </section>
 
-    <section id="fluxo" class="card">
-      <h2>Ciclo do protocolo NICE</h2>
-      <p class="desc">O encerramento ocorre apenas após o relatório final correspondente.</p>
+    <section id="fluxo" class="card process-card">
+      <div class="section-head compact">
+        <div>
+          <div class="section-kicker">Fluxo institucional</div>
+          <h2>Ciclo do protocolo NICE</h2>
+          <p class="desc">O chamado permanece aberto até a vinculação do relatório final correspondente.</p>
+        </div>
+      </div>
       <div class="timeline">
-        <div class="step"><i>1</i><div><strong>Protocolado</strong><p>O Google Forms registra a formalização e o sistema gera um identificador único, como NICE-2026-00001.</p></div></div>
-        <div class="step"><i>2</i><div><strong>Em análise</strong><p>O NICE confere a formalização e pode solicitar ajustes antes da aprovação.</p></div></div>
+        <div class="step"><i>1</i><div><strong>Protocolado</strong><p>O formulário registra a formalização e o sistema gera um identificador único.</p></div></div>
+        <div class="step"><i>2</i><div><strong>Em análise</strong><p>O NICE confere as informações e pode solicitar ajustes antes da aprovação.</p></div></div>
         <div class="step"><i>3</i><div><strong>Aprovado / aguardando realização</strong><p>O projeto permanece aberto até a data prevista da atividade.</p></div></div>
-        <div class="step"><i>4</i><div><strong>Aguardando relatório</strong><p>Após a realização, inicia-se o acompanhamento do prazo para entrega documental.</p></div></div>
-        <div class="step"><i>5</i><div><strong>Relatório em atraso</strong><p>Se o prazo institucional for ultrapassado, a situação é atualizada automaticamente.</p></div></div>
+        <div class="step"><i>4</i><div><strong>Aguardando relatório</strong><p>Após a realização, inicia-se o acompanhamento do prazo documental.</p></div></div>
+        <div class="step"><i>5</i><div><strong>Relatório em atraso</strong><p>Se o prazo for ultrapassado, a situação é atualizada automaticamente.</p></div></div>
         <div class="step"><i>6</i><div><strong>Finalizado</strong><p>O relatório final é vinculado ao protocolo e o chamado é encerrado.</p></div></div>
       </div>
     </section>
   </main>
 
-  <footer>NICE · Núcleo Integrado de Ciência e Extensão · Sistema institucional de protocolos e acompanhamento documental</footer>
+  <footer>
+    <div>NICE · Núcleo Integrado de Ciência e Extensão</div>
+    <span>Sistema institucional de protocolos e acompanhamento documental</span>
+  </footer>
 
   <script>document.write('<script src="config.js?ts='+Date.now()+'"><\/script>')</script>
   <script>document.write('<script src="app.js?ts='+Date.now()+'"><\/script>')</script>
