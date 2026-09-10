@@ -3,7 +3,7 @@ const NICE = Object.freeze({
   RELATORIO_SPREADSHEET_ID:'1M6I6Wc1d0IehylAbQ1Equ-NJ1_jZrwRhowuWZ6roBJk',
   CONTROLE:'CONTROLE_NICE', CONFIG:'CONFIG_NICE', HISTORICO:'HISTORICO_NICE', LOG:'LOG_NICE', PREFIXO:'NICE',
   STATUS:['PROTOCOLADO','EM_ANALISE','APROVADO','AGUARDANDO_REALIZACAO','AGUARDANDO_RELATORIO','RELATORIO_EM_ATRASO','FINALIZADO','CANCELADO'],
-  HEADERS:['ID_NICE','STATUS','DATA_PROTOCOLO','TIPO_ACAO','CURSO','UNIDADE','RESPONSAVEL','EMAIL','TITULO_ACAO','DATA_INICIO','DATA_FIM','PRAZO_RELATORIO','DATA_RELATORIO','DATA_ENCERRAMENTO','DIAS_PENDENTE','ENCERRADO','LINK_PASTA','LINK_PROTOCOLO','LINK_RELATORIO','LINK_FORM_RELATORIO','PLANILHA_ORIGEM','ABA_ORIGEM','LINHA_ORIGEM','ULTIMA_ATUALIZACAO','OBSERVACOES']
+  HEADERS:['ID_NICE','STATUS','DATA_PROTOCOLO','TIPO_ACAO','CURSO','UNIDADE','AUDITORIO','RESPONSAVEL','EMAIL','TITULO_ACAO','DATA_INICIO','DATA_FIM','PRAZO_RELATORIO','DATA_RELATORIO','DATA_ENCERRAMENTO','DIAS_PENDENTE','ENCERRADO','LINK_PASTA','LINK_PROTOCOLO','LINK_RELATORIO','LINK_FORM_RELATORIO','PLANILHA_ORIGEM','ABA_ORIGEM','LINHA_ORIGEM','ULTIMA_ATUALIZACAO','OBSERVACOES']
 });
 
 function onOpen(){
@@ -61,7 +61,14 @@ function onProtocolFormSubmit(e){
     const id=niceGenerateId_(stamp.getFullYear());
     const tipo=niceValue_(d,['Defina qual o tipo do evento','Tipo do evento','Tipo de evento','Tipo da ação','Tipo da atividade']);
     const curso=niceValue_(d,['Curso','Cursos','Qual curso','Curso(s)','Curso responsável']);
-    const unidade=niceValue_(d,['Unidade','Campus','Unidade/campus','Polo']);
+    const unidade=niceValue_(d,['Campus / Unidade','Campus/Unidade','Unidade','Campus','Unidade/campus','Polo']);
+    const auditorio=niceValue_(d,[
+      'Vai utilizar laboratórios do Prédio Neide Pimenta e/ou Auditório do campus de Teófilo Otoni?',
+      'Vai utilizar laboratórios do Prédio Neide Pimenta e/ou Auditório do campus?',
+      'Vai precisar de auditório?',
+      'Precisa de auditório?',
+      'Auditório'
+    ]);
     const responsavel=niceValue_(d,['Professor responsável','Responsável','Nome do responsável','Coordenador responsável','Docente','Nome completo']);
     const email=niceEmail_(d);
     const titulo=niceValue_(d,['Identificação do evento','Identificação do projeto','Nome do evento','Nome do projeto','Título do evento','Título da ação','Tema do evento','Tema','Título'])||tipo||'Ação institucional';
@@ -73,7 +80,7 @@ function onProtocolFormSubmit(e){
     niceWriteHelper_(sh,row,'ID_NICE',id); niceWriteHelper_(sh,row,'STATUS_NICE','PROTOCOLADO');
     niceWriteHelper_(sh,row,'LINK_PASTA_NICE',folder.url||''); niceWriteHelper_(sh,row,'LINK_RELATORIO_NICE',reportUrl||'');
     niceAppend_(niceControl_(),{
-      ID_NICE:id,STATUS:'PROTOCOLADO',DATA_PROTOCOLO:stamp,TIPO_ACAO:tipo,CURSO:curso,UNIDADE:unidade,RESPONSAVEL:responsavel,EMAIL:email,TITULO_ACAO:titulo,
+      ID_NICE:id,STATUS:'PROTOCOLADO',DATA_PROTOCOLO:stamp,TIPO_ACAO:tipo,CURSO:curso,UNIDADE:unidade,AUDITORIO:auditorio,RESPONSAVEL:responsavel,EMAIL:email,TITULO_ACAO:titulo,
       DATA_INICIO:inicio||'',DATA_FIM:fim||'',PRAZO_RELATORIO:prazo,ENCERRADO:'NAO',LINK_PASTA:folder.url||'',LINK_FORM_RELATORIO:reportUrl||'',PLANILHA_ORIGEM:NICE.FORMALIZACAO_SPREADSHEET_ID,ABA_ORIGEM:sh.getName(),LINHA_ORIGEM:row,ULTIMA_ATUALIZACAO:new Date()
     });
     niceHistory_(id,'','PROTOCOLADO','FORMULARIO_PROTOCOLO','Chamado criado automaticamente.');
@@ -133,24 +140,27 @@ function niceGenerateId_(year){const lock=LockService.getScriptLock();lock.waitL
 function niceMaster_(){return SpreadsheetApp.openById(NICE.FORMALIZACAO_SPREADSHEET_ID)}
 function niceControl_(){const sh=niceMaster_().getSheetByName(NICE.CONTROLE);if(!sh)throw new Error('Execute instalarEstruturaNICE().');return sh}
 function niceSheet_(ss,n,heads){let sh=ss.getSheetByName(n)||ss.insertSheet(n);if(sh.getLastRow()===0)sh.getRange(1,1,1,heads.length).setValues([heads]);else{const now=sh.getRange(1,1,1,sh.getLastColumn()).getDisplayValues()[0];heads.forEach(h=>{if(!now.includes(h)){sh.getRange(1,sh.getLastColumn()+1).setValue(h);now.push(h)}})}sh.setFrozenRows(1);sh.getRange(1,1,1,sh.getLastColumn()).setFontWeight('bold');return sh}
-function nicePutConfig_(sh,rows){const ex={};if(sh.getLastRow()>=2)sh.getRange(2,1,sh.getLastRow()-1,1).getDisplayValues().flat().forEach(x=>ex[x]=1);rows.forEach(x=>{if(!ex[x[0]])sh.appendRow(x)})}
-function niceConfig_(key,fallback){const sh=niceMaster_().getSheetByName(NICE.CONFIG);if(!sh||sh.getLastRow()<2)return fallback;for(const [k,v] of sh.getRange(2,1,sh.getLastRow()-1,2).getDisplayValues())if(k===key)return v||fallback;return fallback}
-function niceBool_(key,f){const v=niceNorm_(niceConfig_(key,f?'SIM':'NAO'));return ['sim','true','1','yes'].includes(v)?true:['nao','não','false','0','no'].includes(v)?false:f}
-function niceAppend_(sh,obj){const h=sh.getRange(1,1,1,sh.getLastColumn()).getDisplayValues()[0];sh.appendRow(h.map(k=>Object.prototype.hasOwnProperty.call(obj,k)?obj[k]:''))}
-function niceFind_(id){const sh=niceControl_(),m=niceMap_(sh);if(sh.getLastRow()<2)return null;const f=sh.getRange(2,m.ID_NICE,sh.getLastRow()-1,1).createTextFinder(id).matchEntireCell(true).findNext();return f?{sheet:sh,row:f.getRow()}:null}
-function niceMap_(sh){const o={};sh.getRange(1,1,1,sh.getLastColumn()).getDisplayValues()[0].forEach((x,i)=>o[String(x)]=i+1);return o}
-function niceAt_(sh,r,c){return c?sh.getRange(r,c).getValue():''}function niceSet_(sh,r,c,v){if(c)sh.getRange(r,c).setValue(v)}
-function niceHistory_(id,a,b,orig,obs){try{niceMaster_().getSheetByName(NICE.HISTORICO).appendRow([new Date(),id,a,b,orig,Session.getActiveUser().getEmail()||'',obs||''])}catch(_){}}
-function niceLog_(level,fn,id,msg){try{niceMaster_().getSheetByName(NICE.LOG).appendRow([new Date(),level,fn,id||'',String(msg||'')])}catch(_){}}
-function niceRow_(sh,row){const n=sh.getLastColumn(),h=sh.getRange(1,1,1,n).getDisplayValues()[0],v=sh.getRange(row,1,1,n).getValues()[0],o={};h.forEach((x,i)=>{if(x)o[String(x)]=v[i]});return o}
-function niceValue_(o,aliases){const a=aliases.map(niceNorm_);for(const [k,v] of Object.entries(o)){if(v!==''&&v!=null&&a.includes(niceNorm_(k)))return v}for(const [k,v] of Object.entries(o)){if(v===''||v==null)continue;const nk=niceNorm_(k);for(const x of a)if(x.length>=5&&(nk.includes(x)||x.includes(nk)))return v}return''}
-function niceEmail_(o){for(const v of Object.values(o)){const m=String(v||'').match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);if(m)return m[0]}return''}
-function niceDriveUrls_(o){const a=[];Object.values(o).forEach(v=>(String(v||'').match(/https?:\/\/[^\s,;]+/g)||[]).forEach(u=>{if(u.includes('drive.google.com')||u.includes('docs.google.com'))a.push(u)}));return[...new Set(a)]}
-function niceEnsure_(sh,h){const heads=sh.getRange(1,1,1,Math.max(1,sh.getLastColumn())).getDisplayValues()[0],i=heads.findIndex(x=>niceNorm_(x)===niceNorm_(h));if(i>=0)return i+1;const c=sh.getLastColumn()+1;sh.getRange(1,c).setValue(h).setFontWeight('bold');return c}
-function niceWriteHelper_(sh,r,h,v){sh.getRange(r,niceEnsure_(sh,h)).setValue(v)}function niceReadHelper_(sh,r,h){const heads=sh.getRange(1,1,1,Math.max(1,sh.getLastColumn())).getDisplayValues()[0],i=heads.findIndex(x=>niceNorm_(x)===niceNorm_(h));return i<0?'':sh.getRange(r,i+1).getValue()}
-function niceNorm_(s){return String(s==null?'':s).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/\s+/g,' ').trim()}
-function niceExtractId_(vals){const re=/\bNICE-[0-9]{4}-[0-9]{5}\b/i;for(const v of vals||[]){const m=String(v||'').match(re);if(m)return m[0].toUpperCase()}return''}
-function niceDate_(v){if(!v)return null;if(Object.prototype.toString.call(v)==='[object Date]'&&!isNaN(v))return v;const s=String(v).trim(),m=s.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);if(m)return new Date(Number(m[3]),Number(m[2])-1,Number(m[1]));const d=new Date(s);return isNaN(d)?null:d}
-function niceAddDays_(d,n){const x=new Date(d);x.setDate(x.getDate()+Number(n));return x}function niceDay_(d){const x=new Date(d);x.setHours(0,0,0,0);return x}function niceDiff_(a,b){return Math.floor((niceDay_(a)-niceDay_(b))/86400000)}
-function niceSafe_(s){return String(s||'').replace(/[\\/:*?"<>|#%{}~&]/g,'-').replace(/\s+/g,' ').trim()}
-function niceDriveId_(u){for(const p of [/\/folders\/([A-Za-z0-9_-]+)/,/\/d\/([A-Za-z0-9_-]+)/,/[?&]id=([A-Za-z0-9_-]+)/]){const m=String(u||'').match(p);if(m)return m[1]}return''}
+function nicePutConfig_(sh,rows){const ex={};if(sh.getLastRow()>=2)sh.getRange(2,1,sh.getLastRow()-1,1).getDisplayValues().flat().forEach((k,i)=>{if(k)ex[k]=i+2});rows.forEach(r=>{if(ex[r[0]]){if(!sh.getRange(ex[r[0]],2).getValue())sh.getRange(ex[r[0]],2).setValue(r[1]);sh.getRange(ex[r[0]],3).setValue(r[2])}else sh.appendRow(r)})}
+function niceConfig_(k,d){const sh=niceMaster_().getSheetByName(NICE.CONFIG);if(!sh)return d;const v=sh.getDataRange().getDisplayValues();for(let i=1;i<v.length;i++)if(String(v[i][0]).trim()===k)return v[i][1]||d;return d}
+function niceBool_(k,d){return /^(sim|yes|true|1)$/i.test(String(niceConfig_(k,d?'SIM':'NAO')).trim())}
+function niceMap_(sh){const m={};sh.getRange(1,1,1,sh.getLastColumn()).getDisplayValues()[0].forEach((h,i)=>m[String(h).trim()]=i+1);return m}
+function niceAppend_(sh,o){const m=niceMap_(sh),row=Array(sh.getLastColumn()).fill('');Object.entries(o).forEach(([k,v])=>{if(m[k])row[m[k]-1]=v});sh.appendRow(row)}
+function niceRow_(sh,row){const h=sh.getRange(1,1,1,sh.getLastColumn()).getDisplayValues()[0],v=sh.getRange(row,1,1,sh.getLastColumn()).getValues()[0],d={};h.forEach((x,i)=>d[String(x).trim()]=v[i]);return d}
+function niceValue_(d,aliases){for(const a of aliases){for(const [k,v] of Object.entries(d))if(niceNorm_(k)===niceNorm_(a)&&String(v??'').trim()!=='')return v}return''}
+function niceEmail_(d){for(const [k,v] of Object.entries(d)){if(/email|e-mail/i.test(k)){const s=String(v||'').trim();if(/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s))return s}}return''}
+function niceNorm_(s){return String(s??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim()}
+function niceDate_(v){if(!v)return null;if(v instanceof Date&&!isNaN(v))return v;const d=new Date(v);return isNaN(d)?null:d}
+function niceAddDays_(d,n){const x=new Date(d);x.setDate(x.getDate()+n);return x}
+function niceDay_(d){return new Date(d.getFullYear(),d.getMonth(),d.getDate())}
+function niceDiff_(a,b){return Math.floor((a-b)/86400000)}
+function niceAt_(sh,r,c){return c?sh.getRange(r,c).getValue():''}
+function niceSet_(sh,r,c,v){if(c)sh.getRange(r,c).setValue(v)}
+function niceFind_(id){const sh=niceControl_(),m=niceMap_(sh);if(sh.getLastRow()<2)return null;const x=sh.getRange(2,m.ID_NICE,sh.getLastRow()-1,1).getDisplayValues().flat();const i=x.findIndex(v=>String(v).trim().toUpperCase()===id);return i<0?null:{sheet:sh,row:i+2}}
+function niceReadHelper_(sh,row,h){const m=niceMap_(sh);return m[h]?sh.getRange(row,m[h]).getDisplayValue():''}
+function niceWriteHelper_(sh,row,h,v){const m=niceMap_(sh);let c=m[h];if(!c){c=sh.getLastColumn()+1;sh.getRange(1,c).setValue(h)}sh.getRange(row,c).setValue(v)}
+function niceExtractId_(values){const re=/\bNICE-[0-9]{4}-[0-9]{5}\b/i;for(const v of values){const x=String(v||'').match(re);if(x)return x[0].toUpperCase()}return''}
+function niceDriveUrls_(d){const out=[];Object.values(d).forEach(v=>{const s=String(v||'');const re=/https?:\/\/[^\s,;]+/g;let m;while((m=re.exec(s))){if(/drive\.google\.com|docs\.google\.com/i.test(m[0]))out.push(m[0])}});return [...new Set(out)]}
+function niceDriveId_(s){const m=String(s||'').match(/[-\w]{20,}/);return m?m[0]:''}
+function niceSafe_(s){return String(s||'').replace(/[\\/:*?"<>|]/g,' ').replace(/\s+/g,' ').trim()}
+function niceHistory_(id,oldS,newS,origin,obs){niceMaster_().getSheetByName(NICE.HISTORICO).appendRow([new Date(),id,oldS,newS,origin,Session.getActiveUser().getEmail()||'',obs||''])}
+function niceLog_(lvl,fn,id,msg){const sh=niceMaster_().getSheetByName(NICE.LOG);if(sh)sh.appendRow([new Date(),lvl,fn,id,msg])}
