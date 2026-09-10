@@ -10,6 +10,8 @@
   if(formProtocol)formProtocol.href=C.FORM_PROTOCOLO_URL||'#';
   if(formReport)formReport.href=C.FORM_RELATORIO_URL||'#';
   if(panelLink)panelLink.href=C.PAINEL_URL||'../atual/';
+  const footer=document.querySelector('footer');
+  if(footer)footer.innerHTML='<div>PEAS - Technology®</div>';
 
   function setBackendState(kind,title,detail){const box=$('#backendState');if(!box)return;const dot=kind==='ok'?'dot ok':kind==='err'?'dot err':'dot';box.innerHTML=`<span>Integração em tempo real</span><strong><i class="${dot}"></i>${esc(title)}</strong><small>${esc(detail)}</small>`;}
 
