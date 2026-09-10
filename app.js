@@ -1,6 +1,14 @@
 (()=>{
  if(window.__NICE_LOADER_ACTIVE)return;
  window.__NICE_LOADER_ACTIVE=true;
+
+ // Identidade visual do sistema
+ const brandTitle=document.querySelector('.top .brand h1');
+ const brandSubtitle=document.querySelector('.top .brand p');
+ if(brandTitle)brandTitle.textContent='Sistema de Gestão de Protocolos e Análise de Dados®';
+ if(brandSubtitle){brandSubtitle.textContent='';brandSubtitle.style.display='none';}
+ document.title='Sistema de Gestão de Protocolos e Análise de Dados®';
+
  let tries=0;
  const start=()=>{
   try{
