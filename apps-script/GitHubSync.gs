@@ -1,5 +1,6 @@
 /**
  * NICE -> GitHub: sincronização imediata do painel público
+ * + notificação automática de solicitação de certificados.
  *
  * Este arquivo NÃO contém o token do GitHub.
  * O token deve ser salvo em:
@@ -7,7 +8,7 @@
  * Chave: GITHUB_SYNC_TOKEN
  *
  * Fluxo:
- * Formulário -> função original do SistemaNICE -> repository_dispatch ->
+ * Formulário -> função original do SistemaNICE -> notificações -> repository_dispatch ->
  * GitHub Actions -> live-data.json -> portal público.
  */
 
@@ -15,7 +16,8 @@ const NICE_GITHUB_SYNC = Object.freeze({
   OWNER: 'peas8810',
   REPO: 'painel-nice',
   EVENT_TYPE: 'nice-sync',
-  TOKEN_PROPERTY: 'GITHUB_SYNC_TOKEN'
+  TOKEN_PROPERTY: 'GITHUB_SYNC_TOKEN',
+  CERTIFICADOS_EMAIL: 'nice@unipacto.com.br'
 });
 
 /**
@@ -64,10 +66,25 @@ function instalarSincronizacaoImediataNICE() {
   );
 }
 
-/** Novo protocolo: executa a rotina original e só depois sincroniza. */
+/**
+ * Novo protocolo: executa a rotina original, verifica solicitação de
+ * certificados e só depois sincroniza o painel público.
+ */
 function niceProtocolFastSubmit(e) {
   onProtocolFormSubmit(e);
   const id = niceSyncExtractIdFromEvent_(e);
+
+  // A falha de e-mail nunca deve impedir a criação/sincronização do protocolo.
+  try {
+    niceNotifyCertificateRequest_(e, id);
+  } catch (err) {
+    try {
+      if (typeof niceLog_ === 'function') {
+        niceLog_('ERRO', 'niceNotifyCertificateRequest_', id || '', err.stack || err.message);
+      }
+    } catch (_) {}
+  }
+
   niceTriggerGitHubSync_('PROTOCOLO_CRIADO', id);
 }
 
@@ -76,6 +93,88 @@ function niceReportFastSubmit(e) {
   onReportFormSubmit(e);
   const id = niceSyncExtractIdFromEvent_(e);
   niceTriggerGitHubSync_('RELATORIO_RECEBIDO', id);
+}
+
+/**
+ * Se a resposta à pergunta "Terá emissão de certificados?" começar com "Sim",
+ * envia uma notificação ao NICE contendo o número do protocolo.
+ *
+ * A coluna auxiliar CERTIFICADO_EMAIL_NICE impede e-mails duplicados caso
+ * a execução seja repetida.
+ */
+function niceNotifyCertificateRequest_(e, id) {
+  if (!e || !e.range || !id) return {sent:false, reason:'evento_ou_id_ausente'};
+
+  const sh = e.range.getSheet();
+  const row = e.range.getRow();
+
+  // Evita duplicidade em reprocessamentos.
+  try {
+    if (typeof niceReadHelper_ === 'function') {
+      const done = String(niceReadHelper_(sh, row, 'CERTIFICADO_EMAIL_NICE') || '').trim().toUpperCase();
+      if (done === 'ENVIADO') return {sent:false, reason:'ja_enviado'};
+    }
+  } catch (_) {}
+
+  const lastCol = sh.getLastColumn();
+  const headers = sh.getRange(1, 1, 1, lastCol).getDisplayValues()[0];
+  const values = sh.getRange(row, 1, 1, lastCol).getDisplayValues()[0];
+
+  let resposta = '';
+  for (let i = 0; i < headers.length; i++) {
+    const h = niceCertNorm_(headers[i]);
+    if (h.includes('tera emissao de certificados') ||
+        (h.includes('emissao') && h.includes('certificado'))) {
+      resposta = String(values[i] || '').trim();
+      break;
+    }
+  }
+
+  // Aceita "Sim" e também a opção longa do Forms que começa com "Sim (...)".
+  if (!/^sim\b/i.test(resposta)) return {sent:false, reason:'nao_solicitado'};
+
+  const subject = '[NICE] Solicitação de certificados · ' + id;
+  const body = [
+    'Solicitação automática de emissão de certificados',
+    '',
+    'Protocolo: ' + id,
+    '',
+    'No formulário de formalização, foi marcada a opção "Sim" para emissão de certificados.',
+    '',
+    'Favor dar prosseguimento ao fluxo de certificação correspondente.',
+    '',
+    'Mensagem gerada automaticamente pelo Sistema NICE.'
+  ].join('\n');
+
+  MailApp.sendEmail({
+    to: NICE_GITHUB_SYNC.CERTIFICADOS_EMAIL,
+    subject: subject,
+    body: body,
+    name: 'Sistema NICE'
+  });
+
+  try {
+    if (typeof niceWriteHelper_ === 'function') {
+      niceWriteHelper_(sh, row, 'CERTIFICADO_EMAIL_NICE', 'ENVIADO');
+    }
+  } catch (_) {}
+
+  try {
+    if (typeof niceLog_ === 'function') {
+      niceLog_('INFO', 'niceNotifyCertificateRequest_', id, 'Solicitação de certificados enviada para ' + NICE_GITHUB_SYNC.CERTIFICADOS_EMAIL + '.');
+    }
+  } catch (_) {}
+
+  return {sent:true};
+}
+
+function niceCertNorm_(v) {
+  return String(v == null ? '' : v)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 /** Pode ser executada manualmente para validar token + GitHub. */
