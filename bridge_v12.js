@@ -2,6 +2,15 @@
   if(window.__NICE_BRIDGE_V12)return;
   window.__NICE_BRIDGE_V12=true;
 
+  // Identidade visual do painel institucional.
+  const brandTitle=document.querySelector('.top .brand h1');
+  const brandSubtitle=document.querySelector('.top .brand p');
+  const institutionalFooter=document.querySelector('footer');
+  if(brandTitle)brandTitle.textContent='Sistema de Gestão de Protocolos e Análise de Dados®';
+  if(brandSubtitle){brandSubtitle.textContent='';brandSubtitle.style.display='none';}
+  if(institutionalFooter)institutionalFooter.textContent='PEAS - Technology®';
+  document.title='Sistema de Gestão de Protocolos e Análise de Dados®';
+
   // Link permanente para o novo Sistema de Protocolos, sem interferir nas abas do painel.
   const nav=document.querySelector('.tabs');
   if(nav&&!document.getElementById('nice-protocolos-link')){
