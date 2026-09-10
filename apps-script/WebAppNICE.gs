@@ -29,19 +29,12 @@ function doGet(e) {
 
 function niceApiHealth_() {
   const sh = niceApiSheet_();
-  return {
-    ok:true,
-    service:'NICE Protocolos',
-    version:'1.2',
-    rows:Math.max(0,sh.getLastRow()-1),
-    updated_at:new Date().toISOString(),
-    transport:'bridge'
-  };
+  return {ok:true,service:'NICE Protocolos',version:'1.3',rows:Math.max(0,sh.getLastRow()-1),updated_at:new Date().toISOString(),transport:'bridge'};
 }
 
 function niceApiStats_() {
   const cache = CacheService.getScriptCache();
-  const cached = cache.get('nice_api_stats_v2');
+  const cached = cache.get('nice_api_stats_v3');
   if (cached) return JSON.parse(cached);
   const sh = niceApiSheet_();
   const values = sh.getDataRange().getValues();
@@ -60,7 +53,7 @@ function niceApiStats_() {
     if (status==='FINALIZADO') finalizados++;
   }
   const out={ok:true,stats:{abertos,aguardando_relatorio:aguardando,atrasados,finalizados,por_status:counts}};
-  cache.put('nice_api_stats_v2',JSON.stringify(out),NICE_API.CACHE_SECONDS);
+  cache.put('nice_api_stats_v3',JSON.stringify(out),NICE_API.CACHE_SECONDS);
   return out;
 }
 
@@ -68,47 +61,33 @@ function niceApiProjects_(q, statusFilter, limit) {
   const sh = niceApiSheet_();
   const values = sh.getDataRange().getValues();
   if (values.length < 2) return {ok:true,total:0,projects:[]};
-
   const h = niceApiMapHeaders_(values[0]);
   const query = niceApiNorm_(q);
   const wantedStatus = String(statusFilter || '').trim().toUpperCase();
   const max = Math.min(Math.max(Number(limit) || NICE_API.PUBLIC_LIST_LIMIT, 1), NICE_API.PUBLIC_LIST_LIMIT);
   const projects = [];
-
   for (let i=values.length-1;i>=1;i--) {
     const row = values[i];
     const id = String(niceApiCell_(row,h,'ID_NICE') || '').trim().toUpperCase();
     if (!id) continue;
-
     const status = String(niceApiCell_(row,h,'STATUS') || '').trim().toUpperCase();
     if (wantedStatus && status !== wantedStatus) continue;
-
     const responsavel = niceApiPublicText_(niceApiCell_(row,h,'RESPONSAVEL'));
     const titulo = niceApiPublicText_(niceApiCell_(row,h,'TITULO_ACAO'));
     const curso = niceApiPublicText_(niceApiCell_(row,h,'CURSO'));
     const unidade = niceApiPublicText_(niceApiCell_(row,h,'UNIDADE'));
-
+    const auditorio = niceApiPublicText_(niceApiCell_(row,h,'AUDITORIO'));
     if (query) {
-      const haystack = niceApiNorm_([id,responsavel,titulo,curso,unidade,status].join(' '));
+      const haystack = niceApiNorm_([id,responsavel,titulo,curso,unidade,auditorio,status].join(' '));
       if (!haystack.includes(query)) continue;
     }
-
-    projects.push({
-      id:id,
-      responsavel:responsavel,
-      titulo:titulo,
-      curso:curso,
-      unidade:unidade,
-      status:status,
+    projects.push({id,responsavel,titulo,curso,unidade,auditorio,status,
       data_protocolo:niceApiIso_(niceApiCell_(row,h,'DATA_PROTOCOLO')),
       data_inicio:niceApiIso_(niceApiCell_(row,h,'DATA_INICIO')),
-      prazo_relatorio:niceApiIso_(niceApiCell_(row,h,'PRAZO_RELATORIO'))
-    });
-
+      prazo_relatorio:niceApiIso_(niceApiCell_(row,h,'PRAZO_RELATORIO'))});
     if (projects.length >= max) break;
   }
-
-  return {ok:true,total:projects.length,projects:projects,public_fields:['id','responsavel','titulo','curso','unidade','status','data_protocolo','data_inicio','prazo_relatorio']};
+  return {ok:true,total:projects.length,projects,public_fields:['id','responsavel','titulo','curso','unidade','auditorio','status','data_protocolo','data_inicio','prazo_relatorio']};
 }
 
 function niceApiProtocol_(id) {
@@ -123,12 +102,12 @@ function niceApiProtocol_(id) {
     const dataRelatorio=niceApiIso_(niceApiCell_(values[i],h,'DATA_RELATORIO'));
     const encerradoRaw=String(niceApiCell_(values[i],h,'ENCERRADO')||'').toUpperCase();
     return {ok:true,protocol:{
-      id:id,
-      status:status,
+      id,status,
       responsavel:niceApiPublicText_(niceApiCell_(values[i],h,'RESPONSAVEL')),
       titulo:niceApiPublicText_(niceApiCell_(values[i],h,'TITULO_ACAO')),
       curso:niceApiPublicText_(niceApiCell_(values[i],h,'CURSO')),
       unidade:niceApiPublicText_(niceApiCell_(values[i],h,'UNIDADE')),
+      auditorio:niceApiPublicText_(niceApiCell_(values[i],h,'AUDITORIO')),
       data_protocolo:niceApiIso_(niceApiCell_(values[i],h,'DATA_PROTOCOLO')),
       data_inicio:niceApiIso_(niceApiCell_(values[i],h,'DATA_INICIO')),
       data_fim:niceApiIso_(niceApiCell_(values[i],h,'DATA_FIM')),
@@ -142,71 +121,12 @@ function niceApiProtocol_(id) {
   return {ok:true,protocol:null};
 }
 
-function niceApiSheet_() {
-  const ss=SpreadsheetApp.openById(NICE_API.SPREADSHEET_ID);
-  const sh=ss.getSheetByName(NICE_API.CONTROL_SHEET);
-  if (!sh) throw new Error('CONTROLE_NICE não encontrada.');
-  return sh;
-}
-
-function niceApiMapHeaders_(headers) {
-  const out={}; headers.forEach((v,i)=>out[String(v).trim()]=i); return out;
-}
-
-function niceApiCell_(row, h, name) {
-  return Object.prototype.hasOwnProperty.call(h,name) ? row[h[name]] : '';
-}
-
-function niceApiIso_(v) {
-  if (!v) return '';
-  if (Object.prototype.toString.call(v)==='[object Date]'&&!isNaN(v)) return v.toISOString();
-  const d=new Date(v); return isNaN(d)?'':d.toISOString();
-}
-
-function niceApiPublicText_(v) {
-  return String(v==null?'':v).replace(/[<>]/g,'').trim().slice(0,300);
-}
-
-function niceApiNorm_(v) {
-  return String(v==null?'':v).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/\s+/g,' ').trim();
-}
-
-function niceApiSafePublicUrl_(v) {
-  const s=String(v||'').trim();
-  if (/^https:\/\/(docs\.google\.com\/forms|forms\.gle)\//i.test(s)) return s;
-  return '';
-}
-
-function niceApiOutput_(obj,callback) {
-  const json=JSON.stringify(obj);
-  const cb=String(callback||'').trim();
-  if (cb&&/^[A-Za-z_$][A-Za-z0-9_$.]*$/.test(cb)) {
-    return ContentService.createTextOutput(cb+'('+json+');').setMimeType(ContentService.MimeType.JAVASCRIPT);
-  }
-  return ContentService.createTextOutput(json).setMimeType(ContentService.MimeType.JSON);
-}
-
-/**
- * Transporte alternativo para páginas estáticas (GitHub Pages).
- * O Web App é carregado em um iframe invisível e envia a resposta ao portal
- * através de window.postMessage. Isso evita as restrições de carregamento
- * de subrecursos do redirect do ContentService em alguns navegadores.
- */
-function niceApiBridgeOutput_(obj, requestId) {
-  const rid = String(requestId || '').replace(/[^A-Za-z0-9_-]/g,'').slice(0,120);
-  const safeJson = JSON.stringify(obj)
-    .replace(/</g,'\\u003c')
-    .replace(/>/g,'\\u003e')
-    .replace(/&/g,'\\u0026');
-  const ridJson = JSON.stringify(rid);
-
-  const html = '<!doctype html><html><head><meta charset="utf-8"></head><body>' +
-    '<script>(function(){' +
-    'var message={source:"NICE_API_BRIDGE",request_id:' + ridJson + ',payload:' + safeJson + '};' +
-    'try{window.parent.postMessage(message,"*");}catch(e){}' +
-    'try{if(window.top!==window.parent){window.top.postMessage(message,"*");}}catch(e){}' +
-    '})();<\\/script></body></html>';
-
-  return HtmlService.createHtmlOutput(html)
-    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
-}
+function niceApiSheet_() {const ss=SpreadsheetApp.openById(NICE_API.SPREADSHEET_ID);const sh=ss.getSheetByName(NICE_API.CONTROL_SHEET);if (!sh) throw new Error('CONTROLE_NICE não encontrada.');return sh;}
+function niceApiMapHeaders_(headers) {const out={}; headers.forEach((v,i)=>out[String(v).trim()]=i); return out;}
+function niceApiCell_(row, h, name) {return Object.prototype.hasOwnProperty.call(h,name) ? row[h[name]] : '';}
+function niceApiIso_(v) {if (!v) return '';if (Object.prototype.toString.call(v)==='[object Date]'&&!isNaN(v)) return v.toISOString();const d=new Date(v); return isNaN(d)?'':d.toISOString();}
+function niceApiPublicText_(v) {return String(v==null?'':v).replace(/[<>]/g,'').trim().slice(0,300);}
+function niceApiNorm_(v) {return String(v==null?'':v).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/\s+/g,' ').trim();}
+function niceApiSafePublicUrl_(v) {const s=String(v||'').trim();if (/^https:\/\/(docs\.google\.com\/forms|forms\.gle)\//i.test(s)) return s;return '';}
+function niceApiOutput_(obj,callback) {const json=JSON.stringify(obj);const cb=String(callback||'').trim();if (cb&&/^[A-Za-z_$][A-Za-z0-9_$.]*$/.test(cb)) {return ContentService.createTextOutput(cb+'('+json+');').setMimeType(ContentService.MimeType.JAVASCRIPT);}return ContentService.createTextOutput(json).setMimeType(ContentService.MimeType.JSON);}
+function niceApiBridgeOutput_(obj, requestId) {const rid = String(requestId || '').replace(/[^A-Za-z0-9_-]/g,'').slice(0,120);const safeJson = JSON.stringify(obj).replace(/</g,'\\u003c').replace(/>/g,'\\u003e').replace(/&/g,'\\u0026');const ridJson = JSON.stringify(rid);const html = '<!doctype html><html><head><meta charset="utf-8"></head><body><script>(function(){var message={source:"NICE_API_BRIDGE",request_id:' + ridJson + ',payload:' + safeJson + '};try{window.parent.postMessage(message,"*");}catch(e){}try{if(window.top!==window.parent){window.top.postMessage(message,"*");}}catch(e){}})();<\\/script></body></html>';return HtmlService.createHtmlOutput(html).setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);}
