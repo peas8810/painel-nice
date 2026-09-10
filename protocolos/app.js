@@ -4,148 +4,43 @@
   const F = new Intl.NumberFormat('pt-BR');
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const API = String(C.API_URL || '').trim();
+  let cache = null, usingCache = false, requestSeq = 0;
 
-  let cache = null;
-  let usingCache = false;
-  let requestSeq = 0;
+  const formProtocol=$('#formProtocol'),formReport=$('#formReport'),panelLink=$('#panelLink');
+  if(formProtocol)formProtocol.href=C.FORM_PROTOCOLO_URL||'#';
+  if(formReport)formReport.href=C.FORM_RELATORIO_URL||'#';
+  if(panelLink)panelLink.href=C.PAINEL_URL||'../atual/';
 
-  const formProtocol = $('#formProtocol');
-  const formReport = $('#formReport');
-  const panelLink = $('#panelLink');
-  if (formProtocol) formProtocol.href = C.FORM_PROTOCOLO_URL || '#';
-  if (formReport) formReport.href = C.FORM_RELATORIO_URL || '#';
-  if (panelLink) panelLink.href = C.PAINEL_URL || '../atual/';
+  function setBackendState(kind,title,detail){const box=$('#backendState');if(!box)return;const dot=kind==='ok'?'dot ok':kind==='err'?'dot err':'dot';box.innerHTML=`<span>Integração em tempo real</span><strong><i class="${dot}"></i>${esc(title)}</strong><small>${esc(detail)}</small>`;}
 
-  function setBackendState(kind,title,detail){
-    const box=$('#backendState');
-    if(!box)return;
-    const dot=kind==='ok'?'dot ok':kind==='err'?'dot err':'dot';
-    box.innerHTML=`<span>Integração em tempo real</span><strong><i class="${dot}"></i>${esc(title)}</strong><small>${esc(detail)}</small>`;
-  }
+  function bridgeRequest(action,params={}){return new Promise((resolve,reject)=>{if(!API)return reject(new Error('API não configurada.'));const requestId='nice_'+Date.now()+'_'+(++requestSeq)+'_'+Math.random().toString(36).slice(2,8),sep=API.includes('?')?'&':'?',query=new URLSearchParams({action,transport:'bridge',request_id:requestId,_:String(Date.now())});Object.entries(params).forEach(([k,v])=>query.set(k,String(v??'')));const iframe=document.createElement('iframe');iframe.setAttribute('aria-hidden','true');iframe.tabIndex=-1;iframe.style.cssText='position:fixed;left:-10000px;top:-10000px;width:1px;height:1px;border:0;opacity:0;';iframe.src=API+sep+query.toString();let done=false;const cleanup=()=>{window.removeEventListener('message',onMessage);if(iframe.parentNode)iframe.remove();};const timer=setTimeout(()=>{if(done)return;done=true;cleanup();reject(new Error('Conexão direta indisponível.'));},6500);const onMessage=event=>{const d=event?.data;if(!d||d.source!=='NICE_API_BRIDGE'||d.request_id!==requestId||done)return;done=true;clearTimeout(timer);cleanup();if(d.payload?.ok===false)reject(new Error(d.payload.error||'Falha na consulta.'));else resolve(d.payload);};window.addEventListener('message',onMessage);document.body.appendChild(iframe);});}
 
-  function bridgeRequest(action,params={}){
-    return new Promise((resolve,reject)=>{
-      if(!API)return reject(new Error('API não configurada.'));
-      const requestId='nice_'+Date.now()+'_'+(++requestSeq)+'_'+Math.random().toString(36).slice(2,8);
-      const sep=API.includes('?')?'&':'?';
-      const query=new URLSearchParams({action,transport:'bridge',request_id:requestId,_:String(Date.now())});
-      Object.entries(params).forEach(([k,v])=>query.set(k,String(v??'')));
-
-      const iframe=document.createElement('iframe');
-      iframe.setAttribute('aria-hidden','true');
-      iframe.tabIndex=-1;
-      iframe.style.cssText='position:fixed;left:-10000px;top:-10000px;width:1px;height:1px;border:0;opacity:0;';
-      iframe.src=API+sep+query.toString();
-
-      let done=false;
-      const cleanup=()=>{window.removeEventListener('message',onMessage); if(iframe.parentNode)iframe.remove();};
-      const timer=setTimeout(()=>{if(done)return;done=true;cleanup();reject(new Error('Conexão direta indisponível.'));},6500);
-      const onMessage=event=>{
-        const d=event?.data;
-        if(!d||d.source!=='NICE_API_BRIDGE'||d.request_id!==requestId)return;
-        if(done)return; done=true; clearTimeout(timer); cleanup();
-        if(d.payload?.ok===false)reject(new Error(d.payload.error||'Falha na consulta.')); else resolve(d.payload);
-      };
-      window.addEventListener('message',onMessage);
-      document.body.appendChild(iframe);
-    });
-  }
-
-  async function loadCache(){
-    const r=await fetch('live-data.json?ts='+Date.now(),{cache:'no-store'});
-    if(!r.ok)throw new Error('Cache público indisponível.');
-    const d=await r.json();
-    if(!d?.ok)throw new Error(d?.message||'Aguardando sincronização automática.');
-    cache=d; usingCache=true; return d;
-  }
-
-  function cacheAction(action,params={}){
-    if(!cache)throw new Error('Cache ainda não carregado.');
-    if(action==='health')return cache.health||{ok:true,updated_at:cache.synced_at};
-    if(action==='stats')return cache.stats||{ok:true,stats:{}};
-    if(action==='projects'){
-      const src=Array.isArray(cache.projects?.projects)?cache.projects.projects:[];
-      const q=String(params.q||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
-      const status=String(params.status||'').toUpperCase().trim();
-      let rows=src.filter(p=>!status||String(p.status||'').toUpperCase()===status);
-      if(q)rows=rows.filter(p=>[p.id,p.responsavel,p.titulo,p.curso,p.unidade,p.status].join(' ').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().includes(q));
-      return {ok:true,total:rows.length,projects:rows.slice(0,Number(params.limit||500))};
-    }
-    if(action==='protocol'){
-      const src=Array.isArray(cache.projects?.projects)?cache.projects.projects:[];
-      const p=src.find(x=>String(x.id||'').toUpperCase()===String(params.id||'').toUpperCase());
-      if(!p)return {ok:true,protocol:null};
-      return {ok:true,protocol:{...p,data_fim:p.data_fim||'',relatorio_recebido:String(p.status||'')==='FINALIZADO',encerrado:['FINALIZADO','CANCELADO'].includes(String(p.status||'')),link_form_relatorio:C.FORM_RELATORIO_URL||''}};
-    }
-    throw new Error('Ação não disponível no cache.');
-  }
-
-  async function apiRequest(action,params={}){
-    if(usingCache)return cacheAction(action,params);
-    try{return await bridgeRequest(action,params);}catch(_){
-      await loadCache();
-      return cacheAction(action,params);
-    }
-  }
+  async function loadCache(){const r=await fetch('live-data.json?ts='+Date.now(),{cache:'no-store'});if(!r.ok)throw new Error('Cache público indisponível.');const d=await r.json();if(!d?.ok)throw new Error(d?.message||'Aguardando sincronização automática.');cache=d;usingCache=true;return d;}
+  function cacheAction(action,params={}){if(!cache)throw new Error('Cache ainda não carregado.');if(action==='health')return cache.health||{ok:true,updated_at:cache.synced_at};if(action==='stats')return cache.stats||{ok:true,stats:{}};if(action==='projects'){const src=Array.isArray(cache.projects?.projects)?cache.projects.projects:[],q=String(params.q||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim(),status=String(params.status||'').toUpperCase().trim();let rows=src.filter(p=>!status||String(p.status||'').toUpperCase()===status);if(q)rows=rows.filter(p=>[p.id,p.responsavel,p.titulo,p.curso,p.unidade,p.auditorio,p.status].join(' ').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().includes(q));return{ok:true,total:rows.length,projects:rows.slice(0,Number(params.limit||500))};}if(action==='protocol'){const src=Array.isArray(cache.projects?.projects)?cache.projects.projects:[],p=src.find(x=>String(x.id||'').toUpperCase()===String(params.id||'').toUpperCase());if(!p)return{ok:true,protocol:null};return{ok:true,protocol:{...p,data_fim:p.data_fim||'',relatorio_recebido:String(p.status||'')==='FINALIZADO',encerrado:['FINALIZADO','CANCELADO'].includes(String(p.status||'')),link_form_relatorio:C.FORM_RELATORIO_URL||''}};}throw new Error('Ação não disponível no cache.');}
+  async function apiRequest(action,params={}){if(usingCache)return cacheAction(action,params);try{return await bridgeRequest(action,params);}catch(_){await loadCache();return cacheAction(action,params);}}
 
   function n(v){return Number(v||0)}
   function setText(id,v){const el=$(id);if(el)el.textContent=v}
-  function labelStatus(s){return ({PROTOCOLADO:'Protocolado',EM_ANALISE:'Em análise',APROVADO:'Aprovado',AGUARDANDO_REALIZACAO:'Aguardando realização',AGUARDANDO_RELATORIO:'Aguardando relatório',RELATORIO_EM_ATRASO:'Relatório em atraso',FINALIZADO:'Finalizado',CANCELADO:'Cancelado'})[s]||String(s||'').replaceAll('_',' ')}
+  function labelStatus(s){return({PROTOCOLADO:'Protocolado',EM_ANALISE:'Em análise',APROVADO:'Aprovado',AGUARDANDO_REALIZACAO:'Aguardando realização',AGUARDANDO_RELATORIO:'Aguardando relatório',RELATORIO_EM_ATRASO:'Relatório em atraso',FINALIZADO:'Finalizado',CANCELADO:'Cancelado'})[s]||String(s||'').replaceAll('_',' ')}
   function pillClass(s){if(s==='FINALIZADO')return'finalizado';if(s==='RELATORIO_EM_ATRASO')return'atraso';if(s==='AGUARDANDO_RELATORIO')return'relatorio';if(s==='APROVADO')return'aprovado';if(s==='CANCELADO')return'cancelado';return''}
   function fmtDate(v){if(!v)return'—';const d=new Date(v);return isNaN(d)?esc(v):d.toLocaleDateString('pt-BR')}
+  function fmtAuditorio(v){const s=String(v||'').trim();if(!s)return'—';if(/^sim\b/i.test(s))return'Sim';if(/^n[aã]o\b/i.test(s))return'Não';return s;}
 
-  function renderStats(data){
-    const s=data.stats||data;
-    setText('#kOpen',F.format(n(s.abertos)));setText('#kWaiting',F.format(n(s.aguardando_relatorio)));setText('#kLate',F.format(n(s.atrasados)));setText('#kClosed',F.format(n(s.finalizados)));
-    const t=$('#statusList');if(!t)return;const rows=s.por_status||{};const order=['PROTOCOLADO','EM_ANALISE','APROVADO','AGUARDANDO_REALIZACAO','AGUARDANDO_RELATORIO','RELATORIO_EM_ATRASO','FINALIZADO','CANCELADO'];
-    t.innerHTML=order.filter(k=>Object.prototype.hasOwnProperty.call(rows,k)).map(k=>`<div class="status-row"><span>${esc(labelStatus(k))}</span><b>${F.format(n(rows[k]))}</b></div>`).join('')||'<div class="result empty">Nenhum dado de status disponível.</div>';
-  }
+  function renderStats(data){const s=data.stats||data;setText('#kOpen',F.format(n(s.abertos)));setText('#kWaiting',F.format(n(s.aguardando_relatorio)));setText('#kLate',F.format(n(s.atrasados)));setText('#kClosed',F.format(n(s.finalizados)));const t=$('#statusList');if(!t)return;const rows=s.por_status||{},order=['PROTOCOLADO','EM_ANALISE','APROVADO','AGUARDANDO_REALIZACAO','AGUARDANDO_RELATORIO','RELATORIO_EM_ATRASO','FINALIZADO','CANCELADO'];t.innerHTML=order.filter(k=>Object.prototype.hasOwnProperty.call(rows,k)).map(k=>`<div class="status-row"><span>${esc(labelStatus(k))}</span><b>${F.format(n(rows[k]))}</b></div>`).join('')||'<div class="result empty">Nenhum dado de status disponível.</div>';}
 
-  function renderProjects(data){
-    const body=$('#projectTableBody'),meta=$('#projectCount');if(!body)return;const projects=Array.isArray(data?.projects)?data.projects:[];
-    if(meta)meta.textContent=projects.length===1?'1 projeto exibido':`${F.format(projects.length)} projetos exibidos`;
-    if(!projects.length){body.innerHTML='<tr><td colspan="7" class="table-empty">Nenhum projeto encontrado.</td></tr>';return;}
-    body.innerHTML=projects.map(p=>{const place=[p.curso,p.unidade].filter(Boolean).join(' · ')||'—';return `<tr><td><button class="protocol-link" type="button" data-protocol="${esc(p.id)}">${esc(p.id)}</button></td><td class="responsavel-cell">${esc(p.responsavel||'—')}</td><td class="title-cell">${esc(p.titulo||'—')}</td><td>${esc(place)}</td><td><span class="pill ${pillClass(p.status)}">${esc(labelStatus(p.status))}</span></td><td>${fmtDate(p.data_protocolo)}</td><td>${fmtDate(p.data_inicio)}</td></tr>`}).join('');
-    body.querySelectorAll('[data-protocol]').forEach(btn=>btn.addEventListener('click',()=>{const id=btn.dataset.protocol;const i=$('#protocolInput');if(i)i.value=id;consultar(id);document.querySelector('#consulta')?.scrollIntoView({behavior:'smooth',block:'start'})}));
-  }
+  function renderProjects(data){const body=$('#projectTableBody'),meta=$('#projectCount');if(!body)return;const projects=Array.isArray(data?.projects)?data.projects:[];if(meta)meta.textContent=projects.length===1?'1 projeto exibido':`${F.format(projects.length)} projetos exibidos`;if(!projects.length){body.innerHTML='<tr><td colspan="8" class="table-empty">Nenhum projeto encontrado.</td></tr>';return;}body.innerHTML=projects.map(p=>{const place=[p.curso,p.unidade].filter(Boolean).join(' · ')||'—';return `<tr><td><button class="protocol-link" type="button" data-protocol="${esc(p.id)}">${esc(p.id)}</button></td><td class="responsavel-cell">${esc(p.responsavel||'—')}</td><td class="title-cell">${esc(p.titulo||'—')}</td><td>${esc(place)}</td><td>${esc(fmtAuditorio(p.auditorio))}</td><td><span class="pill ${pillClass(p.status)}">${esc(labelStatus(p.status))}</span></td><td>${fmtDate(p.data_protocolo)}</td><td>${fmtDate(p.data_inicio)}</td></tr>`}).join('');body.querySelectorAll('[data-protocol]').forEach(btn=>btn.addEventListener('click',()=>{const id=btn.dataset.protocol,i=$('#protocolInput');if(i)i.value=id;consultar(id);document.querySelector('#consulta')?.scrollIntoView({behavior:'smooth',block:'start'});}));}
+  async function carregarProjetos(){const body=$('#projectTableBody');if(body)body.innerHTML='<tr><td colspan="8" class="table-empty">Atualizando projetos…</td></tr>';try{renderProjects(await apiRequest('projects',{q:String($('#projectSearch')?.value||'').trim(),status:String($('#projectStatus')?.value||'').trim(),limit:500}));}catch(err){if(body)body.innerHTML=`<tr><td colspan="8" class="table-empty error-text">${esc(err.message||'Falha ao carregar os projetos.')}</td></tr>`;setText('#projectCount','Falha ao atualizar a lista pública.');}}
 
-  async function carregarProjetos(){
-    const body=$('#projectTableBody');if(body)body.innerHTML='<tr><td colspan="7" class="table-empty">Atualizando projetos…</td></tr>';
-    try{renderProjects(await apiRequest('projects',{q:String($('#projectSearch')?.value||'').trim(),status:String($('#projectStatus')?.value||'').trim(),limit:500}));}
-    catch(err){if(body)body.innerHTML=`<tr><td colspan="7" class="table-empty error-text">${esc(err.message||'Falha ao carregar os projetos.')}</td></tr>`;setText('#projectCount','Falha ao atualizar a lista pública.')}
-  }
-
-  function renderProtocol(p){
-    const t=$('#protocolResult');if(!t)return;if(!p){t.className='result empty';t.textContent='Protocolo não localizado.';return;}
-    const reportUrl=p.link_form_relatorio||C.FORM_RELATORIO_URL||'#';t.className='result';
-    t.innerHTML=`<div class="result-head"><span class="protocol-id">${esc(p.id)}</span><span class="pill ${pillClass(p.status)}">${esc(labelStatus(p.status))}</span></div><div class="details"><div class="detail"><span>Responsável pela submissão</span><strong>${esc(p.responsavel||'—')}</strong></div><div class="detail"><span>Título da ação</span><strong>${esc(p.titulo||'—')}</strong></div><div class="detail"><span>Curso</span><strong>${esc(p.curso||'—')}</strong></div><div class="detail"><span>Unidade</span><strong>${esc(p.unidade||'—')}</strong></div><div class="detail"><span>Data do protocolo</span><strong>${fmtDate(p.data_protocolo)}</strong></div><div class="detail"><span>Data da ação</span><strong>${fmtDate(p.data_inicio)}</strong></div><div class="detail"><span>Prazo do relatório</span><strong>${fmtDate(p.prazo_relatorio)}</strong></div><div class="detail"><span>Relatório recebido</span><strong>${p.relatorio_recebido?'Sim':'Não'}</strong></div><div class="detail"><span>Encerrado</span><strong>${p.encerrado?'Sim':'Não'}</strong></div></div><div class="result-actions">${!p.encerrado?`<a class="btn orange" target="_blank" rel="noopener" href="${esc(reportUrl)}">Enviar relatório final</a>`:''}<button class="btn ghost" type="button" id="refreshProtocol">Atualizar situação</button></div>`;
-    $('#refreshProtocol')?.addEventListener('click',()=>consultar(p.id));
-  }
-
-  async function consultar(forceId){
-    const input=$('#protocolInput'),id=String(forceId||input?.value||'').trim().toUpperCase(),t=$('#protocolResult');
-    if(!/^NICE-\d{4}-\d{5}$/.test(id)){if(t){t.className='result empty';t.textContent='Informe um protocolo no formato NICE-2026-00001.'}return;}
-    if(input)input.value=id;if(t){t.className='result empty';t.textContent='Consultando protocolo…'}
-    try{renderProtocol((await apiRequest('protocol',{id})).protocol||null)}catch(err){if(t){t.className='result empty';t.textContent=err.message||'Falha ao consultar protocolo.'}}
-  }
-
-  async function initBackend(){
-    try{
-      const health=await apiRequest('health');
-      const syncTime=usingCache?(cache?.synced_at||health?.updated_at):health?.updated_at;
-      setBackendState('ok',usingCache?'Sistema conectado · modo seguro':'Sistema conectado',usingCache?`Dados sincronizados automaticamente pelo GitHub${syncTime?' · '+new Date(syncTime).toLocaleString('pt-BR'):''}. Atualização em até 5 minutos.`:`Base operacional disponível${syncTime?' · '+new Date(syncTime).toLocaleString('pt-BR'):''}.`);
-      renderStats(await apiRequest('stats'));
-      await carregarProjetos();
-    }catch(err){setBackendState('err','Falha na conexão',err.message||'Não foi possível consultar a base NICE.')}
-  }
+  function renderProtocol(p){const t=$('#protocolResult');if(!t)return;if(!p){t.className='result empty';t.textContent='Protocolo não localizado.';return;}const reportUrl=p.link_form_relatorio||C.FORM_RELATORIO_URL||'#';t.className='result';t.innerHTML=`<div class="result-head"><span class="protocol-id">${esc(p.id)}</span><span class="pill ${pillClass(p.status)}">${esc(labelStatus(p.status))}</span></div><div class="details"><div class="detail"><span>Responsável pela submissão</span><strong>${esc(p.responsavel||'—')}</strong></div><div class="detail"><span>Título da ação</span><strong>${esc(p.titulo||'—')}</strong></div><div class="detail"><span>Curso</span><strong>${esc(p.curso||'—')}</strong></div><div class="detail"><span>Campus / Unidade</span><strong>${esc(p.unidade||'—')}</strong></div><div class="detail"><span>Vai precisar de auditório?</span><strong>${esc(fmtAuditorio(p.auditorio))}</strong></div><div class="detail"><span>Data do protocolo</span><strong>${fmtDate(p.data_protocolo)}</strong></div><div class="detail"><span>Data da ação</span><strong>${fmtDate(p.data_inicio)}</strong></div><div class="detail"><span>Prazo do relatório</span><strong>${fmtDate(p.prazo_relatorio)}</strong></div><div class="detail"><span>Relatório recebido</span><strong>${p.relatorio_recebido?'Sim':'Não'}</strong></div><div class="detail"><span>Encerrado</span><strong>${p.encerrado?'Sim':'Não'}</strong></div></div><div class="result-actions">${!p.encerrado?`<a class="btn orange" target="_blank" rel="noopener" href="${esc(reportUrl)}">Enviar relatório final</a>`:''}<button class="btn ghost" type="button" id="refreshProtocol">Atualizar situação</button></div>`;$('#refreshProtocol')?.addEventListener('click',()=>consultar(p.id));}
+  async function consultar(forceId){const input=$('#protocolInput'),id=String(forceId||input?.value||'').trim().toUpperCase(),t=$('#protocolResult');if(!/^NICE-\d{4}-\d{5}$/.test(id)){if(t){t.className='result empty';t.textContent='Informe um protocolo no formato NICE-2026-00001.';}return;}if(input)input.value=id;if(t){t.className='result empty';t.textContent='Consultando protocolo…';}try{renderProtocol((await apiRequest('protocol',{id})).protocol||null);}catch(err){if(t){t.className='result empty';t.textContent=err.message||'Falha ao consultar protocolo.';}}}
+  async function initBackend(){try{const health=await apiRequest('health'),syncTime=usingCache?(cache?.synced_at||health?.updated_at):health?.updated_at;setBackendState('ok',usingCache?'Sistema conectado · modo seguro':'Sistema conectado',usingCache?`Dados sincronizados automaticamente pelo GitHub${syncTime?' · '+new Date(syncTime).toLocaleString('pt-BR'):''}. Atualização em até 5 minutos.`:`Base operacional disponível${syncTime?' · '+new Date(syncTime).toLocaleString('pt-BR'):''}.`);renderStats(await apiRequest('stats'));await carregarProjetos();}catch(err){setBackendState('err','Falha na conexão',err.message||'Não foi possível consultar a base NICE.');}}
 
   $('#searchProtocol')?.addEventListener('click',()=>consultar());
-  $('#protocolInput')?.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();consultar()}});
+  $('#protocolInput')?.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();consultar();}});
   $('#projectFilterButton')?.addEventListener('click',carregarProjetos);
-  $('#projectSearch')?.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();carregarProjetos()}});
+  $('#projectSearch')?.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();carregarProjetos();}});
   $('#projectStatus')?.addEventListener('change',carregarProjetos);
-  $('#projectClear')?.addEventListener('click',()=>{if($('#projectSearch'))$('#projectSearch').value='';if($('#projectStatus'))$('#projectStatus').value='';carregarProjetos()});
-
+  $('#projectClear')?.addEventListener('click',()=>{if($('#projectSearch'))$('#projectSearch').value='';if($('#projectStatus'))$('#projectStatus').value='';carregarProjetos();});
   initBackend();
-  setInterval(async()=>{try{if(usingCache)await loadCache();renderStats(await apiRequest('stats'));await carregarProjetos()}catch(_){}},60000);
+  setInterval(async()=>{try{if(usingCache)await loadCache();renderStats(await apiRequest('stats'));await carregarProjetos();}catch(_){}},60000);
 })();
