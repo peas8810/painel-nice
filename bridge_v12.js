@@ -11,6 +11,33 @@
   if(institutionalFooter)institutionalFooter.textContent='PEAS - Technology®';
   document.title='Sistema de Gestão de Protocolos e Análise de Dados®';
 
+  const icon='assets/amonia-logo.svg';
+  let favicon=document.querySelector('link[rel="icon"]');
+  if(!favicon){
+    favicon=document.createElement('link');
+    favicon.rel='icon';
+    favicon.type='image/svg+xml';
+    document.head.appendChild(favicon);
+  }
+  favicon.href=icon;
+
+  const logo=document.querySelector('.top .brand .logo');
+  if(logo){
+    logo.innerHTML='<img src="'+icon+'" alt="" aria-hidden="true">';
+    logo.style.background='rgba(255,255,255,.96)';
+    logo.style.borderColor='rgba(255,255,255,.35)';
+    logo.style.overflow='hidden';
+    logo.style.display='grid';
+    logo.style.placeItems='center';
+    const img=logo.querySelector('img');
+    if(img){
+      img.style.width='42px';
+      img.style.height='42px';
+      img.style.objectFit='contain';
+      img.style.display='block';
+    }
+  }
+
   // Link permanente para o novo Sistema de Protocolos, sem interferir nas abas do painel.
   const nav=document.querySelector('.tabs');
   if(nav&&!document.getElementById('nice-protocolos-link')){
