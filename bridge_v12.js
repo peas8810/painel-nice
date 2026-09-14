@@ -30,15 +30,10 @@
     logo.style.display='grid';
     logo.style.placeItems='center';
     const img=logo.querySelector('img');
-    if(img){
-      img.style.width='42px';
-      img.style.height='42px';
-      img.style.objectFit='contain';
-      img.style.display='block';
-    }
+    if(img){img.style.width='42px';img.style.height='42px';img.style.objectFit='contain';img.style.display='block';}
   }
 
-  // Link permanente para o novo Sistema de Protocolos, sem interferir nas abas do painel.
+  // Link permanente para o Sistema de Protocolos.
   const nav=document.querySelector('.tabs');
   if(nav&&!document.getElementById('nice-protocolos-link')){
     const a=document.createElement('a');
@@ -70,7 +65,14 @@
       if(window.__NICE_UI_STARTED)return;
       const s=document.createElement('script');
       s.src='dashboard_v12.js?ts='+Date.now();
-      s.onload=()=>console.info('NICE: dashboard carregado');
+      s.onload=()=>{
+        console.info('NICE: dashboard carregado');
+        const live=document.createElement('script');
+        live.src='live_intelligence.js?ts='+Date.now();
+        live.onload=()=>console.info('NICE: integração analítica ao vivo carregada');
+        live.onerror=()=>console.warn('NICE: não foi possível carregar a integração analítica ao vivo.');
+        document.body.appendChild(live);
+      };
       s.onerror=()=>show('Não foi possível carregar o dashboard institucional.');
       document.body.appendChild(s);
     }catch(err){
