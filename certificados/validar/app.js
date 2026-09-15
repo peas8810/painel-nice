@@ -5,33 +5,44 @@
   const result=document.getElementById('result');
   const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const fmt=v=>{if(!v)return'—';const d=new Date(v);return isNaN(d)?esc(v):d.toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo'})};
+  let seq=0;
 
   function bridge(params){
     return new Promise((resolve,reject)=>{
-      const callback='__nice_verify_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);
-      const script=document.createElement('script');
-      const url=new URL(API);
-      Object.entries({...params,callback,_:Date.now()}).forEach(([k,v])=>url.searchParams.set(k,v));
-      let done=false;
-      function finish(err,payload){
-        if(done)return;
-        done=true;
+      const requestId='verify_'+Date.now()+'_'+(++seq)+'_'+Math.random().toString(36).slice(2,8);
+      const u=new URL(API);
+      Object.entries({...params,transport:'bridge',request_id:requestId,_:Date.now()}).forEach(([k,v])=>u.searchParams.set(k,v));
+
+      const frame=document.createElement('iframe');
+      frame.hidden=true;
+      frame.src=u.toString();
+      let finished=false;
+
+      const finish=(err,payload)=>{
+        if(finished)return;
+        finished=true;
         clearTimeout(timer);
-        try{delete window[callback]}catch(_){}
-        script.remove();
+        window.removeEventListener('message',onMessage);
+        frame.remove();
         err?reject(err):resolve(payload);
-      }
-      window[callback]=payload=>finish(null,payload);
-      script.onerror=()=>finish(new Error('Não foi possível consultar o certificado.'));
-      const timer=setTimeout(()=>finish(new Error('Tempo esgotado ao consultar o validador.')),30000);
-      script.src=url.toString();
-      document.head.appendChild(script);
+      };
+
+      const onMessage=e=>{
+        const d=e.data;
+        if(!d||d.source!=='NICE_API_BRIDGE'||d.request_id!==requestId)return;
+        finish(null,d.payload);
+      };
+
+      const timer=setTimeout(()=>finish(new Error('Tempo esgotado ao consultar o certificado.')),30000);
+      window.addEventListener('message',onMessage);
+      document.body.appendChild(frame);
     });
   }
 
   function render(p){
     if(!p||!p.ok||!p.valid){
-      result.innerHTML=`<div class="card invalid"><h2>Certificado não validado</h2><p class="desc">${esc((p&&p.error)||'Código não encontrado ou documento inválido.')}</p></div>`;return;
+      result.innerHTML=`<div class="card invalid"><h2>Certificado não validado</h2><p class="desc">${esc((p&&p.error)||'Código não encontrado ou documento inválido.')}</p></div>`;
+      return;
     }
     const revoked=p.revoked===true;
     result.innerHTML=`<div class="card ${revoked?'invalid':'valid'}"><div class="event-head"><div><div class="event-id">${revoked?'CERTIFICADO REVOGADO':'CERTIFICADO VÁLIDO'}</div><h2>${esc(p.nome)}</h2><p class="desc">${esc(p.evento&&p.evento.titulo||'Evento institucional')}</p></div><span class="status">${esc(p.status||'ATIVO')}</span></div>
@@ -40,11 +51,22 @@
   }
 
   async function verify(){
-    const c=code.value.trim().toUpperCase();if(!c){code.focus();return}
+    const c=code.value.trim().toUpperCase();
+    if(!c){code.focus();return;}
     result.innerHTML='<div class="card loading">Consultando assinatura digital…</div>';
     btn.disabled=true;
-    try{render(await bridge({action:'cert_verify',code:c}))}catch(err){render({ok:false,error:err.message})}finally{btn.disabled=false}
+    try{
+      const payload=await bridge({action:'cert_verify',code:c});
+      render(payload);
+    }catch(err){
+      render({ok:false,error:err.message||'Não foi possível consultar o certificado.'});
+    }finally{
+      btn.disabled=false;
+    }
   }
-  btn.addEventListener('click',verify);code.addEventListener('keydown',e=>{if(e.key==='Enter')verify()});
-  const initial=new URLSearchParams(location.search).get('codigo');if(initial){code.value=initial;verify()}
+
+  btn.addEventListener('click',verify);
+  code.addEventListener('keydown',e=>{if(e.key==='Enter')verify()});
+  const initial=new URLSearchParams(location.search).get('codigo');
+  if(initial){code.value=initial;verify();}
 })();
