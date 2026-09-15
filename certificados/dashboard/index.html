@@ -13,15 +13,19 @@
 <body>
 <header class="top"><div class="top-inner"><a class="brand" href="../"><img src="../../assets/amonia-logo.svg" alt=""><div><strong>Dashboard de Certificados</strong><span>Gestão operacional e rastreabilidade</span></div></a><nav><a href="../">Certificados</a><a href="../../protocolos/">Protocolos</a><a class="primary" href="../validar/">Validar certificado</a></nav></div></header>
 <main class="container">
-  <section class="hero"><div><span class="eyebrow">GESTÃO DE CERTIFICAÇÃO</span><h1>Painel operacional</h1><p>Acompanhe eventos, emissões, status e links de divulgação em um único lugar.</p></div><div class="hero-badge"><strong>Tempo real</strong><span>dados do sistema NICE</span></div></section>
+  <section class="hero"><div><span class="eyebrow">GESTÃO DE CERTIFICAÇÃO</span><h1>Painel operacional</h1><p>Crie eventos, abra ou feche a emissão, acompanhe certificados e copie links de divulgação em um único lugar.</p></div><div class="hero-badge"><strong>Central NICE</strong><span>gestão de ponta a ponta</span></div></section>
+
+  <section class="adminbar">
+    <div><strong>Centro de controle</strong><span id="adminState">Acesso administrativo não autenticado</span></div>
+    <div class="admin-actions"><button id="authBtn" class="btn secondary" type="button">Acessar administração</button><button id="newEventBtn" class="btn orange" type="button" disabled>+ Criar evento</button></div>
+  </section>
 
   <section id="status" class="statusline">Carregando dados…</section>
-
   <section id="kpis" class="kpis"></section>
 
   <section class="card panel">
     <div class="panel-head"><div><span class="eyebrow">EVENTOS</span><h2>Eventos de certificação</h2></div><div class="filters"><input id="eventSearch" type="search" placeholder="Buscar evento, campus ou protocolo"><select id="eventStatus"><option value="">Todos os status</option><option value="EMISSAO_ABERTA">Emissão aberta</option><option value="EMISSAO_FECHADA">Emissão fechada</option></select></div></div>
-    <div class="table-wrap"><table><thead><tr><th>Evento</th><th>Título</th><th>Data</th><th>Campus / Unidade</th><th>Status</th><th>Emitidos</th><th>Divulgação</th></tr></thead><tbody id="eventsBody"></tbody></table></div>
+    <div class="table-wrap"><table><thead><tr><th>Evento</th><th>Título</th><th>Data</th><th>Campus / Unidade</th><th>Status</th><th>Emitidos</th><th>Divulgação</th><th>Controle</th></tr></thead><tbody id="eventsBody"></tbody></table></div>
   </section>
 
   <section class="card panel">
@@ -30,6 +34,30 @@
   </section>
 </main>
 <footer>PEAS - Technology®</footer>
+
+<div id="modal" class="modal" hidden>
+  <div class="modal-backdrop" data-close></div>
+  <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <button class="modal-close" type="button" data-close>×</button>
+    <span class="eyebrow">NOVO EVENTO</span><h2 id="modalTitle">Criar sistema de emissão</h2>
+    <p class="desc">O evento será criado com URL sequencial própria e poderá iniciar aberto ou fechado.</p>
+    <form id="eventForm" class="event-form">
+      <label class="wide">Título do evento<input name="titulo" required maxlength="220"></label>
+      <label>Tipo de evento<input name="tipo" placeholder="Palestra, curso, congresso"></label>
+      <label>Data do evento<input name="data" type="date" required></label>
+      <label>Campus / Unidade<input name="campus"></label>
+      <label>Local<input name="local"></label>
+      <label>Carga horária<input name="carga" placeholder="Ex.: 4 horas"></label>
+      <label>Responsável<input name="responsavel"></label>
+      <label>Protocolo NICE<input name="protocolo" placeholder="NICE-2026-00001"></label>
+      <label class="wide">Descrição<textarea name="descricao" rows="3"></textarea></label>
+      <label class="switchrow wide"><input name="abrir" type="checkbox"><span>Já criar com emissão aberta</span></label>
+      <div class="form-actions wide"><button type="button" class="btn secondary" data-close>Cancelar</button><button id="createBtn" type="submit" class="btn orange">Criar evento</button></div>
+      <div id="formResult" class="form-result wide"></div>
+    </form>
+  </section>
+</div>
+
 <script src="dashboard.js"></script>
 </body>
 </html>
