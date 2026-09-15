@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Validação pública de certificados NICE.">
+  <meta name="theme-color" content="#17365d">
+  <link rel="icon" type="image/svg+xml" href="../../assets/amonia-logo.svg">
+  <title>Validar certificado | NICE</title>
+  <link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+<header class="top"><div class="top-inner"><a class="brand" href="../"><img src="../../assets/amonia-logo.svg" alt=""><div><strong>Validador de Certificados</strong><span>Sistema NICE · verificação pública de autenticidade</span></div></a><nav><a href="../">Certificados</a><a href="../../protocolos/">Protocolos</a></nav></div></header>
+<main class="container">
+  <section class="hero"><div><span class="eyebrow">VALIDAÇÃO DIGITAL</span><h1>Confira a autenticidade do certificado</h1><p>Digite o código impresso no documento ou abra esta página pelo QR Code.</p></div><div class="hero-badge"><strong>HMAC-SHA256</strong><span>Integridade verificável</span></div></section>
+  <section class="card"><h2>Consultar certificado</h2><p class="desc">O código não diferencia letras maiúsculas e minúsculas.</p><div class="searchbox"><input id="code" type="text" autocomplete="off" spellcheck="false" placeholder="CERT-NICE-00023-XXXXXXXX"><button id="verify" class="btn orange" type="button">Validar</button></div><div id="result" class="verify-result"></div></section>
+</main>
+<footer>PEAS - Technology®</footer>
+<script src="app.js"></script>
+</body>
+</html>
