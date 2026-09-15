@@ -1,7 +1,27 @@
 /**
- * Dashboard público seguro de certificados NICE.
- * Não expõe nome, e-mail ou outros dados pessoais dos participantes.
+ * Dashboard público seguro + centro de controle administrativo de certificados NICE.
+ * O endpoint público não expõe nome/e-mail. Ações administrativas exigem chave secreta
+ * armazenada em Script Properties (CERT_DASHBOARD_ADMIN_KEY).
  */
+const NICE_CERT_DASHBOARD = Object.freeze({
+  ADMIN_KEY_PROPERTY:'CERT_DASHBOARD_ADMIN_KEY',
+  OPEN_STATUS:'EMISSAO_ABERTA',
+  CLOSED_STATUS:'EMISSAO_FECHADA',
+  PUBLIC_BASE:'https://www.protocolo.me/certificados'
+});
+
+/** Execute uma vez no editor do Apps Script. Gera e mostra a chave do painel. */
+function instalarPainelAdminCertificados(){
+  const props=PropertiesService.getScriptProperties();
+  let key=String(props.getProperty(NICE_CERT_DASHBOARD.ADMIN_KEY_PROPERTY)||'').trim();
+  if(!key){
+    key=(Utilities.getUuid()+Utilities.getUuid()).replace(/-/g,'');
+    props.setProperty(NICE_CERT_DASHBOARD.ADMIN_KEY_PROPERTY,key);
+  }
+  SpreadsheetApp.getUi().alert('Painel administrativo configurado.\n\nChave de acesso:\n'+key+'\n\nGuarde esta chave. Ela não deve ser publicada no GitHub.');
+  return key;
+}
+
 function niceCertDashboardPublic_(){
   const ss = SpreadsheetApp.openById(NICE_API.SPREADSHEET_ID);
   const shEvents = ss.getSheetByName('CERT_EVENTOS');
@@ -28,7 +48,7 @@ function niceCertDashboardPublic_(){
         evento_id: String(eventId).padStart(4,'0'),
         status: status || 'SEM_STATUS',
         emitido_em: niceApiIso_(niceApiCell_(values[i], h, 'EMITIDO_EM')),
-        validacao: 'https://www.protocolo.me/certificados/validar/?codigo=' + encodeURIComponent(code)
+        validacao: NICE_CERT_DASHBOARD.PUBLIC_BASE + '/validar/?codigo=' + encodeURIComponent(code)
       });
       if (certs.length >= 1000) break;
     }
@@ -41,20 +61,22 @@ function niceCertDashboardPublic_(){
       const idNum = Number(niceApiCell_(values[i], h, 'EVENTO_ID') || 0);
       if (!idNum) continue;
       const status = String(niceApiCell_(values[i], h, 'STATUS') || '').trim().toUpperCase();
-      if (status === 'EMISSAO_ABERTA') abertos++;
+      if (status === NICE_CERT_DASHBOARD.OPEN_STATUS) abertos++;
       else fechados++;
       const id = String(idNum).padStart(4,'0');
       events.push({
         id,
         titulo: niceApiPublicText_(niceApiCell_(values[i], h, 'TITULO_EVENTO')),
+        tipo: niceApiPublicText_(niceApiCell_(values[i], h, 'TIPO_EVENTO')),
         data_evento: niceApiIso_(niceApiCell_(values[i], h, 'DATA_EVENTO')),
         campus_unidade: niceApiPublicText_(niceApiCell_(values[i], h, 'CAMPUS_UNIDADE')),
         local: niceApiPublicText_(niceApiCell_(values[i], h, 'LOCAL')),
         carga_horaria: niceApiPublicText_(niceApiCell_(values[i], h, 'CARGA_HORARIA')),
+        responsavel: niceApiPublicText_(niceApiCell_(values[i], h, 'RESPONSAVEL')),
         protocolo_nice: niceApiPublicText_(niceApiCell_(values[i], h, 'PROTOCOLO_NICE')),
         status: status || 'SEM_STATUS',
         certificados_emitidos: byEvent[idNum] || 0,
-        url_publica: 'https://www.protocolo.me/certificados/' + id + '/'
+        url_publica: NICE_CERT_DASHBOARD.PUBLIC_BASE + '/' + id + '/'
       });
     }
   }
@@ -74,3 +96,91 @@ function niceCertDashboardPublic_(){
     privacy: 'Nenhum nome ou e-mail é exposto por este endpoint.'
   };
 }
+
+/** Endpoint administrativo usado pelo dashboard. */
+function niceCertDashboardAdmin_(params){
+  const p=params||{};
+  const key=String(p.admin_key||'').trim();
+  niceCertDashboardRequireAdmin_(key);
+  const op=String(p.op||'').trim().toLowerCase();
+  if(op==='auth') return {ok:true,authorized:true};
+  if(op==='create_event') return niceCertDashboardCreateEvent_(p);
+  if(op==='set_status') return niceCertDashboardSetStatus_(p);
+  return {ok:false,error:'Operação administrativa não reconhecida.'};
+}
+
+function niceCertDashboardRequireAdmin_(key){
+  const saved=String(PropertiesService.getScriptProperties().getProperty(NICE_CERT_DASHBOARD.ADMIN_KEY_PROPERTY)||'').trim();
+  if(!saved) throw new Error('Painel administrativo ainda não foi configurado. Execute instalarPainelAdminCertificados().');
+  if(!key || key!==saved) throw new Error('Chave administrativa inválida.');
+}
+
+function niceCertDashboardCreateEvent_(p){
+  const titulo=niceCertDashboardClean_(p.titulo,220);
+  const tipo=niceCertDashboardClean_(p.tipo,120);
+  const data=String(p.data||'').trim();
+  const campus=niceCertDashboardClean_(p.campus,160);
+  const local=niceCertDashboardClean_(p.local,180);
+  const carga=niceCertDashboardClean_(p.carga,60);
+  const responsavel=niceCertDashboardClean_(p.responsavel,180);
+  const protocolo=niceCertDashboardClean_(p.protocolo,80).toUpperCase();
+  const descricao=niceCertDashboardClean_(p.descricao,500);
+  const abrir=String(p.abrir||'').toLowerCase()==='true'||String(p.abrir||'')==='1';
+  if(titulo.length<3) return {ok:false,error:'Informe o título do evento.'};
+  if(!data) return {ok:false,error:'Informe a data do evento.'};
+
+  const lock=LockService.getScriptLock(); lock.waitLock(30000);
+  try{
+    const id=typeof niceCertPublicNextId_==='function'?niceCertPublicNextId_():niceCertNextEventId_();
+    const code=String(id).padStart(4,'0');
+    const dateObj=niceCertParseBrDate_(data)||new Date(data+'T12:00:00');
+    if(!dateObj || isNaN(dateObj)) return {ok:false,error:'Data inválida.'};
+    const folder=niceCertEventFolder_(id,titulo);
+    const now=new Date();
+    const event={
+      EVENTO_ID:id,
+      PROTOCOLO_NICE:protocolo,
+      TITULO_EVENTO:titulo,
+      TIPO_EVENTO:tipo,
+      DATA_EVENTO:dateObj,
+      CAMPUS_UNIDADE:campus,
+      LOCAL:local,
+      CARGA_HORARIA:carga,
+      RESPONSAVEL:responsavel,
+      DESCRICAO:descricao,
+      STATUS:abrir?NICE_CERT_DASHBOARD.OPEN_STATUS:NICE_CERT_DASHBOARD.CLOSED_STATUS,
+      URL_PUBLICA:NICE_CERT_DASHBOARD.PUBLIC_BASE+'/'+code,
+      PASTA_DRIVE:folder.getUrl(),
+      CRIADO_EM:now,
+      ATUALIZADO_EM:now
+    };
+    niceCertAppendObject_(niceCertEventsSheet_(),event);
+    try{niceCertPublishEvent_(event)}catch(_){}
+    if(typeof niceCertPublicEnsureEventPage_==='function') niceCertPublicEnsureEventPage_(code);
+    if(typeof niceCertLog_==='function') niceCertLog_('EVENTO_CRIADO_DASHBOARD',id,'','Criado pelo dashboard administrativo.');
+    return {ok:true,event:{id:code,titulo,url_publica:event.URL_PUBLICA,status:event.STATUS}};
+  }finally{lock.releaseLock();}
+}
+
+function niceCertDashboardSetStatus_(p){
+  const id=Number(String(p.event_id||'').replace(/\D/g,''));
+  const wanted=String(p.status||'').trim().toUpperCase();
+  if(!id) return {ok:false,error:'Evento inválido.'};
+  if(![NICE_CERT_DASHBOARD.OPEN_STATUS,NICE_CERT_DASHBOARD.CLOSED_STATUS].includes(wanted)) return {ok:false,error:'Status inválido.'};
+  const sh=niceCertEventsSheet_(),v=sh.getDataRange().getValues();
+  if(v.length<2) return {ok:false,error:'Nenhum evento cadastrado.'};
+  const m=niceCertHeaderMap_(v[0]);
+  for(let r=1;r<v.length;r++){
+    if(Number(v[r][m.EVENTO_ID])!==id) continue;
+    niceCertSetByMap_(sh,r+1,m,'STATUS',wanted);
+    niceCertSetByMap_(sh,r+1,m,'ATUALIZADO_EM',new Date());
+    const ev=niceCertFindEvent_(id);
+    try{niceCertPublishEvent_(ev)}catch(_){}
+    if(typeof niceCertPublicEnsureEventPage_==='function') niceCertPublicEnsureEventPage_(String(id).padStart(4,'0'));
+    if(typeof niceCertLog_==='function') niceCertLog_(wanted,id,'','Alterado pelo dashboard administrativo.');
+    return {ok:true,event_id:String(id).padStart(4,'0'),status:wanted,url_publica:NICE_CERT_DASHBOARD.PUBLIC_BASE+'/'+String(id).padStart(4,'0')+'/'};
+  }
+  return {ok:false,error:'Evento não encontrado.'};
+}
+
+function niceCertDashboardClean_(v,max){return String(v==null?'':v).replace(/[<>]/g,'').replace(/\s+/g,' ').trim().slice(0,max||300);}
