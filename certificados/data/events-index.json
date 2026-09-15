@@ -1,1 +1,14 @@
-{"updated_at":null,"events":[]}
+{
+  "updated_at": "2026-09-15T19:37:37.945Z",
+  "events": [
+    {
+      "id": 2,
+      "titulo": "Palestra CPA",
+      "data_evento": "2026-09-25",
+      "campus_unidade": "Teófilo Otoni",
+      "protocolo_nice": "NICE 0001",
+      "status": "EMISSAO_FECHADA",
+      "certificados_emitidos": 0
+    }
+  ]
+}
