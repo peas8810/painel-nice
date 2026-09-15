@@ -17,12 +17,13 @@ function doGet(e) {
     else if (action === 'protocol') payload = niceApiProtocol_(String(p.id || '').toUpperCase());
     else if (action === 'projects') payload = niceApiProjects_(String(p.q || ''), String(p.status || ''), Number(p.limit || NICE_API.PUBLIC_LIST_LIMIT));
     else if (action === 'cert_verify') payload = niceCertPublicVerify_(String(p.code || '').toUpperCase());
+    else if (action === 'cert_issue') payload = niceCertPublicIssue_(p);
     else payload = {ok:false,error:'Ação não reconhecida.'};
 
     if (transport === 'bridge') return niceApiBridgeOutput_(payload, p.request_id);
     return niceApiOutput_(payload, p.callback);
   } catch (err) {
-    const payload = {ok:false,error:'Falha interna da API NICE.'};
+    const payload = {ok:false,error:String(err && err.message || 'Falha interna da API NICE.')};
     if (transport === 'bridge') return niceApiBridgeOutput_(payload, p.request_id);
     return niceApiOutput_(payload, p.callback);
   }
@@ -30,7 +31,7 @@ function doGet(e) {
 
 function niceApiHealth_() {
   const sh = niceApiSheet_();
-  return {ok:true,service:'NICE Protocolos e Certificados',version:'1.4',rows:Math.max(0,sh.getLastRow()-1),updated_at:new Date().toISOString(),transport:'bridge'};
+  return {ok:true,service:'NICE Protocolos e Certificados',version:'1.5',rows:Math.max(0,sh.getLastRow()-1),updated_at:new Date().toISOString(),transport:'bridge'};
 }
 
 function niceApiStats_() {
