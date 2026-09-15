@@ -1,0 +1,15 @@
+{
+  "id": 2,
+  "status": "EMISSAO_FECHADA",
+  "protocolo_nice": "NICE 0001",
+  "titulo": "Palestra CPA",
+  "tipo": "Palestra",
+  "data_evento": "2026-09-25",
+  "campus_unidade": "Teófilo Otoni",
+  "local": "Auditório AlfaUnipac",
+  "carga_horaria": "2",
+  "responsavel": "Das Neves",
+  "descricao": "Certificado",
+  "certificados_emitidos": 0,
+  "updated_at": "2026-09-15T19:37:34.979Z"
+}
