@@ -1,0 +1,24 @@
+(()=>{
+  const API='https://script.google.com/macros/s/AKfycby2HN1DU9SXupv2WlthavWzXMr5k1RsdpzDL-Dahd9NN2-TvDvEqT-wqMM6F9fP2DnY/exec';
+  const statusEl=document.getElementById('status'),kpis=document.getElementById('kpis'),eventsBody=document.getElementById('eventsBody'),certsBody=document.getElementById('certsBody');
+  const eventSearch=document.getElementById('eventSearch'),eventStatus=document.getElementById('eventStatus'),certSearch=document.getElementById('certSearch'),certStatus=document.getElementById('certStatus');
+  const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const fmtDate=v=>{if(!v)return'—';const d=new Date(v);return isNaN(d)?esc(v):d.toLocaleDateString('pt-BR',{timeZone:'America/Sao_Paulo'})};
+  const fmtDateTime=v=>{if(!v)return'—';const d=new Date(v);return isNaN(d)?esc(v):d.toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo'})};
+  let data={summary:{},events:[],certificates:[]};
+
+  function jsonp(){return new Promise((resolve,reject)=>{const cb='__nice_dash_'+Date.now()+'_'+Math.random().toString(36).slice(2),s=document.createElement('script'),u=new URL(API);u.searchParams.set('action','cert_dashboard');u.searchParams.set('callback',cb);u.searchParams.set('_',Date.now());let done=false;const finish=(err,p)=>{if(done)return;done=true;clearTimeout(t);try{delete window[cb]}catch(_){}s.remove();err?reject(err):resolve(p)};window[cb]=p=>finish(null,p);s.onerror=()=>finish(new Error('Não foi possível carregar o dashboard.'));const t=setTimeout(()=>finish(new Error('Tempo esgotado ao carregar os dados.')),30000);s.src=u.toString();document.head.appendChild(s)})}
+
+  function pill(status){const s=String(status||'').toUpperCase();let cls='closed',label=s||'SEM STATUS';if(s==='EMISSAO_ABERTA'){cls='open';label='EMISSÃO ABERTA'}else if(s==='EMISSAO_FECHADA'){cls='closed';label='EMISSÃO FECHADA'}else if(s==='REVOGADO'){cls='revoked'}else if(s==='ENVIADO'){cls='sent'}else if(s==='ATIVO'){cls='active'}return `<span class="pill ${cls}">${esc(label)}</span>`}
+  async function copy(text,btn){try{await navigator.clipboard.writeText(text);const old=btn.textContent;btn.textContent='Copiado';setTimeout(()=>btn.textContent=old,1200)}catch(_){prompt('Copie o link:',text)}}
+
+  function renderKpis(){const s=data.summary||{};const items=[['Eventos',s.eventos||0],['Emissão aberta',s.emissao_aberta||0],['Emissão fechada',s.emissao_fechada||0],['Certificados emitidos',s.certificados_emitidos||0],['Revogados',s.certificados_revogados||0]];kpis.innerHTML=items.map(([l,v])=>`<div class="kpi"><span>${esc(l)}</span><strong>${Number(v||0).toLocaleString('pt-BR')}</strong></div>`).join('')}
+
+  function renderEvents(){const q=eventSearch.value.trim().toLowerCase(),st=eventStatus.value;const rows=(data.events||[]).filter(e=>{const hay=[e.id,e.titulo,e.campus_unidade,e.protocolo_nice].join(' ').toLowerCase();return(!q||hay.includes(q))&&(!st||String(e.status).toUpperCase()===st)});eventsBody.innerHTML=rows.length?rows.map(e=>`<tr><td><strong>${esc(e.id)}</strong></td><td>${esc(e.titulo||'—')}</td><td>${fmtDate(e.data_evento)}</td><td>${esc(e.campus_unidade||'—')}</td><td>${pill(e.status)}</td><td>${Number(e.certificados_emitidos||0).toLocaleString('pt-BR')}</td><td><div class="actions"><a class="mini primary" target="_blank" rel="noopener" href="${esc(e.url_publica)}">Abrir</a><button class="mini copy" data-link="${esc(e.url_publica)}">Copiar link</button></div></td></tr>`).join(''):`<tr><td colspan="7" class="empty">Nenhum evento encontrado.</td></tr>`;eventsBody.querySelectorAll('.copy').forEach(b=>b.onclick=()=>copy(b.dataset.link,b))}
+
+  function renderCerts(){const q=certSearch.value.trim().toLowerCase(),st=certStatus.value;const rows=(data.certificates||[]).filter(c=>{const hay=[c.codigo,c.evento_id].join(' ').toLowerCase();return(!q||hay.includes(q))&&(!st||String(c.status).toUpperCase()===st)});certsBody.innerHTML=rows.length?rows.map(c=>`<tr><td class="code">${esc(c.codigo)}</td><td>${esc(c.evento_id)}</td><td>${pill(c.status)}</td><td>${fmtDateTime(c.emitido_em)}</td><td><a class="mini primary" target="_blank" rel="noopener" href="${esc(c.validacao)}">Validar</a></td></tr>`).join(''):`<tr><td colspan="5" class="empty">Nenhum certificado encontrado.</td></tr>`}
+
+  async function load(){statusEl.textContent='Atualizando dados…';try{const p=await jsonp();if(!p||!p.ok)throw new Error(p&&p.error||'Falha ao carregar.');data=p;renderKpis();renderEvents();renderCerts();statusEl.textContent='Atualizado em '+fmtDateTime(p.updated_at)+' · atualização automática a cada 60 segundos';}catch(e){statusEl.textContent=e.message||'Falha ao carregar o dashboard.'}}
+  [eventSearch,eventStatus].forEach(x=>x.addEventListener('input',renderEvents));[certSearch,certStatus].forEach(x=>x.addEventListener('input',renderCerts));
+  load();setInterval(load,60000);window.addEventListener('focus',load);
+})();
