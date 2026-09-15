@@ -5,17 +5,27 @@
   const result=document.getElementById('result');
   const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const fmt=v=>{if(!v)return'—';const d=new Date(v);return isNaN(d)?esc(v):d.toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo'})};
-  let seq=0;
 
   function bridge(params){
     return new Promise((resolve,reject)=>{
-      const requestId='cert_'+Date.now()+'_'+(++seq)+'_'+Math.random().toString(36).slice(2,8);
-      const u=new URL(API);Object.entries({...params,transport:'bridge',request_id:requestId,_:Date.now()}).forEach(([k,v])=>u.searchParams.set(k,v));
-      const frame=document.createElement('iframe');frame.hidden=true;frame.src=u.toString();
-      const timer=setTimeout(()=>finish(new Error('Tempo esgotado ao consultar o validador.')),25000);
-      const onMessage=e=>{const d=e.data;if(!d||d.source!=='NICE_API_BRIDGE'||d.request_id!==requestId)return;finish(null,d.payload)};
-      function finish(err,payload){clearTimeout(timer);window.removeEventListener('message',onMessage);frame.remove();err?reject(err):resolve(payload)}
-      window.addEventListener('message',onMessage);document.body.appendChild(frame);
+      const callback='__nice_verify_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);
+      const script=document.createElement('script');
+      const url=new URL(API);
+      Object.entries({...params,callback,_:Date.now()}).forEach(([k,v])=>url.searchParams.set(k,v));
+      let done=false;
+      function finish(err,payload){
+        if(done)return;
+        done=true;
+        clearTimeout(timer);
+        try{delete window[callback]}catch(_){}
+        script.remove();
+        err?reject(err):resolve(payload);
+      }
+      window[callback]=payload=>finish(null,payload);
+      script.onerror=()=>finish(new Error('Não foi possível consultar o certificado.'));
+      const timer=setTimeout(()=>finish(new Error('Tempo esgotado ao consultar o validador.')),30000);
+      script.src=url.toString();
+      document.head.appendChild(script);
     });
   }
 
