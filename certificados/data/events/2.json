@@ -1,6 +1,6 @@
 {
   "id": 2,
-  "status": "EMISSAO_ABERTA",
+  "status": "EMISSAO_FECHADA",
   "protocolo_nice": "NICE 0001",
   "titulo": "Palestra CPA",
   "tipo": "Palestra",
@@ -10,6 +10,6 @@
   "carga_horaria": 2,
   "responsavel": "Das Neves",
   "descricao": "Certificado",
-  "certificados_emitidos": 0,
-  "updated_at": "2026-09-15T19:46:17.414Z"
+  "certificados_emitidos": 3,
+  "updated_at": "2026-09-15T21:14:17.446Z"
 }
