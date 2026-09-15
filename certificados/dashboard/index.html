@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Dashboard operacional de certificados NICE.">
+  <meta name="theme-color" content="#17365d">
+  <link rel="icon" type="image/svg+xml" href="../../assets/amonia-logo.svg">
+  <title>Dashboard de Certificados | NICE</title>
+  <link rel="stylesheet" href="../styles.css">
+  <link rel="stylesheet" href="dashboard.css">
+</head>
+<body>
+<header class="top"><div class="top-inner"><a class="brand" href="../"><img src="../../assets/amonia-logo.svg" alt=""><div><strong>Dashboard de Certificados</strong><span>Gestão operacional e rastreabilidade</span></div></a><nav><a href="../">Certificados</a><a href="../../protocolos/">Protocolos</a><a class="primary" href="../validar/">Validar certificado</a></nav></div></header>
+<main class="container">
+  <section class="hero"><div><span class="eyebrow">GESTÃO DE CERTIFICAÇÃO</span><h1>Painel operacional</h1><p>Acompanhe eventos, emissões, status e links de divulgação em um único lugar.</p></div><div class="hero-badge"><strong>Tempo real</strong><span>dados do sistema NICE</span></div></section>
+
+  <section id="status" class="statusline">Carregando dados…</section>
+
+  <section id="kpis" class="kpis"></section>
+
+  <section class="card panel">
+    <div class="panel-head"><div><span class="eyebrow">EVENTOS</span><h2>Eventos de certificação</h2></div><div class="filters"><input id="eventSearch" type="search" placeholder="Buscar evento, campus ou protocolo"><select id="eventStatus"><option value="">Todos os status</option><option value="EMISSAO_ABERTA">Emissão aberta</option><option value="EMISSAO_FECHADA">Emissão fechada</option></select></div></div>
+    <div class="table-wrap"><table><thead><tr><th>Evento</th><th>Título</th><th>Data</th><th>Campus / Unidade</th><th>Status</th><th>Emitidos</th><th>Divulgação</th></tr></thead><tbody id="eventsBody"></tbody></table></div>
+  </section>
+
+  <section class="card panel">
+    <div class="panel-head"><div><span class="eyebrow">CERTIFICADOS</span><h2>Certificados gerados</h2><p class="desc">Por segurança, esta visão não expõe nome nem e-mail dos participantes.</p></div><div class="filters"><input id="certSearch" type="search" placeholder="Buscar código ou evento"><select id="certStatus"><option value="">Todos os status</option><option value="ENVIADO">Enviado</option><option value="ATIVO">Ativo</option><option value="REVOGADO">Revogado</option></select></div></div>
+    <div class="table-wrap"><table><thead><tr><th>Código</th><th>Evento</th><th>Status</th><th>Emitido em</th><th>Validação</th></tr></thead><tbody id="certsBody"></tbody></table></div>
+  </section>
+</main>
+<footer>PEAS - Technology®</footer>
+<script src="dashboard.js"></script>
+</body>
+</html>
