@@ -1,0 +1,15 @@
+{
+  "id": 3,
+  "status": "EMISSAO_FECHADA",
+  "protocolo_nice": "0003",
+  "titulo": "Evento 01",
+  "tipo": "Palestra",
+  "data_evento": "2026-09-25",
+  "campus_unidade": "Teófilo Otoni",
+  "local": "Auditório",
+  "carga_horaria": "6",
+  "responsavel": "Denise dos Anjos",
+  "descricao": "Gestão Final",
+  "certificados_emitidos": 0,
+  "updated_at": "2026-09-15T19:45:49.457Z"
+}
