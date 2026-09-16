@@ -1,0 +1,15 @@
+{
+  "id": 4,
+  "status": "EMISSAO_ABERTA",
+  "protocolo_nice": "0003",
+  "titulo": "Teste Geraç",
+  "tipo": "Palestra",
+  "data_evento": "2026-09-25",
+  "campus_unidade": "Teófilo Otoni",
+  "local": "Auditório",
+  "carga_horaria": "18",
+  "responsavel": "Helvécio",
+  "descricao": "Evento teste",
+  "certificados_emitidos": 0,
+  "updated_at": "2026-09-16T12:57:37.753Z"
+}
