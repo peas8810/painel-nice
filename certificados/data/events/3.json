@@ -1,6 +1,6 @@
 {
   "id": 3,
-  "status": "EMISSAO_ABERTA",
+  "status": "EMISSAO_FECHADA",
   "protocolo_nice": 3,
   "titulo": "Evento 01",
   "tipo": "Palestra",
@@ -11,5 +11,5 @@
   "responsavel": "Denise dos Anjos",
   "descricao": "Gestão Final",
   "certificados_emitidos": 0,
-  "updated_at": "2026-09-15T21:14:26.586Z"
+  "updated_at": "2026-09-16T12:58:18.372Z"
 }
