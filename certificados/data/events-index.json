@@ -1,14 +1,14 @@
 {
-  "updated_at": "2026-09-16T12:58:23.534Z",
+  "updated_at": "2026-09-17T12:09:57.995Z",
   "events": [
     {
       "id": 4,
       "titulo": "Teste Geraç",
       "data_evento": "2026-09-25",
       "campus_unidade": "Teófilo Otoni",
-      "protocolo_nice": "0003",
-      "status": "EMISSAO_ABERTA",
-      "certificados_emitidos": 0
+      "protocolo_nice": 3,
+      "status": "EMISSAO_FECHADA",
+      "certificados_emitidos": 1
     },
     {
       "id": 3,
