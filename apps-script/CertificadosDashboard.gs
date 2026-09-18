@@ -39,13 +39,15 @@ function niceCertDashboardPublic_(){
       const eventId = Number(niceApiCell_(values[i], h, 'EVENTO_ID') || 0);
       const code = String(niceApiCell_(values[i], h, 'CODIGO') || '').trim().toUpperCase();
       const status = String(niceApiCell_(values[i], h, 'STATUS') || '').trim().toUpperCase();
-      if (!eventId || !code) continue;
+      const tipoCert = String(niceApiCell_(values[i], h, 'TIPO_CERTIFICADO') || '').trim().toUpperCase();
+      const customLinkId = String(niceApiCell_(values[i], h, 'CUSTOM_LINK_ID') || '').trim();
+      if (!code) continue;
       if (status === 'REVOGADO') revogados++;
       if (['ENVIADO','ATIVO','REVOGADO'].includes(status)) enviados++;
-      byEvent[eventId] = (byEvent[eventId] || 0) + (['ENVIADO','ATIVO','REVOGADO'].includes(status) ? 1 : 0);
+      if(eventId) byEvent[eventId] = (byEvent[eventId] || 0) + (['ENVIADO','ATIVO','REVOGADO'].includes(status) ? 1 : 0);
       certs.push({
         codigo: code,
-        evento_id: String(eventId).padStart(4,'0'),
+        evento_id: tipoCert==='CUSTOMIZADO'?(customLinkId||'CUSTOM'):String(eventId).padStart(4,'0'),
         status: status || 'SEM_STATUS',
         emitido_em: niceApiIso_(niceApiCell_(values[i], h, 'EMITIDO_EM')),
         validacao: NICE_CERT_DASHBOARD.PUBLIC_BASE + '/validar/?codigo=' + encodeURIComponent(code)
