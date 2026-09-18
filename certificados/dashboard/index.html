@@ -11,7 +11,7 @@
   <link rel="icon" type="image/svg+xml" href="../../assets/amonia-logo.svg">
   <title>Dashboard de Certificados | NICE</title>
   <link rel="stylesheet" href="../styles.css?v=20260915-2">
-  <link rel="stylesheet" href="dashboard.css?v=20260915-2">
+  <link rel="stylesheet" href="dashboard.css?v=20260918-1">
 </head>
 <body>
 <header class="top"><div class="top-inner"><a class="brand" href="../"><img src="../../assets/amonia-logo.svg" alt=""><div><strong>Dashboard de Certificados</strong><span>Gestão operacional e rastreabilidade</span></div></a><nav><a href="../">Certificados</a><a href="../../protocolos/">Protocolos</a><a class="primary" href="../validar/">Validar certificado</a></nav></div></header>
@@ -20,7 +20,7 @@
 
   <section class="adminbar">
     <div><strong>Centro de controle</strong><span id="adminState">Acesso administrativo não autenticado</span></div>
-    <div class="admin-actions"><button id="authBtn" class="btn secondary" type="button">Acessar administração</button><button id="newEventBtn" class="btn orange" type="button" disabled>+ Criar evento</button></div>
+    <div class="admin-actions"><button id="authBtn" class="btn secondary" type="button">Acessar administração</button><button id="customLinkBtn" class="btn secondary" type="button" disabled>+ Emissão customizada</button><button id="newEventBtn" class="btn orange" type="button" disabled>+ Criar evento padrão</button></div>
   </section>
 
   <section id="status" class="statusline">Carregando dados…</section>
@@ -29,6 +29,12 @@
   <section class="card panel">
     <div class="panel-head"><div><span class="eyebrow">EVENTOS</span><h2>Eventos de certificação</h2></div><div class="filters"><input id="eventSearch" type="search" placeholder="Buscar evento, campus ou protocolo"><select id="eventStatus"><option value="">Todos os status</option><option value="EMISSAO_ABERTA">Emissão aberta</option><option value="EMISSAO_FECHADA">Emissão fechada</option></select></div></div>
     <div class="table-wrap"><table><thead><tr><th>Evento</th><th>Título</th><th>Data</th><th>Campus / Unidade</th><th>Status</th><th>Emitidos</th><th>Divulgação</th><th>Controle</th></tr></thead><tbody id="eventsBody"></tbody></table></div>
+  </section>
+
+
+  <section class="card panel" id="customLinksPanel">
+    <div class="panel-head"><div><span class="eyebrow">CUSTOMIZADOS</span><h2>Links de emissão customizada</h2><p class="desc">Links compartilháveis nos quais a própria pessoa informa função no evento, carga horária, nome, evento e e-mail.</p></div></div>
+    <div class="table-wrap"><table><thead><tr><th>Link</th><th>Identificação</th><th>Status</th><th>Emitidos</th><th>Divulgação</th><th>Controle</th></tr></thead><tbody id="customLinksBody"><tr><td colspan="6" class="empty">Autentique para visualizar os links customizados.</td></tr></tbody></table></div>
   </section>
 
   <section class="card panel">
@@ -61,7 +67,7 @@
   </section>
 </div>
 
-<div class="build-tag">Dashboard v2 · 15/09/2026</div>
-<script src="dashboard.js?v=20260915-2"></script>
+<div class="build-tag">Dashboard v3 · 18/09/2026</div>
+<script src="dashboard.js?v=20260918-1"></script>
 </body>
 </html>
