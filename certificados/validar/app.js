@@ -7,35 +7,26 @@
   const fmt=v=>{if(!v)return'—';const d=new Date(v);return isNaN(d)?esc(v):d.toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo'})};
   let seq=0;
 
-  function bridge(params){
+  function jsonp(params,timeout=30000){
     return new Promise((resolve,reject)=>{
-      const requestId='verify_'+Date.now()+'_'+(++seq)+'_'+Math.random().toString(36).slice(2,8);
+      const cb='__nice_verify_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);
+      const s=document.createElement('script');
       const u=new URL(API);
-      Object.entries({...params,transport:'bridge',request_id:requestId,_:Date.now()}).forEach(([k,v])=>u.searchParams.set(k,v));
-
-      const frame=document.createElement('iframe');
-      frame.hidden=true;
-      frame.src=u.toString();
-      let finished=false;
-
+      Object.entries({...params,callback:cb,_:Date.now()}).forEach(([k,v])=>u.searchParams.set(k,v));
+      let done=false;
       const finish=(err,payload)=>{
-        if(finished)return;
-        finished=true;
+        if(done)return;
+        done=true;
         clearTimeout(timer);
-        window.removeEventListener('message',onMessage);
-        frame.remove();
+        try{delete window[cb]}catch(_){}
+        s.remove();
         err?reject(err):resolve(payload);
       };
-
-      const onMessage=e=>{
-        const d=e.data;
-        if(!d||d.source!=='NICE_API_BRIDGE'||d.request_id!==requestId)return;
-        finish(null,d.payload);
-      };
-
-      const timer=setTimeout(()=>finish(new Error('Tempo esgotado ao consultar o certificado.')),30000);
-      window.addEventListener('message',onMessage);
-      document.body.appendChild(frame);
+      window[cb]=payload=>finish(null,payload);
+      s.onerror=()=>finish(new Error('Não foi possível consultar o certificado.'));
+      const timer=setTimeout(()=>finish(new Error('Tempo esgotado ao consultar o certificado.')),timeout);
+      s.src=u.toString();
+      document.head.appendChild(s);
     });
   }
 
@@ -56,7 +47,7 @@
     result.innerHTML='<div class="card loading">Consultando assinatura digital…</div>';
     btn.disabled=true;
     try{
-      const payload=await bridge({action:'cert_verify',code:c});
+      const payload=await jsonp({action:'cert_verify',code:c});
       render(payload);
     }catch(err){
       render({ok:false,error:err.message||'Não foi possível consultar o certificado.'});
