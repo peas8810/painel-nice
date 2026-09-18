@@ -22,6 +22,7 @@ function doGet(e) {
     else if (action === 'cert_custom_link') payload = niceCertCustomPublicLink_(String(p.chave || p.token || ''));
     else if (action === 'cert_custom_issue') payload = niceCertCustomIssue_(p);
     else if (action === 'cert_dashboard') payload = niceCertDashboardPublic_();
+    else if (action === 'doc_live') payload = niceDocLive_();
     else if (action === 'cert_admin') payload = niceCertDashboardAdmin_(p);
     else payload = {ok:false,error:'Ação não reconhecida.'};
 
@@ -36,7 +37,7 @@ function doGet(e) {
 
 function niceApiHealth_() {
   const sh = niceApiSheet_();
-  return {ok:true,service:'NICE Protocolos e Certificados',version:'1.9',rows:Math.max(0,sh.getLastRow()-1),updated_at:new Date().toISOString(),transport:'bridge'};
+  return {ok:true,service:'NICE Protocolos e Certificados',version:'2.0',rows:Math.max(0,sh.getLastRow()-1),updated_at:new Date().toISOString(),transport:'bridge'};
 }
 
 function niceApiStats_() {
