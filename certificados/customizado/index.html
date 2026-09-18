@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Emissão customizada de certificados NICE.">
+  <meta name="theme-color" content="#17365d">
+  <link rel="icon" type="image/svg+xml" href="../../assets/amonia-logo.svg">
+  <title>Certificado customizado | NICE</title>
+  <link rel="stylesheet" href="../styles.css">
+  <style>
+    .custom-form{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:20px}
+    .custom-form label{display:flex;flex-direction:column;gap:7px;font-weight:700;color:#17365d}
+    .custom-form input,.custom-form select{border:1px solid #cfd9e3;border-radius:10px;padding:12px;font:inherit}
+    .custom-form .wide{grid-column:1/-1}.custom-note{margin-top:12px;color:#64748b;font-size:.92rem}
+    @media(max-width:700px){.custom-form{grid-template-columns:1fr}.custom-form .wide{grid-column:auto}}
+  </style>
+</head>
+<body>
+<header class="top"><div class="top-inner"><a class="brand" href="../"><img src="../../assets/amonia-logo.svg" alt=""><div><strong>Certificados NICE</strong><span>Emissão customizada com validação digital</span></div></a><nav><a href="../">Certificados</a><a class="primary" href="../validar/">Validar certificado</a></nav></div></header>
+<main class="container">
+  <section class="hero"><div><span class="eyebrow">CERTIFICAÇÃO CUSTOMIZADA</span><h1>Emitir certificado customizado</h1><p>Preencha os dados exatamente como devem aparecer no documento.</p></div><div class="hero-badge"><strong>QR + HMAC</strong><span>rastreabilidade verificável</span></div></section>
+  <section id="content" class="card loading">Validando link de emissão…</section>
+</main>
+<footer>PEAS - Technology®</footer>
+<script src="app.js?v=20260918-1"></script>
+</body>
+</html>
