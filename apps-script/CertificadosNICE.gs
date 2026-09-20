@@ -93,14 +93,53 @@ function niceCertIssueRow_(sh,row,map,event){
 
 function niceCertGeneratePdf_(event,cert){
   const folder=niceCertFolderFromUrl_(event.PASTA_DRIVE),pres=SlidesApp.create('TMP '+cert.codigo),slide=pres.getSlides()[0];slide.getPageElements().forEach(x=>x.remove());
-  const W=720,H=405,navy='#17365D',blue='#2F75B5',orange='#E97824',gray='#667788';slide.getBackground().setSolidFill('#FFFFFF');
-  const frame=slide.insertShape(SlidesApp.ShapeType.RECTANGLE,12,12,W-24,H-24);frame.getFill().setTransparent();frame.getBorder().getLineFill().setSolidFill(navy);frame.getBorder().setWeight(2);
-  const frame2=slide.insertShape(SlidesApp.ShapeType.RECTANGLE,18,18,W-36,H-36);frame2.getFill().setTransparent();frame2.getBorder().getLineFill().setSolidFill(blue);frame2.getBorder().setWeight(.8);
-  niceCertText_(slide,'NICE · CERTIFICADO',36,31,300,22,12,gray,true,'START');niceCertPeasBrand_(slide,515,27);niceCertText_(slide,'CERTIFICADO DE PARTICIPAÇÃO',75,66,570,38,25,navy,true,'CENTER');niceCertText_(slide,'CERTIFICATE OF PARTICIPATION',75,103,570,20,12,blue,false,'CENTER');
-  const line=slide.insertLine(SlidesApp.LineCategory.STRAIGHT,88,132,632,132);line.getLineFill().setSolidFill(navy);line.setWeight(1.4);niceCertText_(slide,'Certificamos que',90,151,540,19,11,'#333333',false,'CENTER');niceCertText_(slide,cert.nome,70,174,580,36,19,navy,true,'CENTER');
-  const body='participou do evento “'+event.TITULO_EVENTO+'”, realizado em '+niceCertBrDate_(event.DATA_EVENTO)+(event.LOCAL?' no(a) '+event.LOCAL:'')+(event.CAMPUS_UNIDADE?' · '+event.CAMPUS_UNIDADE:'')+', com carga horária de '+(cert.carga||'não informada')+'.';niceCertText_(slide,body,78,216,564,48,11,'#414141',false,'CENTER');niceCertText_(slide,'Evento '+event.EVENTO_ID+'  ·  Protocolo: '+(event.PROTOCOLO_NICE||'—'),78,271,564,20,10,gray,true,'CENTER');
-  const verify=NICE_CERT.PUBLIC_BASE+'/validar/?codigo='+encodeURIComponent(cert.codigo),qr=UrlFetchApp.fetch('https://quickchart.io/qr?size=230&margin=1&ecLevel=M&text='+encodeURIComponent(verify),{muteHttpExceptions:false}).getBlob().setName('qr.png');slide.insertImage(qr,88,301,70,70);niceCertText_(slide,'Verifique a autenticidade deste certificado:',174,307,420,16,9,gray,false,'START');niceCertText_(slide,verify,174,325,430,18,9,blue,true,'START');niceCertText_(slide,'Código: '+cert.codigo,174,342,430,16,9,gray,false,'START');niceCertText_(slide,'Selo digital: '+cert.signature.slice(0,24)+'…',174,358,430,14,8,gray,false,'START');niceCertText_(slide,'Emitido em '+Utilities.formatDate(cert.emitido,Session.getScriptTimeZone()||'America/Sao_Paulo','dd/MM/yyyy HH:mm'),70,373,580,12,8,'#667788',true,'CENTER');
-  pres.saveAndClose();Utilities.sleep(2000);const sourceFile=DriveApp.getFileById(pres.getId()),pdfBlob=sourceFile.getBlob().getAs(MimeType.PDF).setName(cert.codigo+'.pdf'),file=folder.createFile(pdfBlob);file.setDescription('Certificado NICE · Evento '+event.EVENTO_ID+' · '+cert.codigo);sourceFile.setTrashed(true);return{blob:pdfBlob,url:file.getUrl(),id:file.getId()}
+  const C=niceCertPremiumFrame_(slide);
+  niceCertPremiumHeader_(slide,'CERTIFICADO DE PARTICIPAÇÃO','CERTIFICATE OF PARTICIPATION');
+  niceCertText_(slide,'Certificamos que',90,143,540,18,10,C.gray,false,'CENTER');
+  niceCertText_(slide,cert.nome,58,165,604,32,20,C.navy,true,'CENTER');
+  const body='participou do evento “'+event.TITULO_EVENTO+'”, realizado em '+niceCertBrDate_(event.DATA_EVENTO)+(event.LOCAL?' no(a) '+event.LOCAL:'')+(event.CAMPUS_UNIDADE?' · '+event.CAMPUS_UNIDADE:'')+', com carga horária de '+(cert.carga||'não informada')+'.';
+  niceCertText_(slide,body,72,207,576,47,11,'#384657',false,'CENTER');
+  niceCertText_(slide,'Evento '+String(event.EVENTO_ID).padStart(4,'0')+'  ·  Protocolo NICE: '+(event.PROTOCOLO_NICE||'—'),76,258,568,16,9,C.gray,true,'CENTER');
+  niceCertPremiumValidation_(slide,cert.codigo,cert.signature,cert.emitido);
+  pres.saveAndClose();Utilities.sleep(2000);
+  const sourceFile=DriveApp.getFileById(pres.getId()),pdfBlob=sourceFile.getBlob().getAs(MimeType.PDF).setName(cert.codigo+'.pdf'),file=folder.createFile(pdfBlob);
+  file.setDescription('Certificado NICE · Evento '+event.EVENTO_ID+' · '+cert.codigo);sourceFile.setTrashed(true);
+  return{blob:pdfBlob,url:file.getUrl(),id:file.getId()}
+}
+
+function niceCertPremiumFrame_(slide){
+  const C={navy:'#17365D',navy2:'#214D7A',gold:'#C59A45',gray:'#667788',light:'#F6F8FB',line:'#D9E1E8'};
+  slide.getBackground().setSolidFill('#FFFFFF');
+  const outer=slide.insertShape(SlidesApp.ShapeType.RECTANGLE,10,10,700,385);outer.getFill().setTransparent();outer.getBorder().getLineFill().setSolidFill(C.navy);outer.getBorder().setWeight(2.2);
+  const inner=slide.insertShape(SlidesApp.ShapeType.RECTANGLE,17,17,686,371);inner.getFill().setTransparent();inner.getBorder().getLineFill().setSolidFill(C.gold);inner.getBorder().setWeight(.8);
+  const accent=slide.insertShape(SlidesApp.ShapeType.RECTANGLE,31,29,92,4);accent.getFill().setSolidFill(C.gold);accent.getBorder().setTransparent();
+  niceCertText_(slide,'NICE · CERTIFICAÇÃO INSTITUCIONAL',31,38,330,16,9,C.navy,true,'START');
+  niceCertPeasBrand_(slide,517,31);
+  return C;
+}
+
+function niceCertPremiumHeader_(slide,title,subtitle){
+  const navy='#17365D',gold='#C59A45',gray='#667788';
+  niceCertText_(slide,title,72,68,576,31,23,navy,true,'CENTER');
+  niceCertText_(slide,subtitle,72,101,576,15,9,gray,false,'CENTER');
+  const line=slide.insertLine(SlidesApp.LineCategory.STRAIGHT,132,126,588,126);line.getLineFill().setSolidFill(gold);line.setWeight(1.2);
+}
+
+function niceCertPremiumValidation_(slide,codigo,signature,emitido){
+  const navy='#17365D',blue='#2F75B5',gold='#C59A45',gray='#667788',light='#F6F8FB';
+  const verify=NICE_CERT.PUBLIC_BASE+'/validar/?codigo='+encodeURIComponent(codigo);
+  const card=slide.insertShape(SlidesApp.ShapeType.RECTANGLE,42,289,636,74);card.getFill().setSolidFill(light);card.getBorder().getLineFill().setSolidFill('#D9E1E8');card.getBorder().setWeight(.7);
+  const qr=UrlFetchApp.fetch('https://quickchart.io/qr?size=220&margin=1&ecLevel=M&text='+encodeURIComponent(verify),{muteHttpExceptions:false}).getBlob().setName('qr.png');
+  slide.insertImage(qr,54,297,58,58);
+  niceCertText_(slide,'VALIDAÇÃO DIGITAL',128,297,166,13,8,gold,true,'START');
+  niceCertText_(slide,'Autenticidade verificável por QR Code',128,312,290,14,9,navy,true,'START');
+  niceCertText_(slide,'Código: '+codigo,128,329,360,13,8,gray,false,'START');
+  niceCertText_(slide,'protocolo.me/certificados/validar',128,344,310,12,8,blue,true,'START');
+  niceCertText_(slide,'HMAC-SHA256',514,298,140,12,8,gold,true,'END');
+  niceCertText_(slide,String(signature||'').slice(0,20)+'…',470,315,184,12,7,gray,false,'END');
+  niceCertText_(slide,'Emitido em',514,335,140,11,7,gray,false,'END');
+  niceCertText_(slide,Utilities.formatDate(emitido,Session.getScriptTimeZone()||'America/Sao_Paulo','dd/MM/yyyy HH:mm'),470,348,184,12,8,navy,true,'END');
+  niceCertText_(slide,'Documento emitido eletronicamente pelo NICE · PEAS Technology®',80,373,560,10,7,gray,false,'CENTER');
 }
 
 function niceCertPeasBrand_(slide,x,y){niceCertText_(slide,'PEAS',x,y,70,18,13,'#17365D',true,'END');niceCertText_(slide,'Technology®',x+74,y+2,95,15,8,'#E97824',true,'START')}
