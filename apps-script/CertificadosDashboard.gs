@@ -111,6 +111,7 @@ function niceCertDashboardAdmin_(params){
   if(op==='create_custom_link') return niceCertCustomCreateLink_(p);
   if(op==='custom_links') return niceCertCustomAdminList_();
   if(op==='set_custom_status') return niceCertCustomSetStatus_(p);
+  if(op==='regenerate_certificate') return niceCertRegenerateByCode_(p.code);
   return {ok:false,error:'Operação administrativa não reconhecida.'};
 }
 
