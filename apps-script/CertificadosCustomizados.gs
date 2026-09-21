@@ -179,28 +179,36 @@ function niceCertCustomCanonical_(o){return[o.codigo,'CUSTOM',o.linkId,o.nome,o.
 function niceCertCustomCanonicalV2_(o){return[o.codigo,'CUSTOM_V2',o.linkId,o.nome,o.funcao,o.evento,o.carga,o.livroAta,o.registro,o.viaEmitida,o.emitido].map(v=>String(v==null?'':v).trim()).join('|')}
 
 function niceCertCustomGeneratePdf_(link,cert){
-  const folder=niceCertFolderFromUrl_(link.pasta_drive),pres=SlidesApp.create('TMP '+cert.codigo),slide=pres.getSlides()[0];slide.getPageElements().forEach(x=>x.remove());
-  const C=niceCertPremiumFrame_(slide);
-  niceCertPremiumHeader_(slide,'CERTIFICADO INSTITUCIONAL','INSTITUTIONAL CERTIFICATE');
-  niceCertText_(slide,'Certificamos que',90,143,540,18,10,C.gray,false,'CENTER');
-  niceCertText_(slide,cert.nome,58,165,604,32,20,C.navy,true,'CENTER');
+  const folder=niceCertFolderFromUrl_(link.pasta_drive),pres=SlidesApp.create('TMP '+cert.codigo),slide=pres.getSlides()[0];
+  slide.getPageElements().forEach(x=>x.remove());
+  const C=niceCertClassicFrame_(slide);
+  niceCertClassicHeader_(slide,'CERTIFICADO');
+  niceCertTextSerif_(slide,'Certificamos que',90,132,540,20,13,C.navy,false,'CENTER');
+  niceCertTextSerif_(slide,cert.nome,58,160,604,34,21,C.gold,true,'CENTER');
+  niceCertClassicDivider_(slide,170,200,550);
   const body='atuou como '+cert.funcao+' no evento “'+cert.evento+'”, com carga horária de '+cert.carga+'.';
-  niceCertText_(slide,body,72,207,576,47,11,'#384657',false,'CENTER');
-  niceCertText_(slide,'Emissão customizada · '+link.id+'  ·  NICE',76,250,568,16,9,C.gray,true,'CENTER');
-  niceCertCustomRegistryBlock_(slide,cert);
-  niceCertPremiumValidation_(slide,cert.codigo,cert.signature,cert.emitido);
+  niceCertTextSerif_(slide,body,78,215,564,48,11,C.navy,false,'CENTER');
+  niceCertClassicRegistrySeal_(slide,{
+    title:'CERTIFICADO REGISTRADO',
+    line1:'Livro Ata: '+String(cert.livro_ata||'—'),
+    line2:'Registro: '+String(cert.registro||'—'),
+    line3:String(cert.via_emitida||'1ª Via Emitida')
+  });
+  niceCertClassicValidation_(slide,cert.codigo,cert.signature,cert.emitido);
   pres.saveAndClose();Utilities.sleep(2000);
   const source=DriveApp.getFileById(pres.getId()),blob=source.getBlob().getAs(MimeType.PDF).setName(cert.codigo+'.pdf'),file=folder.createFile(blob);
   file.setDescription('Certificado NICE customizado · '+link.id+' · '+cert.codigo);source.setTrashed(true);
   return{blob,url:file.getUrl(),id:file.getId()};
 }
 
+
 function niceCertCustomRegistryBlock_(slide,cert){
-  const navy='#17365D',gold='#C59A45',gray='#667788';
-  niceCertText_(slide,'REGISTRO INSTITUCIONAL',458,250,196,11,7,gold,true,'END');
-  niceCertText_(slide,'Livro Ata: '+String(cert.livro_ata||'—'),458,263,196,11,8,navy,true,'END');
-  niceCertText_(slide,'Registro: '+String(cert.registro||'—'),458,275,196,11,8,navy,true,'END');
-  niceCertText_(slide,String(cert.via_emitida||'1ª Via Emitida'),458,287,196,11,8,gray,true,'END');
+  return niceCertClassicRegistrySeal_(slide,{
+    title:'CERTIFICADO REGISTRADO',
+    line1:'Livro Ata: '+String(cert.livro_ata||'—'),
+    line2:'Registro: '+String(cert.registro||'—'),
+    line3:String(cert.via_emitida||'1ª Via Emitida')
+  });
 }
 
 function niceCertCustomSendMail_(email,nome,evento,funcao,blob,codigo){
