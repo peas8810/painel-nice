@@ -193,9 +193,9 @@ function niceCertCustomGeneratePdf_(link,cert){
   const body='participou do evento “'+cert.evento+'”, na função de “'+cert.funcao+'”, com carga horária de '+cert.carga+'.';
   niceCertTextSerif_(slide,body,82,210,556,44,11,C.text,false,'CENTER');
 
-  niceCertClassicBookSeal_(slide,118,268,62);
-  niceCertTextSerif_(slide,'CERTIFICADO REGISTRADO',196,270,190,12,8,C.gold,true,'START');
-  niceCertTextSerif_(slide,'EM LIVRO ATA INSTITUCIONAL',196,289,190,12,8,C.navy,true,'START');
+  niceCertClassicBookSeal_(slide,128,250,56);
+  niceCertTextSerif_(slide,'CERTIFICADO REGISTRADO',202,252,180,12,8,C.gold,true,'START');
+  niceCertTextSerif_(slide,'EM LIVRO ATA INSTITUCIONAL',202,272,180,12,8,C.navy,true,'START');
 
   niceCertClassicRegistryInfo_(slide,{
     line1:'Livro Ata: '+String(cert.livro_ata||'—'),
