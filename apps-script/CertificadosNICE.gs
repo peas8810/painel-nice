@@ -92,55 +92,108 @@ function niceCertIssueRow_(sh,row,map,event){
 }
 
 function niceCertGeneratePdf_(event,cert){
-  const folder=niceCertFolderFromUrl_(event.PASTA_DRIVE),pres=SlidesApp.create('TMP '+cert.codigo),slide=pres.getSlides()[0];slide.getPageElements().forEach(x=>x.remove());
-  const C=niceCertPremiumFrame_(slide);
-  niceCertPremiumHeader_(slide,'CERTIFICADO DE PARTICIPAÇÃO','CERTIFICATE OF PARTICIPATION');
-  niceCertText_(slide,'Certificamos que',90,143,540,18,10,C.gray,false,'CENTER');
-  niceCertText_(slide,cert.nome,58,165,604,32,20,C.navy,true,'CENTER');
+  const folder=niceCertFolderFromUrl_(event.PASTA_DRIVE),pres=SlidesApp.create('TMP '+cert.codigo),slide=pres.getSlides()[0];
+  slide.getPageElements().forEach(x=>x.remove());
+  const C=niceCertClassicFrame_(slide);
+  niceCertClassicHeader_(slide,'CERTIFICADO');
+  niceCertTextSerif_(slide,'Certificamos que',90,132,540,20,13,C.navy,false,'CENTER');
+  niceCertTextSerif_(slide,cert.nome,58,160,604,34,21,C.gold,true,'CENTER');
+  niceCertClassicDivider_(slide,170,200,550);
   const body='participou do evento “'+event.TITULO_EVENTO+'”, realizado em '+niceCertBrDate_(event.DATA_EVENTO)+(event.LOCAL?' no(a) '+event.LOCAL:'')+(event.CAMPUS_UNIDADE?' · '+event.CAMPUS_UNIDADE:'')+', com carga horária de '+(cert.carga||'não informada')+'.';
-  niceCertText_(slide,body,72,207,576,47,11,'#384657',false,'CENTER');
-  niceCertText_(slide,'Evento '+String(event.EVENTO_ID).padStart(4,'0')+'  ·  Protocolo NICE: '+(event.PROTOCOLO_NICE||'—'),76,258,568,16,9,C.gray,true,'CENTER');
-  niceCertPremiumValidation_(slide,cert.codigo,cert.signature,cert.emitido);
+  niceCertTextSerif_(slide,body,78,215,564,48,11,C.navy,false,'CENTER');
+  niceCertClassicRegistrySeal_(slide,{
+    title:'REGISTRO DIGITAL NICE',
+    line1:'Evento '+String(event.EVENTO_ID).padStart(4,'0'),
+    line2:'Protocolo: '+(event.PROTOCOLO_NICE||'—'),
+    line3:'1ª Via Emitida'
+  });
+  niceCertClassicValidation_(slide,cert.codigo,cert.signature,cert.emitido);
   pres.saveAndClose();Utilities.sleep(2000);
   const sourceFile=DriveApp.getFileById(pres.getId()),pdfBlob=sourceFile.getBlob().getAs(MimeType.PDF).setName(cert.codigo+'.pdf'),file=folder.createFile(pdfBlob);
   file.setDescription('Certificado NICE · Evento '+event.EVENTO_ID+' · '+cert.codigo);sourceFile.setTrashed(true);
   return{blob:pdfBlob,url:file.getUrl(),id:file.getId()}
 }
 
-function niceCertPremiumFrame_(slide){
-  const C={navy:'#17365D',navy2:'#214D7A',gold:'#C59A45',gray:'#667788',light:'#F6F8FB',line:'#D9E1E8'};
+function niceCertClassicFrame_(slide){
+  const C={navy:'#123B6D',gold:'#B8892F',gray:'#6B7280',light:'#F7F9FC'};
   slide.getBackground().setSolidFill('#FFFFFF');
-  const outer=slide.insertShape(SlidesApp.ShapeType.RECTANGLE,10,10,700,385);outer.getFill().setTransparent();outer.getBorder().getLineFill().setSolidFill(C.navy);outer.getBorder().setWeight(2.2);
-  const inner=slide.insertShape(SlidesApp.ShapeType.RECTANGLE,17,17,686,371);inner.getFill().setTransparent();inner.getBorder().getLineFill().setSolidFill(C.gold);inner.getBorder().setWeight(.8);
-  const accent=slide.insertShape(SlidesApp.ShapeType.RECTANGLE,31,29,92,4);accent.getFill().setSolidFill(C.gold);accent.getBorder().setTransparent();
-  niceCertText_(slide,'NICE · CERTIFICAÇÃO INSTITUCIONAL',31,38,330,16,9,C.navy,true,'START');
-  niceCertPeasBrand_(slide,517,31);
+
+  const outer=slide.insertShape(SlidesApp.ShapeType.RECTANGLE,8,8,704,389);
+  outer.getFill().setTransparent();outer.getBorder().getLineFill().setSolidFill(C.navy);outer.getBorder().setWeight(2.4);
+
+  const mid=slide.insertShape(SlidesApp.ShapeType.RECTANGLE,14,14,692,377);
+  mid.getFill().setTransparent();mid.getBorder().getLineFill().setSolidFill(C.gold);mid.getBorder().setWeight(1.1);
+
+  const inner=slide.insertShape(SlidesApp.ShapeType.RECTANGLE,20,20,680,365);
+  inner.getFill().setTransparent();inner.getBorder().getLineFill().setSolidFill('#E8D7AF');inner.getBorder().setWeight(.45);
+
+  [['❦',25,20],['❦',655,20],['❦',25,354],['❦',655,354]].forEach((a,i)=>{
+    const b=niceCertTextSerif_(slide,a[0],a[1],a[2],40,28,17,i%2?C.gold:C.navy,true,'CENTER');
+    if(i===1||i===2)b.setRotation(180);
+  });
   return C;
 }
 
-function niceCertPremiumHeader_(slide,title,subtitle){
-  const navy='#17365D',gold='#C59A45',gray='#667788';
-  niceCertText_(slide,title,72,68,576,31,23,navy,true,'CENTER');
-  niceCertText_(slide,subtitle,72,101,576,15,9,gray,false,'CENTER');
-  const line=slide.insertLine(SlidesApp.LineCategory.STRAIGHT,132,126,588,126);line.getLineFill().setSolidFill(gold);line.setWeight(1.2);
+function niceCertClassicHeader_(slide,title){
+  const navy='#123B6D',gold='#B8892F';
+  niceCertClassicDivider_(slide,222,58,498);
+  niceCertTextSerif_(slide,title,88,69,544,45,31,navy,true,'CENTER');
+  niceCertClassicDivider_(slide,286,119,434);
 }
 
-function niceCertPremiumValidation_(slide,codigo,signature,emitido){
-  const navy='#17365D',blue='#2F75B5',gold='#C59A45',gray='#667788',light='#F6F8FB';
-  const verify=NICE_CERT.PUBLIC_BASE+'/validar/?codigo='+encodeURIComponent(codigo);
-  const card=slide.insertShape(SlidesApp.ShapeType.RECTANGLE,42,289,636,74);card.getFill().setSolidFill(light);card.getBorder().getLineFill().setSolidFill('#D9E1E8');card.getBorder().setWeight(.7);
-  const qr=UrlFetchApp.fetch('https://quickchart.io/qr?size=220&margin=1&ecLevel=M&text='+encodeURIComponent(verify),{muteHttpExceptions:false}).getBlob().setName('qr.png');
-  slide.insertImage(qr,54,297,58,58);
-  niceCertText_(slide,'VALIDAÇÃO DIGITAL',128,297,166,13,8,gold,true,'START');
-  niceCertText_(slide,'Autenticidade verificável por QR Code',128,312,290,14,9,navy,true,'START');
-  niceCertText_(slide,'Código: '+codigo,128,329,360,13,8,gray,false,'START');
-  niceCertText_(slide,'protocolo.me/certificados/validar',128,344,310,12,8,blue,true,'START');
-  niceCertText_(slide,'HMAC-SHA256',514,298,140,12,8,gold,true,'END');
-  niceCertText_(slide,String(signature||'').slice(0,20)+'…',470,315,184,12,7,gray,false,'END');
-  niceCertText_(slide,'Emitido em',514,335,140,11,7,gray,false,'END');
-  niceCertText_(slide,Utilities.formatDate(emitido,Session.getScriptTimeZone()||'America/Sao_Paulo','dd/MM/yyyy HH:mm'),470,348,184,12,8,navy,true,'END');
-  niceCertText_(slide,'Documento emitido eletronicamente pelo NICE · PEAS Technology®',80,373,560,10,7,gray,false,'CENTER');
+function niceCertClassicDivider_(slide,x1,y,x2){
+  const gold='#B8892F';
+  const line=slide.insertLine(SlidesApp.LineCategory.STRAIGHT,x1,y,x2,y);
+  line.getLineFill().setSolidFill(gold);line.setWeight(.9);
+  niceCertTextSerif_(slide,'◆',((x1+x2)/2)-8,y-8,16,16,7,gold,true,'CENTER');
 }
+
+function niceCertClassicRegistrySeal_(slide,o){
+  const navy='#123B6D',gold='#B8892F',gray='#6B7280';
+  const seal=slide.insertShape(SlidesApp.ShapeType.ELLIPSE,300,267,72,72);
+  seal.getFill().setSolidFill(navy);seal.getBorder().getLineFill().setSolidFill(gold);seal.getBorder().setWeight(2.2);
+  niceCertTextSerif_(slide,'LIVRO',309,282,54,12,8,'#FFFFFF',true,'CENTER');
+  niceCertTextSerif_(slide,'ATA',309,296,54,17,13,'#F2D28B',true,'CENTER');
+  niceCertTextSerif_(slide,'REG.',309,316,54,10,7,'#FFFFFF',false,'CENTER');
+
+  const sep=slide.insertLine(SlidesApp.LineCategory.STRAIGHT,386,273,386,336);
+  sep.getLineFill().setSolidFill(gold);sep.setWeight(.8);
+
+  niceCertTextSerif_(slide,o.title||'REGISTRO INSTITUCIONAL',404,272,226,13,8,gold,true,'START');
+  niceCertTextSerif_(slide,o.line1||'',404,289,226,13,9,navy,true,'START');
+  niceCertTextSerif_(slide,o.line2||'',404,306,226,13,9,navy,true,'START');
+  niceCertTextSerif_(slide,o.line3||'1ª Via Emitida',404,323,226,13,9,gray,true,'START');
+}
+
+function niceCertClassicValidation_(slide,codigo,signature,emitido){
+  const navy='#123B6D',blue='#2F75B5',gold='#B8892F',gray='#6B7280',light='#F7F9FC';
+  const verify=NICE_CERT.PUBLIC_BASE+'/validar/?codigo='+encodeURIComponent(codigo);
+  const card=slide.insertShape(SlidesApp.ShapeType.RECTANGLE,52,343,616,40);
+  card.getFill().setSolidFill(light);card.getBorder().getLineFill().setSolidFill('#D5DDE6');card.getBorder().setWeight(.65);
+
+  const qr=UrlFetchApp.fetch('https://quickchart.io/qr?size=220&margin=1&ecLevel=M&text='+encodeURIComponent(verify),{muteHttpExceptions:false}).getBlob().setName('qr.png');
+  slide.insertImage(qr,58,347,32,32);
+
+  niceCertTextSerif_(slide,'VALIDAÇÃO DIGITAL',99,347,126,10,7,gold,true,'START');
+  niceCertTextSerif_(slide,'Código: '+codigo,99,358,255,10,7,gray,false,'START');
+  niceCertTextSerif_(slide,'protocolo.me/certificados/validar',99,369,245,9,7,blue,true,'START');
+
+  niceCertTextSerif_(slide,'HMAC-SHA256',466,347,182,10,7,gold,true,'END');
+  niceCertTextSerif_(slide,String(signature||'').slice(0,18)+'…',466,358,182,9,6,gray,false,'END');
+  niceCertTextSerif_(slide,'Emitido em '+Utilities.formatDate(emitido,Session.getScriptTimeZone()||'America/Sao_Paulo','dd/MM/yyyy HH:mm'),430,369,218,9,7,navy,true,'END');
+}
+
+function niceCertTextSerif_(slide,text,left,top,width,height,size,color,bold,align){
+  const box=slide.insertTextBox(String(text||''),left,top,width,height),range=box.getText();
+  range.getTextStyle().setFontFamily('Georgia').setFontSize(size).setForegroundColor(color).setBold(!!bold);
+  const a=align==='CENTER'?SlidesApp.ParagraphAlignment.CENTER:align==='END'?SlidesApp.ParagraphAlignment.END:SlidesApp.ParagraphAlignment.START;
+  range.getParagraphStyle().setParagraphAlignment(a);
+  return box;
+}
+
+function niceCertPremiumFrame_(slide){return niceCertClassicFrame_(slide)}
+function niceCertPremiumHeader_(slide,title,subtitle){return niceCertClassicHeader_(slide,title)}
+function niceCertPremiumValidation_(slide,codigo,signature,emitido){return niceCertClassicValidation_(slide,codigo,signature,emitido)}
 
 function niceCertPeasBrand_(slide,x,y){niceCertText_(slide,'PEAS',x,y,70,18,13,'#17365D',true,'END');niceCertText_(slide,'Technology®',x+74,y+2,95,15,8,'#E97824',true,'START')}
 function niceCertLogo_(slide,x,y){const navy='#17365D',orange='#F4A11A';const line1=slide.insertLine(SlidesApp.LineCategory.STRAIGHT,x+16,y+16,x+7,y+31);line1.getLineFill().setSolidFill(navy);line1.setWeight(2.4);const line2=slide.insertLine(SlidesApp.LineCategory.STRAIGHT,x+16,y+16,x+29,y+31);line2.getLineFill().setSolidFill(navy);line2.setWeight(2.4);const line3=slide.insertLine(SlidesApp.LineCategory.STRAIGHT,x+16,y+16,x+16,y+2);line3.getLineFill().setSolidFill(navy);line3.setWeight(2.4);[[x+10,y+10,12,navy],[x+1,y+28,12,orange],[x+23,y+28,12,orange],[x+10,y-4,12,orange]].forEach(a=>{const s=slide.insertShape(SlidesApp.ShapeType.ELLIPSE,a[0],a[1],a[2],a[2]);s.getFill().setSolidFill(a[3]);s.getBorder().setTransparent()})}
