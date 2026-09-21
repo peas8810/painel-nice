@@ -183,19 +183,25 @@ function niceCertCustomCanonicalV2_(o){return[o.codigo,'CUSTOM_V2',o.linkId,o.no
 function niceCertCustomCanonicalV3_(o){return[o.codigo,'CUSTOM_V3',o.linkId,o.nome,o.funcao,o.evento,o.carga,o.instituicao,o.livroAta,o.registro,o.viaEmitida,o.emitido].map(v=>String(v==null?'':v).trim()).join('|')}
 
 function niceCertCustomGeneratePdf_(link,cert){
-  const folder=niceCertFolderFromUrl_(link.pasta_drive),pres=SlidesApp.create('TMP '+cert.codigo),slide=pres.getSlides()[0];
+  const folder=niceCertFolderFromUrl_(link.pasta_drive);
+  const pres=SlidesApp.create('TMP '+cert.codigo);
+  const slide=pres.getSlides()[0];
   slide.getPageElements().forEach(x=>x.remove());
+
   const C=niceCertClassicFrame_(slide);
   niceCertClassicHeader_(slide,'CERTIFICADO');
+
   niceCertTextSerif_(slide,'Certificamos que',90,128,540,18,11,C.gray,false,'CENTER');
   niceCertTextSerif_(slide,cert.nome,58,153,604,34,21,C.navy,true,'CENTER');
   niceCertClassicDivider_(slide,180,195,540);
-  const body='participou do evento “'+cert.evento+'”, na função de “'+cert.funcao+'”, com carga horária de '+cert.carga+'.';
-  niceCertTextSerif_(slide,body,82,210,556,44,11,C.text,false,'CENTER');
 
-  niceCertClassicBookSeal_(slide,128,250,56);
-  niceCertTextSerif_(slide,'CERTIFICADO REGISTRADO',202,252,180,12,8,C.gold,true,'START');
-  niceCertTextSerif_(slide,'EM LIVRO ATA INSTITUCIONAL',202,272,180,12,8,C.navy,true,'START');
+  const body='participou do evento “'+cert.evento+'”, na função de “'+cert.funcao+'”, com carga horária de '+cert.carga+'.';
+  niceCertTextSerif_(slide,body,82,210,556,40,11,C.text,false,'CENTER');
+
+  // Selo e texto ficam entre Y=247 e Y=311.
+  niceCertClassicBookSeal_(slide,128,247,54);
+  niceCertTextSerif_(slide,'CERTIFICADO REGISTRADO',202,249,180,12,8,C.gold,true,'START');
+  niceCertTextSerif_(slide,'EM LIVRO ATA INSTITUCIONAL',202,268,180,12,8,C.navy,true,'START');
 
   niceCertClassicRegistryInfo_(slide,{
     line1:'Livro Ata: '+String(cert.livro_ata||'—'),
@@ -203,22 +209,37 @@ function niceCertCustomGeneratePdf_(link,cert){
     line3:String(cert.via_emitida||'1ª Via Emitida')
   });
 
-  niceCertClassicValidation_(slide,cert.codigo,cert.signature,cert.emitido,String(cert.instituicao_emissora||link.instituicao_emissora||'').trim());
-  pres.saveAndClose();Utilities.sleep(2000);
-  const source=DriveApp.getFileById(pres.getId()),blob=source.getBlob().getAs(MimeType.PDF).setName(cert.codigo+'.pdf'),file=folder.createFile(blob);
-  file.setDescription('Certificado NICE customizado · '+link.id+' · '+cert.codigo);source.setTrashed(true);
+  // Painel de validação começa somente abaixo do registro.
+  niceCertClassicValidation_(
+    slide,
+    cert.codigo,
+    cert.signature,
+    cert.emitido,
+    String(cert.instituicao_emissora||link.instituicao_emissora||'').trim()
+  );
+
+  pres.saveAndClose();
+  Utilities.sleep(2000);
+
+  const source=DriveApp.getFileById(pres.getId());
+  const blob=source.getBlob().getAs(MimeType.PDF).setName(cert.codigo+'.pdf');
+  const file=folder.createFile(blob);
+
+  file.setDescription('Certificado NICE customizado · '+link.id+' · '+cert.codigo);
+  source.setTrashed(true);
+
   return{blob,url:file.getUrl(),id:file.getId()};
 }
 
 
 function niceCertCustomRegistryBlock_(slide,cert){
-  return niceCertClassicRegistrySeal_(slide,{
-    title:'CERTIFICADO REGISTRADO',
+  return niceCertClassicRegistryInfo_(slide,{
     line1:'Livro Ata: '+String(cert.livro_ata||'—'),
     line2:'Registro: '+String(cert.registro||'—'),
     line3:String(cert.via_emitida||'1ª Via Emitida')
   });
 }
+
 
 function niceCertCustomSendMail_(email,nome,evento,funcao,blob,codigo){
   const validate=NICE_CERT.PUBLIC_BASE+'/validar/?codigo='+encodeURIComponent(codigo),subject='[NICE] Certificado · '+evento;
