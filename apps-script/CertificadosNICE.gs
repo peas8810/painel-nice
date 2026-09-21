@@ -103,11 +103,11 @@ function niceCertGeneratePdf_(event,cert){
   const body='participou do evento “'+event.TITULO_EVENTO+'”, realizado em '+niceCertBrDate_(event.DATA_EVENTO)+(event.LOCAL?' no(a) '+event.LOCAL:'')+(event.CAMPUS_UNIDADE?' · '+event.CAMPUS_UNIDADE:'')+', com carga horária de '+(cert.carga||'não informada')+'.';
   niceCertTextSerif_(slide,body,82,210,556,44,11,C.text,false,'CENTER');
 
-  niceCertClassicBookSeal_(slide,118,268,62);
-  niceCertTextSerif_(slide,'REGISTRO DIGITAL NICE',196,270,190,12,8,C.gold,true,'START');
-  niceCertTextSerif_(slide,'Evento '+String(event.EVENTO_ID).padStart(4,'0'),196,289,190,12,9,C.navy,true,'START');
-  niceCertTextSerif_(slide,'Protocolo: '+(event.PROTOCOLO_NICE||'—'),196,307,190,12,9,C.navy,true,'START');
-  niceCertTextSerif_(slide,'1ª Via Emitida',196,325,190,12,9,C.gray,true,'START');
+  niceCertClassicBookSeal_(slide,128,250,56);
+  niceCertTextSerif_(slide,'REGISTRO DIGITAL NICE',202,252,180,12,8,C.gold,true,'START');
+  niceCertTextSerif_(slide,'Evento '+String(event.EVENTO_ID).padStart(4,'0'),202,272,180,12,9,C.navy,true,'START');
+  niceCertTextSerif_(slide,'Protocolo: '+(event.PROTOCOLO_NICE||'—'),202,290,180,12,9,C.navy,true,'START');
+  niceCertTextSerif_(slide,'1ª Via Emitida',202,308,180,12,9,C.gray,true,'START');
 
   niceCertClassicValidation_(slide,cert.codigo,cert.signature,cert.emitido,String(event.INSTITUICAO_EMISSORA||'').trim());
   pres.saveAndClose();Utilities.sleep(2000);
@@ -128,9 +128,6 @@ function niceCertClassicFrame_(slide){
 
   const topBar=slide.insertShape(SlidesApp.ShapeType.RECTANGLE,38,30,84,4);
   topBar.getFill().setSolidFill(C.gold);topBar.getBorder().setTransparent();
-
-  const bottomBar=slide.insertShape(SlidesApp.ShapeType.RECTANGLE,598,371,84,4);
-  bottomBar.getFill().setSolidFill(C.navy);bottomBar.getBorder().setTransparent();
 
   return C;
 }
@@ -171,12 +168,12 @@ function niceCertClassicBookSeal_(slide,x,y,size){
 
 function niceCertClassicRegistryInfo_(slide,o){
   const navy='#17365D',gold='#C59A45',gray='#667788';
-  const line=slide.insertLine(SlidesApp.LineCategory.STRAIGHT,392,270,392,334);
+  const line=slide.insertLine(SlidesApp.LineCategory.STRAIGHT,392,250,392,311);
   line.getLineFill().setSolidFill(gold);line.setWeight(.9);
-  niceCertTextSerif_(slide,'REGISTRO INSTITUCIONAL',414,269,216,12,8,gold,true,'START');
-  niceCertTextSerif_(slide,o.line1||'',414,289,216,12,9,navy,true,'START');
-  niceCertTextSerif_(slide,o.line2||'',414,307,216,12,9,navy,true,'START');
-  niceCertTextSerif_(slide,o.line3||'1ª Via Emitida',414,325,216,12,9,gray,true,'START');
+  niceCertTextSerif_(slide,'REGISTRO INSTITUCIONAL',414,251,216,12,8,gold,true,'START');
+  niceCertTextSerif_(slide,o.line1||'',414,271,216,12,9,navy,true,'START');
+  niceCertTextSerif_(slide,o.line2||'',414,289,216,12,9,navy,true,'START');
+  niceCertTextSerif_(slide,o.line3||'1ª Via Emitida',414,307,216,12,9,gray,true,'START');
 }
 
 function niceCertClassicValidation_(slide,codigo,signature,emitido,instituicao){
@@ -184,27 +181,27 @@ function niceCertClassicValidation_(slide,codigo,signature,emitido,instituicao){
   const verify=NICE_CERT.PUBLIC_BASE+'/validar/?codigo='+encodeURIComponent(codigo);
   const issuer=String(instituicao||'Não informada').trim()||'Não informada';
 
-  const card=slide.insertShape(SlidesApp.ShapeType.RECTANGLE,40,322,640,63);
+  const card=slide.insertShape(SlidesApp.ShapeType.RECTANGLE,40,317,640,68);
   card.getFill().setSolidFill(light);card.getBorder().getLineFill().setSolidFill('#D9E1E8');card.getBorder().setWeight(.8);
 
   const qr=UrlFetchApp.fetch('https://quickchart.io/qr?size=320&margin=1&ecLevel=M&text='+encodeURIComponent(verify),{muteHttpExceptions:false}).getBlob().setName('qr.png');
-  slide.insertImage(qr,48,328,50,50);
+  slide.insertImage(qr,48,325,52,52);
 
-  niceCertTextSerif_(slide,'VALIDAÇÃO DIGITAL',112,329,142,11,8,gold,true,'START');
-  niceCertTextSerif_(slide,'Autenticidade verificável por QR Code',112,342,234,11,8,navy,true,'START');
-  niceCertTextSerif_(slide,'Código: '+codigo,112,356,248,10,7,gray,false,'START');
-  niceCertTextSerif_(slide,'protocolo.me/certificados/validar',112,369,244,9,7,blue,true,'START');
+  niceCertTextSerif_(slide,'VALIDAÇÃO DIGITAL',114,326,142,11,8,gold,true,'START');
+  niceCertTextSerif_(slide,'Autenticidade verificável por QR Code',114,340,238,11,8,navy,true,'START');
+  niceCertTextSerif_(slide,'Código: '+codigo,114,354,248,10,7,gray,false,'START');
+  niceCertTextSerif_(slide,'protocolo.me/certificados/validar',114,368,244,9,7,blue,true,'START');
 
-  const sep1=slide.insertLine(SlidesApp.LineCategory.STRAIGHT,370,330,370,377);
+  const sep1=slide.insertLine(SlidesApp.LineCategory.STRAIGHT,370,325,370,378);
   sep1.getLineFill().setSolidFill('#D8C79D');sep1.setWeight(.8);
-  niceCertTextSerif_(slide,'INSTITUIÇÃO EMISSORA',386,336,120,10,7,navy,true,'START');
-  niceCertTextSerif_(slide,issuer,386,351,122,22,9,gray,false,'START');
+  niceCertTextSerif_(slide,'INSTITUIÇÃO EMISSORA',386,331,120,10,7,navy,true,'START');
+  niceCertTextSerif_(slide,issuer,386,347,122,24,9,gray,false,'START');
 
-  const sep2=slide.insertLine(SlidesApp.LineCategory.STRAIGHT,518,330,518,377);
+  const sep2=slide.insertLine(SlidesApp.LineCategory.STRAIGHT,518,325,518,378);
   sep2.getLineFill().setSolidFill('#D8C79D');sep2.setWeight(.8);
-  niceCertTextSerif_(slide,'HMAC-SHA256',536,329,122,10,8,gold,true,'END');
-  niceCertTextSerif_(slide,String(signature||'').slice(0,18)+'…',536,343,122,9,7,gray,false,'END');
-  niceCertTextSerif_(slide,'Emitido em',536,358,122,9,7,navy,true,'END');
+  niceCertTextSerif_(slide,'HMAC-SHA256',536,326,122,10,8,gold,true,'END');
+  niceCertTextSerif_(slide,String(signature||'').slice(0,18)+'…',536,341,122,9,7,gray,false,'END');
+  niceCertTextSerif_(slide,'Emitido em',536,356,122,9,7,navy,true,'END');
   niceCertTextSerif_(slide,Utilities.formatDate(emitido,Session.getScriptTimeZone()||'America/Sao_Paulo','dd/MM/yyyy HH:mm'),526,370,132,9,7,navy,true,'END');
 }
 
