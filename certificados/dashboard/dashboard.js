@@ -33,7 +33,7 @@
 
   function renderCustomLinks(){
     if(!adminKey){customLinksBody.innerHTML='<tr><td colspan="7" class="empty">Os links customizados ficam salvos no sistema. Acesse a administração para visualizar, copiar ou controlar os links.</td></tr>';return}
-    customLinksBody.innerHTML=customLinks.length?customLinks.map(l=>{const open=String(l.status).toUpperCase()==='ABERTO';return `<tr><td><strong>${esc(l.id)}</strong></td><td>${esc(l.rotulo||'—')}</td><td><strong>${esc(l.livro_ata||'—')}</strong><br><span class="admin-hint">Registro: ${esc(l.registro||'—')} · ${esc(l.via_emitida||'1ª Via Emitida')}</span></td><td>${pill(l.status)}</td><td>${Number(l.emitidos||0).toLocaleString('pt-BR')}</td><td><div class="actions"><a class="mini primary" target="_blank" rel="noopener" href="${esc(l.url_publica)}">Abrir</a><button class="mini custom-copy" data-link="${esc(l.url_publica)}">Copiar link</button></div></td><td><button class="mini custom-toggle ${open?'danger':'success'}" data-id="${esc(l.id)}" data-next="${open?'FECHADO':'ABERTO'}">${open?'Fechar emissão':'Abrir emissão'}</button></td></tr>`}).join(''):'<tr><td colspan="7" class="empty">Nenhum link customizado criado.</td></tr>';
+    customLinksBody.innerHTML=customLinks.length?customLinks.map(l=>{const open=String(l.status).toUpperCase()==='ABERTO';return `<tr><td><strong>${esc(l.id)}</strong></td><td>${esc(l.rotulo||'—')}</td><td><strong>${esc(l.instituicao_emissora||'—')}</strong><br><span class="admin-hint">Livro: ${esc(l.livro_ata||'—')} · Registro: ${esc(l.registro||'—')} · ${esc(l.via_emitida||'1ª Via Emitida')}</span></td><td>${pill(l.status)}</td><td>${Number(l.emitidos||0).toLocaleString('pt-BR')}</td><td><div class="actions"><a class="mini primary" target="_blank" rel="noopener" href="${esc(l.url_publica)}">Abrir</a><button class="mini custom-copy" data-link="${esc(l.url_publica)}">Copiar link</button></div></td><td><button class="mini custom-toggle ${open?'danger':'success'}" data-id="${esc(l.id)}" data-next="${open?'FECHADO':'ABERTO'}">${open?'Fechar emissão':'Abrir emissão'}</button></td></tr>`}).join(''):'<tr><td colspan="7" class="empty">Nenhum link customizado criado.</td></tr>';
     customLinksBody.querySelectorAll('.custom-copy').forEach(b=>b.onclick=()=>copy(b.dataset.link,b));customLinksBody.querySelectorAll('.custom-toggle').forEach(b=>b.onclick=()=>toggleCustomStatus(b));
   }
 
@@ -42,23 +42,27 @@
   async function createCustomLink(){
     const rotulo=prompt('Identificação interna para este link customizado:','Emissão customizada');
     if(rotulo===null)return;
+    const instituicao=prompt('Informe a instituição emissora que aparecerá no certificado:','AlfaUnipac');
+    if(instituicao===null)return;
     const livroAta=prompt('Informe o Livro Ata que constará no certificado:','Livro 01');
     if(livroAta===null)return;
     const registro=prompt('Informe o número/código do registro que constará no certificado:','');
     if(registro===null)return;
+    if(!instituicao.trim()){alert('A instituição emissora é obrigatória.');return}
     if(!livroAta.trim()){alert('O Livro Ata é obrigatório.');return}
     if(!registro.trim()){alert('O registro é obrigatório.');return}
     customLinkBtn.disabled=true;
     try{
       const p=await adminCall('create_custom_link',{
         rotulo:rotulo.trim()||'Emissão customizada',
+        instituicao_emissora:instituicao.trim(),
         livro_ata:livroAta.trim(),
         registro:registro.trim(),
         via_emitida:'1ª Via Emitida'
       });
       if(!p||!p.ok)throw new Error(p&&p.error||'Não foi possível criar o link.');
       await loadCustomLinks();await copy(p.link.url_publica);
-      alert('Link customizado criado e copiado.\n\n'+p.link.url_publica+'\n\nLivro Ata: '+p.link.livro_ata+'\nRegistro: '+p.link.registro+'\n1ª Via Emitida');
+      alert('Link customizado criado e copiado.\n\n'+p.link.url_publica+'\n\nInstituição emissora: '+p.link.instituicao_emissora+'\nLivro Ata: '+p.link.livro_ata+'\nRegistro: '+p.link.registro+'\n1ª Via Emitida');
     }catch(e){alert(e.message||'Falha ao criar link customizado.')}
     finally{customLinkBtn.disabled=false}
   }
@@ -83,7 +87,7 @@
   function openModal(){formResult.textContent='';eventForm.reset();modal.hidden=false;document.body.classList.add('modal-open');setTimeout(()=>eventForm.elements.titulo.focus(),50)}
   function closeModal(){modal.hidden=true;document.body.classList.remove('modal-open')}
 
-  eventForm.addEventListener('submit',async e=>{e.preventDefault();const f=new FormData(eventForm),rawDate=String(f.get('data')||'');let brDate=rawDate;if(/^\d{4}-\d{2}-\d{2}$/.test(rawDate)){const [y,m,d]=rawDate.split('-');brDate=`${d}/${m}/${y}`};const params={titulo:f.get('titulo')||'',tipo:f.get('tipo')||'',data:brDate,campus:f.get('campus')||'',local:f.get('local')||'',carga:f.get('carga')||'',responsavel:f.get('responsavel')||'',protocolo:f.get('protocolo')||'',descricao:f.get('descricao')||'',abrir:f.get('abrir')?'1':'0'};formResult.textContent='Criando evento e publicando a página…';createBtn.disabled=true;try{const p=await adminCall('create_event',params);if(!p||!p.ok)throw new Error(p&&p.error||'Falha ao criar o evento.');formResult.innerHTML=`<strong>Evento ${esc(p.event.id)} criado com sucesso.</strong><br><a target="_blank" rel="noopener" href="${esc(p.event.url_publica)}">Abrir página pública</a>`;await load();setTimeout(closeModal,1800)}catch(err){formResult.textContent=err.message||'Não foi possível criar o evento.'}finally{createBtn.disabled=false}});
+  eventForm.addEventListener('submit',async e=>{e.preventDefault();const f=new FormData(eventForm),rawDate=String(f.get('data')||'');let brDate=rawDate;if(/^\d{4}-\d{2}-\d{2}$/.test(rawDate)){const [y,m,d]=rawDate.split('-');brDate=`${d}/${m}/${y}`};const params={titulo:f.get('titulo')||'',tipo:f.get('tipo')||'',data:brDate,campus:f.get('campus')||'',local:f.get('local')||'',carga:f.get('carga')||'',responsavel:f.get('responsavel')||'',instituicao_emissora:f.get('instituicao')||'',protocolo:f.get('protocolo')||'',descricao:f.get('descricao')||'',abrir:f.get('abrir')?'1':'0'};formResult.textContent='Criando evento e publicando a página…';createBtn.disabled=true;try{const p=await adminCall('create_event',params);if(!p||!p.ok)throw new Error(p&&p.error||'Falha ao criar o evento.');formResult.innerHTML=`<strong>Evento ${esc(p.event.id)} criado com sucesso.</strong><br><a target="_blank" rel="noopener" href="${esc(p.event.url_publica)}">Abrir página pública</a>`;await load();setTimeout(closeModal,1800)}catch(err){formResult.textContent=err.message||'Não foi possível criar o evento.'}finally{createBtn.disabled=false}});
 
   async function load(){statusEl.textContent='Atualizando dados…';try{const p=await dashboardCall();if(!p||!p.ok)throw new Error(p&&p.error||'Falha ao carregar.');data=p;renderKpis();renderEvents();renderCerts();statusEl.textContent='Atualizado em '+fmtDateTime(p.updated_at)+' · atualização automática a cada 60 segundos';if(adminKey)loadCustomLinks()}catch(e){statusEl.textContent=e.message||'Falha ao carregar o dashboard.'}}
 
