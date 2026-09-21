@@ -95,6 +95,26 @@ function niceCertCustomGetLinkByToken_(token){
   return null;
 }
 
+function niceCertCustomGetLinkById_(linkId){
+  const id=Number(String(linkId||'').replace(/\D/g,''));
+  if(!id)return null;
+  const sh=niceCertCustomLinksSheet_(),v=sh.getDataRange().getValues();
+  if(v.length<2)return null;
+  const h=niceCertHeaderMap_(v[0]);
+  for(let i=1;i<v.length;i++){
+    if(Number(v[i][h.LINK_ID])!==id)continue;
+    return{
+      id:'C'+String(id).padStart(4,'0'),id_num:id,
+      token:String(v[i][h.TOKEN]||''),
+      rotulo:String(v[i][h.ROTULO]||''),
+      status:String(v[i][h.STATUS]||''),
+      url_publica:String(v[i][h.URL_PUBLICA]||''),
+      pasta_drive:String(v[i][h.PASTA_DRIVE]||'')
+    };
+  }
+  return null;
+}
+
 function niceCertCustomPublicLink_(token){
   const link=niceCertCustomGetLinkByToken_(token);
   if(!link)return{ok:false,error:'Link de emissão customizada inválido ou inexistente.'};
