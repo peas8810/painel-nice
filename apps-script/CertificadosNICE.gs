@@ -93,87 +93,154 @@ function niceCertIssueRow_(sh,row,map,event){
 }
 
 function niceCertGeneratePdf_(event,cert){
-  const folder=niceCertFolderFromUrl_(event.PASTA_DRIVE),pres=SlidesApp.create('TMP '+cert.codigo),slide=pres.getSlides()[0];
+  const folder=niceCertFolderFromUrl_(event.PASTA_DRIVE);
+  const pres=SlidesApp.create('TMP '+cert.codigo);
+  const slide=pres.getSlides()[0];
   slide.getPageElements().forEach(x=>x.remove());
+
   const C=niceCertClassicFrame_(slide);
   niceCertClassicHeader_(slide,'CERTIFICADO');
+
   niceCertTextSerif_(slide,'Certificamos que',90,128,540,18,11,C.gray,false,'CENTER');
   niceCertTextSerif_(slide,cert.nome,58,153,604,34,21,C.navy,true,'CENTER');
   niceCertClassicDivider_(slide,180,195,540);
-  const body='participou do evento “'+event.TITULO_EVENTO+'”, realizado em '+niceCertBrDate_(event.DATA_EVENTO)+(event.LOCAL?' no(a) '+event.LOCAL:'')+(event.CAMPUS_UNIDADE?' · '+event.CAMPUS_UNIDADE:'')+', com carga horária de '+(cert.carga||'não informada')+'.';
-  niceCertTextSerif_(slide,body,82,210,556,44,11,C.text,false,'CENTER');
 
-  niceCertClassicBookSeal_(slide,128,250,56);
-  niceCertTextSerif_(slide,'REGISTRO DIGITAL NICE',202,252,180,12,8,C.gold,true,'START');
-  niceCertTextSerif_(slide,'Evento '+String(event.EVENTO_ID).padStart(4,'0'),202,272,180,12,9,C.navy,true,'START');
-  niceCertTextSerif_(slide,'Protocolo: '+(event.PROTOCOLO_NICE||'—'),202,290,180,12,9,C.navy,true,'START');
-  niceCertTextSerif_(slide,'1ª Via Emitida',202,308,180,12,9,C.gray,true,'START');
+  const body='participou do evento “'+event.TITULO_EVENTO+'”, realizado em '+niceCertBrDate_(event.DATA_EVENTO)
+    +(event.LOCAL?' no(a) '+event.LOCAL:'')
+    +(event.CAMPUS_UNIDADE?' · '+event.CAMPUS_UNIDADE:'')
+    +', com carga horária de '+(cert.carga||'não informada')+'.';
+  niceCertTextSerif_(slide,body,82,210,556,40,11,C.text,false,'CENTER');
 
-  niceCertClassicValidation_(slide,cert.codigo,cert.signature,cert.emitido,String(event.INSTITUICAO_EMISSORA||'').trim());
-  pres.saveAndClose();Utilities.sleep(2000);
-  const sourceFile=DriveApp.getFileById(pres.getId()),pdfBlob=sourceFile.getBlob().getAs(MimeType.PDF).setName(cert.codigo+'.pdf'),file=folder.createFile(pdfBlob);
-  file.setDescription('Certificado NICE · Evento '+event.EVENTO_ID+' · '+cert.codigo);sourceFile.setTrashed(true);
-  return{blob:pdfBlob,url:file.getUrl(),id:file.getId()}
+  // Registro institucional fica totalmente acima do painel de validação.
+  niceCertClassicBookSeal_(slide,128,247,54);
+  niceCertTextSerif_(slide,'REGISTRO DIGITAL NICE',202,249,180,12,8,C.gold,true,'START');
+  niceCertTextSerif_(slide,'Evento '+String(event.EVENTO_ID).padStart(4,'0'),202,268,180,11,9,C.navy,true,'START');
+  niceCertTextSerif_(slide,'Protocolo: '+(event.PROTOCOLO_NICE||'—'),202,285,180,11,9,C.navy,true,'START');
+  niceCertTextSerif_(slide,'1ª Via Emitida',202,302,180,10,9,C.gray,true,'START');
+
+  niceCertClassicValidation_(
+    slide,
+    cert.codigo,
+    cert.signature,
+    cert.emitido,
+    String(event.INSTITUICAO_EMISSORA||'').trim()
+  );
+
+  pres.saveAndClose();
+  Utilities.sleep(2000);
+
+  const sourceFile=DriveApp.getFileById(pres.getId());
+  const pdfBlob=sourceFile.getBlob().getAs(MimeType.PDF).setName(cert.codigo+'.pdf');
+  const file=folder.createFile(pdfBlob);
+  file.setDescription('Certificado NICE · Evento '+event.EVENTO_ID+' · '+cert.codigo);
+  sourceFile.setTrashed(true);
+
+  return{blob:pdfBlob,url:file.getUrl(),id:file.getId()};
 }
 
 function niceCertClassicFrame_(slide){
-  const C={navy:'#17365D',blue:'#2F75B5',gold:'#C59A45',gray:'#667788',text:'#384657',light:'#F6F8FB',line:'#D9E1E8'};
+  const C={
+    navy:'#17365D',
+    blue:'#2F75B5',
+    gold:'#C59A45',
+    gray:'#667788',
+    text:'#384657',
+    light:'#F6F8FB',
+    line:'#D9E1E8'
+  };
+
   slide.getBackground().setSolidFill('#FFFFFF');
 
   const outer=slide.insertShape(SlidesApp.ShapeType.RECTANGLE,12,12,696,381);
-  outer.getFill().setTransparent();outer.getBorder().getLineFill().setSolidFill(C.navy);outer.getBorder().setWeight(2.1);
+  outer.getFill().setTransparent();
+  outer.getBorder().getLineFill().setSolidFill(C.navy);
+  outer.getBorder().setWeight(2.1);
 
   const inner=slide.insertShape(SlidesApp.ShapeType.RECTANGLE,18,18,684,369);
-  inner.getFill().setTransparent();inner.getBorder().getLineFill().setSolidFill(C.gold);inner.getBorder().setWeight(.8);
+  inner.getFill().setTransparent();
+  inner.getBorder().getLineFill().setSolidFill(C.gold);
+  inner.getBorder().setWeight(.8);
 
   const topBar=slide.insertShape(SlidesApp.ShapeType.RECTANGLE,38,30,84,4);
-  topBar.getFill().setSolidFill(C.gold);topBar.getBorder().setTransparent();
+  topBar.getFill().setSolidFill(C.gold);
+  topBar.getBorder().setTransparent();
 
   return C;
 }
 
 function niceCertClassicHeader_(slide,title){
   const navy='#17365D',gold='#C59A45',gray='#667788';
+
   niceCertTextSerif_(slide,title,78,58,564,43,28,navy,true,'CENTER');
   niceCertTextSerif_(slide,'CERTIFICAÇÃO INSTITUCIONAL COM VALIDAÇÃO DIGITAL',78,101,564,14,8,gray,true,'CENTER');
+
   const line=slide.insertLine(SlidesApp.LineCategory.STRAIGHT,210,122,510,122);
-  line.getLineFill().setSolidFill(gold);line.setWeight(1);
+  line.getLineFill().setSolidFill(gold);
+  line.setWeight(1);
 }
 
 function niceCertClassicDivider_(slide,x1,y,x2){
   const line=slide.insertLine(SlidesApp.LineCategory.STRAIGHT,x1,y,x2,y);
-  line.getLineFill().setSolidFill('#C59A45');line.setWeight(.75);
+  line.getLineFill().setSolidFill('#C59A45');
+  line.setWeight(.75);
 }
 
 function niceCertClassicBookSeal_(slide,x,y,size){
   const navy='#17365D',gold='#C59A45';
+
   const outer=slide.insertShape(SlidesApp.ShapeType.ELLIPSE,x,y,size,size);
-  outer.getFill().setSolidFill(navy);outer.getBorder().getLineFill().setSolidFill(gold);outer.getBorder().setWeight(2);
+  outer.getFill().setSolidFill(navy);
+  outer.getBorder().getLineFill().setSolidFill(gold);
+  outer.getBorder().setWeight(2);
 
   const inner=slide.insertShape(SlidesApp.ShapeType.ELLIPSE,x+5,y+5,size-10,size-10);
-  inner.getFill().setTransparent();inner.getBorder().getLineFill().setSolidFill(gold);inner.getBorder().setWeight(.7);
+  inner.getFill().setTransparent();
+  inner.getBorder().getLineFill().setSolidFill(gold);
+  inner.getBorder().setWeight(.7);
 
-  const cx=x+size/2,top=y+18,bottom=y+43,left=x+16,right=x+size-16;
-  [[cx,top,left,top+3],[left,top+3,left,bottom],[left,bottom,cx,bottom-3],[cx,top,cx,bottom-3],
-   [cx,top,right,top+3],[right,top+3,right,bottom],[right,bottom,cx,bottom-3]].forEach(a=>{
+  const cx=x+size/2;
+  const top=y+16;
+  const bottom=y+38;
+  const left=x+14;
+  const right=x+size-14;
+
+  [
+    [cx,top,left,top+3],
+    [left,top+3,left,bottom],
+    [left,bottom,cx,bottom-3],
+    [cx,top,cx,bottom-3],
+    [cx,top,right,top+3],
+    [right,top+3,right,bottom],
+    [right,bottom,cx,bottom-3]
+  ].forEach(a=>{
     const ln=slide.insertLine(SlidesApp.LineCategory.STRAIGHT,a[0],a[1],a[2],a[3]);
-    ln.getLineFill().setSolidFill(gold);ln.setWeight(1.15);
+    ln.getLineFill().setSolidFill(gold);
+    ln.setWeight(1.1);
   });
+
   for(let i=0;i<3;i++){
-    const ly=top+7+i*5;
-    let ln=slide.insertLine(SlidesApp.LineCategory.STRAIGHT,left+3,ly,cx-3,ly);ln.getLineFill().setSolidFill(gold);ln.setWeight(.5);
-    ln=slide.insertLine(SlidesApp.LineCategory.STRAIGHT,cx+3,ly,right-3,ly);ln.getLineFill().setSolidFill(gold);ln.setWeight(.5);
+    const ly=top+6+i*5;
+    let ln=slide.insertLine(SlidesApp.LineCategory.STRAIGHT,left+3,ly,cx-3,ly);
+    ln.getLineFill().setSolidFill(gold);
+    ln.setWeight(.5);
+
+    ln=slide.insertLine(SlidesApp.LineCategory.STRAIGHT,cx+3,ly,right-3,ly);
+    ln.getLineFill().setSolidFill(gold);
+    ln.setWeight(.5);
   }
 }
 
 function niceCertClassicRegistryInfo_(slide,o){
   const navy='#17365D',gold='#C59A45',gray='#667788';
-  const line=slide.insertLine(SlidesApp.LineCategory.STRAIGHT,392,250,392,311);
-  line.getLineFill().setSolidFill(gold);line.setWeight(.9);
-  niceCertTextSerif_(slide,'REGISTRO INSTITUCIONAL',414,251,216,12,8,gold,true,'START');
-  niceCertTextSerif_(slide,o.line1||'',414,271,216,12,9,navy,true,'START');
-  niceCertTextSerif_(slide,o.line2||'',414,289,216,12,9,navy,true,'START');
-  niceCertTextSerif_(slide,o.line3||'1ª Via Emitida',414,307,216,12,9,gray,true,'START');
+
+  const line=slide.insertLine(SlidesApp.LineCategory.STRAIGHT,392,247,392,309);
+  line.getLineFill().setSolidFill(gold);
+  line.setWeight(.9);
+
+  niceCertTextSerif_(slide,'REGISTRO INSTITUCIONAL',414,248,216,11,8,gold,true,'START');
+  niceCertTextSerif_(slide,o.line1||'',414,267,216,11,9,navy,true,'START');
+  niceCertTextSerif_(slide,o.line2||'',414,284,216,11,9,navy,true,'START');
+  niceCertTextSerif_(slide,o.line3||'1ª Via Emitida',414,301,216,10,9,gray,true,'START');
 }
 
 function niceCertClassicValidation_(slide,codigo,signature,emitido,instituicao){
@@ -181,40 +248,77 @@ function niceCertClassicValidation_(slide,codigo,signature,emitido,instituicao){
   const verify=NICE_CERT.PUBLIC_BASE+'/validar/?codigo='+encodeURIComponent(codigo);
   const issuer=String(instituicao||'Não informada').trim()||'Não informada';
 
-  const card=slide.insertShape(SlidesApp.ShapeType.RECTANGLE,40,317,640,68);
-  card.getFill().setSolidFill(light);card.getBorder().getLineFill().setSolidFill('#D9E1E8');card.getBorder().setWeight(.8);
+  // Painel começa em Y=321; registro termina em Y=311. Há margem visual real entre os blocos.
+  const card=slide.insertShape(SlidesApp.ShapeType.RECTANGLE,40,321,640,64);
+  card.getFill().setSolidFill(light);
+  card.getBorder().getLineFill().setSolidFill('#D9E1E8');
+  card.getBorder().setWeight(.8);
 
-  const qr=UrlFetchApp.fetch('https://quickchart.io/qr?size=320&margin=1&ecLevel=M&text='+encodeURIComponent(verify),{muteHttpExceptions:false}).getBlob().setName('qr.png');
-  slide.insertImage(qr,48,325,52,52);
+  const qr=UrlFetchApp.fetch(
+    'https://quickchart.io/qr?size=360&margin=1&ecLevel=M&text='+encodeURIComponent(verify),
+    {muteHttpExceptions:false}
+  ).getBlob().setName('qr.png');
 
-  niceCertTextSerif_(slide,'VALIDAÇÃO DIGITAL',114,326,142,11,8,gold,true,'START');
-  niceCertTextSerif_(slide,'Autenticidade verificável por QR Code',114,340,238,11,8,navy,true,'START');
-  niceCertTextSerif_(slide,'Código: '+codigo,114,354,248,10,7,gray,false,'START');
-  niceCertTextSerif_(slide,'protocolo.me/certificados/validar',114,368,244,9,7,blue,true,'START');
+  // QR maior, porém inteiramente contido no painel.
+  slide.insertImage(qr,48,326,54,54);
 
-  const sep1=slide.insertLine(SlidesApp.LineCategory.STRAIGHT,370,325,370,378);
-  sep1.getLineFill().setSolidFill('#D8C79D');sep1.setWeight(.8);
-  niceCertTextSerif_(slide,'INSTITUIÇÃO EMISSORA',386,331,120,10,7,navy,true,'START');
-  niceCertTextSerif_(slide,issuer,386,347,122,24,9,gray,false,'START');
+  niceCertTextSerif_(slide,'VALIDAÇÃO DIGITAL',114,326,142,10,8,gold,true,'START');
+  niceCertTextSerif_(slide,'Autenticidade verificável por QR Code',114,340,238,10,8,navy,true,'START');
+  niceCertTextSerif_(slide,'Código: '+codigo,114,354,248,9,7,gray,false,'START');
+  niceCertTextSerif_(slide,'protocolo.me/certificados/validar',114,368,244,8,7,blue,true,'START');
 
-  const sep2=slide.insertLine(SlidesApp.LineCategory.STRAIGHT,518,325,518,378);
-  sep2.getLineFill().setSolidFill('#D8C79D');sep2.setWeight(.8);
+  const sep1=slide.insertLine(SlidesApp.LineCategory.STRAIGHT,370,327,370,379);
+  sep1.getLineFill().setSolidFill('#D8C79D');
+  sep1.setWeight(.8);
+
+  niceCertTextSerif_(slide,'INSTITUIÇÃO EMISSORA',386,330,120,10,7,navy,true,'START');
+  niceCertTextSerif_(slide,issuer,386,347,122,23,9,gray,false,'START');
+
+  const sep2=slide.insertLine(SlidesApp.LineCategory.STRAIGHT,518,327,518,379);
+  sep2.getLineFill().setSolidFill('#D8C79D');
+  sep2.setWeight(.8);
+
   niceCertTextSerif_(slide,'HMAC-SHA256',536,326,122,10,8,gold,true,'END');
   niceCertTextSerif_(slide,String(signature||'').slice(0,18)+'…',536,341,122,9,7,gray,false,'END');
   niceCertTextSerif_(slide,'Emitido em',536,356,122,9,7,navy,true,'END');
-  niceCertTextSerif_(slide,Utilities.formatDate(emitido,Session.getScriptTimeZone()||'America/Sao_Paulo','dd/MM/yyyy HH:mm'),526,370,132,9,7,navy,true,'END');
+  niceCertTextSerif_(
+    slide,
+    Utilities.formatDate(emitido,Session.getScriptTimeZone()||'America/Sao_Paulo','dd/MM/yyyy HH:mm'),
+    526,370,132,9,7,navy,true,'END'
+  );
 }
 
 function niceCertTextSerif_(slide,text,left,top,width,height,size,color,bold,align){
-  const box=slide.insertTextBox(String(text||''),left,top,width,height),range=box.getText();
-  range.getTextStyle().setFontFamily('Arial').setFontSize(size).setForegroundColor(color).setBold(!!bold);
-  const a=align==='CENTER'?SlidesApp.ParagraphAlignment.CENTER:align==='END'?SlidesApp.ParagraphAlignment.END:SlidesApp.ParagraphAlignment.START;
-  range.getParagraphStyle().setParagraphAlignment(a);return box;
+  const box=slide.insertTextBox(String(text||''),left,top,width,height);
+  const range=box.getText();
+
+  range.getTextStyle()
+    .setFontFamily('Arial')
+    .setFontSize(size)
+    .setForegroundColor(color)
+    .setBold(!!bold);
+
+  const a=align==='CENTER'
+    ?SlidesApp.ParagraphAlignment.CENTER
+    :align==='END'
+      ?SlidesApp.ParagraphAlignment.END
+      :SlidesApp.ParagraphAlignment.START;
+
+  range.getParagraphStyle().setParagraphAlignment(a);
+  return box;
 }
 
-function niceCertPremiumFrame_(slide){return niceCertClassicFrame_(slide)}
-function niceCertPremiumHeader_(slide,title,subtitle){return niceCertClassicHeader_(slide,title)}
-function niceCertPremiumValidation_(slide,codigo,signature,emitido,instituicao){return niceCertClassicValidation_(slide,codigo,signature,emitido,instituicao)}
+function niceCertPremiumFrame_(slide){
+  return niceCertClassicFrame_(slide);
+}
+
+function niceCertPremiumHeader_(slide,title,subtitle){
+  return niceCertClassicHeader_(slide,title);
+}
+
+function niceCertPremiumValidation_(slide,codigo,signature,emitido,instituicao){
+  return niceCertClassicValidation_(slide,codigo,signature,emitido,instituicao);
+}
 
 function niceCertPeasBrand_(slide,x,y){niceCertText_(slide,'PEAS',x,y,70,18,13,'#17365D',true,'END');niceCertText_(slide,'Technology®',x+74,y+2,95,15,8,'#E97824',true,'START')}
 function niceCertLogo_(slide,x,y){const navy='#17365D',orange='#F4A11A';const line1=slide.insertLine(SlidesApp.LineCategory.STRAIGHT,x+16,y+16,x+7,y+31);line1.getLineFill().setSolidFill(navy);line1.setWeight(2.4);const line2=slide.insertLine(SlidesApp.LineCategory.STRAIGHT,x+16,y+16,x+29,y+31);line2.getLineFill().setSolidFill(navy);line2.setWeight(2.4);const line3=slide.insertLine(SlidesApp.LineCategory.STRAIGHT,x+16,y+16,x+16,y+2);line3.getLineFill().setSolidFill(navy);line3.setWeight(2.4);[[x+10,y+10,12,navy],[x+1,y+28,12,orange],[x+23,y+28,12,orange],[x+10,y-4,12,orange]].forEach(a=>{const s=slide.insertShape(SlidesApp.ShapeType.ELLIPSE,a[0],a[1],a[2],a[2]);s.getFill().setSolidFill(a[3]);s.getBorder().setTransparent()})}
