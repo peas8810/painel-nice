@@ -25,7 +25,7 @@ const NICE_CERT = Object.freeze({
   SENDER:'nice@unipacto.com.br',
   BATCH_LIMIT:40,
   EVENT_HEADERS:['EVENTO_ID','PROTOCOLO_NICE','TITULO_EVENTO','TIPO_EVENTO','DATA_EVENTO','CAMPUS_UNIDADE','LOCAL','CARGA_HORARIA','RESPONSAVEL','DESCRICAO','STATUS','URL_PUBLICA','PASTA_DRIVE','CRIADO_EM','ATUALIZADO_EM'],
-  ISSUE_HEADERS:['EVENTO_ID','NOME','EMAIL','CARGA_HORARIA','CODIGO','ASSINATURA_HMAC','STATUS','EMITIDO_EM','ENVIADO_EM','PDF_URL','TENTATIVAS_EMAIL','ULTIMO_ERRO','MOTIVO_REVOGACAO','REVOGADO_EM','TIPO_CERTIFICADO','FUNCAO_EVENTO','TITULO_EVENTO_CUSTOM','CUSTOM_LINK_ID'],
+  ISSUE_HEADERS:['EVENTO_ID','NOME','EMAIL','CARGA_HORARIA','CODIGO','ASSINATURA_HMAC','STATUS','EMITIDO_EM','ENVIADO_EM','PDF_URL','TENTATIVAS_EMAIL','ULTIMO_ERRO','MOTIVO_REVOGACAO','REVOGADO_EM','TIPO_CERTIFICADO','FUNCAO_EVENTO','TITULO_EVENTO_CUSTOM','CUSTOM_LINK_ID','LIVRO_ATA','REGISTRO_CERTIFICADO','VIA_EMITIDA'],
   LOG_HEADERS:['DATA_HORA','ACAO','EVENTO_ID','CODIGO','DETALHE','USUARIO']
 });
 
@@ -171,7 +171,10 @@ function niceCertRegenerateByCode_(code){
       pdf=niceCertCustomGeneratePdf_(link,{
         nome,email,carga,codigo:wanted,signature,emitido:emitted,
         funcao:String(v[i][m.FUNCAO_EVENTO]||'').trim(),
-        evento:String(v[i][m.TITULO_EVENTO_CUSTOM]||'').trim()
+        evento:String(v[i][m.TITULO_EVENTO_CUSTOM]||'').trim(),
+        livro_ata:String(v[i][m.LIVRO_ATA]||link.livro_ata||'').trim(),
+        registro:String(v[i][m.REGISTRO_CERTIFICADO]||link.registro||'').trim(),
+        via_emitida:String(v[i][m.VIA_EMITIDA]||link.via_emitida||'1ª Via Emitida').trim()
       });
     }else{
       const event=niceCertFindEvent_(Number(v[i][m.EVENTO_ID]));
