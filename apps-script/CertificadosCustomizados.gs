@@ -5,7 +5,7 @@
  */
 const NICE_CERT_CUSTOM = Object.freeze({
   LINKS_SHEET:'CERT_CUSTOM_LINKS',
-  LINK_HEADERS:['LINK_ID','TOKEN','ROTULO','LIVRO_ATA','REGISTRO','VIA_EMITIDA','STATUS','URL_PUBLICA','PASTA_DRIVE','CRIADO_EM','ATUALIZADO_EM'],
+  LINK_HEADERS:['LINK_ID','TOKEN','ROTULO','INSTITUICAO_EMISSORA','LIVRO_ATA','REGISTRO','VIA_EMITIDA','STATUS','URL_PUBLICA','PASTA_DRIVE','CRIADO_EM','ATUALIZADO_EM'],
   OPEN_STATUS:'ABERTO',
   CLOSED_STATUS:'FECHADO',
   PUBLIC_URL:'https://www.protocolo.me/certificados/customizado/'
@@ -20,7 +20,7 @@ function instalarCertificadosCustomizados(){
 
 function niceCertCustomEnsureIssueHeaders_(){
   const sh=niceCertIssuesSheet_();
-  ['TIPO_CERTIFICADO','FUNCAO_EVENTO','TITULO_EVENTO_CUSTOM','CUSTOM_LINK_ID','LIVRO_ATA','REGISTRO_CERTIFICADO','VIA_EMITIDA'].forEach(h=>{
+  ['TIPO_CERTIFICADO','FUNCAO_EVENTO','TITULO_EVENTO_CUSTOM','CUSTOM_LINK_ID','LIVRO_ATA','REGISTRO_CERTIFICADO','VIA_EMITIDA','INSTITUICAO_EMISSORA'].forEach(h=>{
     const heads=sh.getRange(1,1,1,sh.getLastColumn()).getDisplayValues()[0];
     if(!heads.includes(h)) sh.getRange(1,sh.getLastColumn()+1).setValue(h);
   });
@@ -40,18 +40,20 @@ function niceCertCustomCreateLink_(p){
   const id=max+1, code='C'+String(id).padStart(4,'0');
   const token=(Utilities.getUuid()+Utilities.getUuid()).replace(/-/g,'').slice(0,40);
   const rotulo=niceCertDashboardClean_(p.rotulo||'Emissão customizada '+code,160);
+  const instituicao=niceCertDashboardClean_(p.instituicao_emissora||p.instituicao||'',160);
   const livroAta=niceCertDashboardClean_(p.livro_ata||p.livro||'',80);
   const registro=niceCertDashboardClean_(p.registro||'',80);
   const viaEmitida=niceCertDashboardClean_(p.via_emitida||'1ª Via Emitida',40)||'1ª Via Emitida';
+  if(!instituicao)return{ok:false,error:'Informe a instituição emissora.'};
   if(!livroAta)return{ok:false,error:'Informe o Livro Ata.'};
   if(!registro)return{ok:false,error:'Informe o registro do certificado.'};
   const root=niceCertEnsureRootFolder_();
   const folder=niceFolder_(root,'Customizado '+code+' - '+rotulo.replace(/[\\/:*?"<>|]/g,' ').slice(0,80));
   const url=NICE_CERT_CUSTOM.PUBLIC_URL+'?chave='+encodeURIComponent(token);
   const now=new Date();
-  niceCertAppendObject_(sh,{LINK_ID:id,TOKEN:token,ROTULO:rotulo,LIVRO_ATA:livroAta,REGISTRO:registro,VIA_EMITIDA:viaEmitida,STATUS:NICE_CERT_CUSTOM.OPEN_STATUS,URL_PUBLICA:url,PASTA_DRIVE:folder.getUrl(),CRIADO_EM:now,ATUALIZADO_EM:now});
+  niceCertAppendObject_(sh,{LINK_ID:id,TOKEN:token,ROTULO:rotulo,INSTITUICAO_EMISSORA:instituicao,LIVRO_ATA:livroAta,REGISTRO:registro,VIA_EMITIDA:viaEmitida,STATUS:NICE_CERT_CUSTOM.OPEN_STATUS,URL_PUBLICA:url,PASTA_DRIVE:folder.getUrl(),CRIADO_EM:now,ATUALIZADO_EM:now});
   niceCertLog_('LINK_CUSTOMIZADO_CRIADO',code,'','Link customizado '+rotulo+' · Livro Ata '+livroAta+' · Registro '+registro);
-  return {ok:true,link:{id:code,rotulo,livro_ata:livroAta,registro,via_emitida:viaEmitida,status:NICE_CERT_CUSTOM.OPEN_STATUS,url_publica:url,emitidos:0}};
+  return {ok:true,link:{id:code,rotulo,instituicao_emissora:instituicao,livro_ata:livroAta,registro,via_emitida:viaEmitida,status:NICE_CERT_CUSTOM.OPEN_STATUS,url_publica:url,emitidos:0}};
 }
 
 function niceCertCustomAdminList_(){
@@ -67,7 +69,7 @@ function niceCertCustomAdminList_(){
   for(let i=v.length-1;i>=1;i--){
     const id=Number(v[i][h.LINK_ID])||0;if(!id)continue;
     const code='C'+String(id).padStart(4,'0');
-    links.push({id:code,rotulo:String(v[i][h.ROTULO]||''),livro_ata:String(v[i][h.LIVRO_ATA]||''),registro:String(v[i][h.REGISTRO]||''),via_emitida:String(v[i][h.VIA_EMITIDA]||'1ª Via Emitida'),status:String(v[i][h.STATUS]||''),url_publica:String(v[i][h.URL_PUBLICA]||''),emitidos:counts[code]||0,criado_em:niceApiIso_(v[i][h.CRIADO_EM])});
+    links.push({id:code,rotulo:String(v[i][h.ROTULO]||''),instituicao_emissora:String(v[i][h.INSTITUICAO_EMISSORA]||''),livro_ata:String(v[i][h.LIVRO_ATA]||''),registro:String(v[i][h.REGISTRO]||''),via_emitida:String(v[i][h.VIA_EMITIDA]||'1ª Via Emitida'),status:String(v[i][h.STATUS]||''),url_publica:String(v[i][h.URL_PUBLICA]||''),emitidos:counts[code]||0,criado_em:niceApiIso_(v[i][h.CRIADO_EM])});
   }
   return{ok:true,links};
 }
@@ -93,7 +95,7 @@ function niceCertCustomGetLinkByToken_(token){
   const h=niceCertHeaderMap_(v[0]);
   for(let i=1;i<v.length;i++)if(String(v[i][h.TOKEN]||'')===wanted){
     const id=Number(v[i][h.LINK_ID])||0;
-    return{id:'C'+String(id).padStart(4,'0'),id_num:id,token:wanted,rotulo:String(v[i][h.ROTULO]||''),livro_ata:String(v[i][h.LIVRO_ATA]||''),registro:String(v[i][h.REGISTRO]||''),via_emitida:String(v[i][h.VIA_EMITIDA]||'1ª Via Emitida'),status:String(v[i][h.STATUS]||''),url_publica:String(v[i][h.URL_PUBLICA]||''),pasta_drive:String(v[i][h.PASTA_DRIVE]||'')};
+    return{id:'C'+String(id).padStart(4,'0'),id_num:id,token:wanted,rotulo:String(v[i][h.ROTULO]||''),instituicao_emissora:String(v[i][h.INSTITUICAO_EMISSORA]||''),livro_ata:String(v[i][h.LIVRO_ATA]||''),registro:String(v[i][h.REGISTRO]||''),via_emitida:String(v[i][h.VIA_EMITIDA]||'1ª Via Emitida'),status:String(v[i][h.STATUS]||''),url_publica:String(v[i][h.URL_PUBLICA]||''),pasta_drive:String(v[i][h.PASTA_DRIVE]||'')};
   }
   return null;
 }
@@ -110,6 +112,7 @@ function niceCertCustomGetLinkById_(linkId){
       id:'C'+String(id).padStart(4,'0'),id_num:id,
       token:String(v[i][h.TOKEN]||''),
       rotulo:String(v[i][h.ROTULO]||''),
+      instituicao_emissora:String(v[i][h.INSTITUICAO_EMISSORA]||''),
       livro_ata:String(v[i][h.LIVRO_ATA]||''),
       registro:String(v[i][h.REGISTRO]||''),
       via_emitida:String(v[i][h.VIA_EMITIDA]||'1ª Via Emitida'),
@@ -165,18 +168,19 @@ function niceCertCustomIssue_(p){
 
   const code='CERT-NICE-CUS-'+Utilities.getUuid().replace(/-/g,'').slice(0,10).toUpperCase();
   const emittedAt=new Date();
-  const livroAta=String(link.livro_ata||'').trim(),registro=String(link.registro||'').trim(),viaEmitida=String(link.via_emitida||'1ª Via Emitida').trim();
-  const canonical=niceCertCustomCanonicalV2_({codigo:code,linkId:link.id,nome,funcao,evento,carga,livroAta,registro,viaEmitida,emitido:emittedAt.toISOString()});
+  const instituicao=String(link.instituicao_emissora||'').trim(),livroAta=String(link.livro_ata||'').trim(),registro=String(link.registro||'').trim(),viaEmitida=String(link.via_emitida||'1ª Via Emitida').trim();
+  const canonical=niceCertCustomCanonicalV3_({codigo:code,linkId:link.id,nome,funcao,evento,carga,instituicao,livroAta,registro,viaEmitida,emitido:emittedAt.toISOString()});
   const signature=niceCertSign_(canonical);
-  const pdf=niceCertCustomGeneratePdf_(link,{nome,email,funcao,carga,evento,codigo:code,signature,emitido:emittedAt,livro_ata:livroAta,registro,via_emitida:viaEmitida});
+  const pdf=niceCertCustomGeneratePdf_(link,{nome,email,funcao,carga,evento,codigo:code,signature,emitido:emittedAt,livro_ata:livroAta,registro,via_emitida:viaEmitida,instituicao_emissora:instituicao});
   niceCertCustomSendMail_(email,nome,evento,funcao,pdf.blob,code);
-  niceCertAppendObject_(sh,{EVENTO_ID:'',NOME:nome,EMAIL:email,CARGA_HORARIA:carga,CODIGO:code,ASSINATURA_HMAC:signature,STATUS:'ENVIADO',EMITIDO_EM:emittedAt,ENVIADO_EM:new Date(),PDF_URL:pdf.url,TENTATIVAS_EMAIL:1,ULTIMO_ERRO:'',TIPO_CERTIFICADO:'CUSTOMIZADO',FUNCAO_EVENTO:funcao,TITULO_EVENTO_CUSTOM:evento,CUSTOM_LINK_ID:link.id,LIVRO_ATA:livroAta,REGISTRO_CERTIFICADO:registro,VIA_EMITIDA:viaEmitida});
+  niceCertAppendObject_(sh,{EVENTO_ID:'',NOME:nome,EMAIL:email,CARGA_HORARIA:carga,CODIGO:code,ASSINATURA_HMAC:signature,STATUS:'ENVIADO',EMITIDO_EM:emittedAt,ENVIADO_EM:new Date(),PDF_URL:pdf.url,TENTATIVAS_EMAIL:1,ULTIMO_ERRO:'',TIPO_CERTIFICADO:'CUSTOMIZADO',FUNCAO_EVENTO:funcao,TITULO_EVENTO_CUSTOM:evento,CUSTOM_LINK_ID:link.id,LIVRO_ATA:livroAta,REGISTRO_CERTIFICADO:registro,VIA_EMITIDA:viaEmitida,INSTITUICAO_EMISSORA:instituicao});
   niceCertLog_('CERTIFICADO_CUSTOMIZADO_EMITIDO',link.id,code,funcao+' · '+evento+' · '+email);
   return{ok:true,sent:true,reused:false,code,message:'Certificado customizado gerado e enviado.'};
 }
 
 function niceCertCustomCanonical_(o){return[o.codigo,'CUSTOM',o.linkId,o.nome,o.funcao,o.evento,o.carga,o.emitido].map(v=>String(v==null?'':v).trim()).join('|')}
 function niceCertCustomCanonicalV2_(o){return[o.codigo,'CUSTOM_V2',o.linkId,o.nome,o.funcao,o.evento,o.carga,o.livroAta,o.registro,o.viaEmitida,o.emitido].map(v=>String(v==null?'':v).trim()).join('|')}
+function niceCertCustomCanonicalV3_(o){return[o.codigo,'CUSTOM_V3',o.linkId,o.nome,o.funcao,o.evento,o.carga,o.instituicao,o.livroAta,o.registro,o.viaEmitida,o.emitido].map(v=>String(v==null?'':v).trim()).join('|')}
 
 function niceCertCustomGeneratePdf_(link,cert){
   const folder=niceCertFolderFromUrl_(link.pasta_drive),pres=SlidesApp.create('TMP '+cert.codigo),slide=pres.getSlides()[0];
@@ -199,7 +203,7 @@ function niceCertCustomGeneratePdf_(link,cert){
     line3:String(cert.via_emitida||'1ª Via Emitida')
   });
 
-  niceCertClassicValidation_(slide,cert.codigo,cert.signature,cert.emitido);
+  niceCertClassicValidation_(slide,cert.codigo,cert.signature,cert.emitido,String(cert.instituicao_emissora||link.instituicao_emissora||'').trim());
   pres.saveAndClose();Utilities.sleep(2000);
   const source=DriveApp.getFileById(pres.getId()),blob=source.getBlob().getAs(MimeType.PDF).setName(cert.codigo+'.pdf'),file=folder.createFile(blob);
   file.setDescription('Certificado NICE customizado · '+link.id+' · '+cert.codigo);source.setTrashed(true);
@@ -230,11 +234,11 @@ function niceCertCustomVerify_(code){
   for(let i=1;i<v.length;i++){
     if(String(v[i][m.CODIGO]||'').trim().toUpperCase()!==wanted)continue;
     const emitted=niceCertDate_(v[i][m.EMITIDO_EM]),linkId=String(v[i][m.CUSTOM_LINK_ID]||''),nome=String(v[i][m.NOME]||''),funcao=String(v[i][m.FUNCAO_EVENTO]||''),evento=String(v[i][m.TITULO_EVENTO_CUSTOM]||''),carga=String(v[i][m.CARGA_HORARIA]||'');
-    const livroAta=String(v[i][m.LIVRO_ATA]||''),registro=String(v[i][m.REGISTRO_CERTIFICADO]||''),viaEmitida=String(v[i][m.VIA_EMITIDA]||'');
+    const instituicao=String(v[i][m.INSTITUICAO_EMISSORA]||''),livroAta=String(v[i][m.LIVRO_ATA]||''),registro=String(v[i][m.REGISTRO_CERTIFICADO]||''),viaEmitida=String(v[i][m.VIA_EMITIDA]||'');
     const emittedIso=emitted?emitted.toISOString():'';
-    const canonical=(livroAta||registro)?niceCertCustomCanonicalV2_({codigo:wanted,linkId,nome,funcao,evento,carga,livroAta,registro,viaEmitida:viaEmitida||'1ª Via Emitida',emitido:emittedIso}):niceCertCustomCanonical_({codigo:wanted,linkId,nome,funcao,evento,carga,emitido:emittedIso});
+    const canonical=instituicao?niceCertCustomCanonicalV3_({codigo:wanted,linkId,nome,funcao,evento,carga,instituicao,livroAta,registro,viaEmitida:viaEmitida||'1ª Via Emitida',emitido:emittedIso}):(livroAta||registro)?niceCertCustomCanonicalV2_({codigo:wanted,linkId,nome,funcao,evento,carga,livroAta,registro,viaEmitida:viaEmitida||'1ª Via Emitida',emitido:emittedIso}):niceCertCustomCanonical_({codigo:wanted,linkId,nome,funcao,evento,carga,emitido:emittedIso});
     const expected=niceCertSign_(canonical),stored=String(v[i][m.ASSINATURA_HMAC]||''),status=String(v[i][m.STATUS]||'').toUpperCase();
-    return{ok:true,valid:!!stored&&stored===expected,revoked:status==='REVOGADO',status,nome,codigo:wanted,carga_horaria:carga,emitido_em:emittedIso,selo:stored,funcao_evento:funcao,tipo_certificado:'CUSTOMIZADO',livro_ata:livroAta,registro_certificado:registro,via_emitida:viaEmitida||'1ª Via Emitida',evento:{id:linkId,titulo:evento,data_evento:'—',campus_unidade:'—',local:'—',protocolo_nice:'—'},motivo_revogacao:String(v[i][m.MOTIVO_REVOGACAO]||'')};
+    return{ok:true,valid:!!stored&&stored===expected,revoked:status==='REVOGADO',status,nome,codigo:wanted,carga_horaria:carga,emitido_em:emittedIso,selo:stored,funcao_evento:funcao,tipo_certificado:'CUSTOMIZADO',instituicao_emissora:instituicao,livro_ata:livroAta,registro_certificado:registro,via_emitida:viaEmitida||'1ª Via Emitida',evento:{id:linkId,titulo:evento,data_evento:'—',campus_unidade:'—',local:'—',protocolo_nice:'—'},motivo_revogacao:String(v[i][m.MOTIVO_REVOGACAO]||'')};
   }
   return{ok:true,valid:false,error:'Certificado não encontrado.'};
 }
