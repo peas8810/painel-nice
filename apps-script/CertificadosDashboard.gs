@@ -75,6 +75,7 @@ function niceCertDashboardPublic_(){
         local: niceApiPublicText_(niceApiCell_(values[i], h, 'LOCAL')),
         carga_horaria: niceApiPublicText_(niceApiCell_(values[i], h, 'CARGA_HORARIA')),
         responsavel: niceApiPublicText_(niceApiCell_(values[i], h, 'RESPONSAVEL')),
+        instituicao_emissora: niceApiPublicText_(niceApiCell_(values[i], h, 'INSTITUICAO_EMISSORA')),
         protocolo_nice: niceApiPublicText_(niceApiCell_(values[i], h, 'PROTOCOLO_NICE')),
         status: status || 'SEM_STATUS',
         certificados_emitidos: byEvent[idNum] || 0,
@@ -129,11 +130,13 @@ function niceCertDashboardCreateEvent_(p){
   const local=niceCertDashboardClean_(p.local,180);
   const carga=niceCertDashboardClean_(p.carga,60);
   const responsavel=niceCertDashboardClean_(p.responsavel,180);
+  const instituicao=niceCertDashboardClean_(p.instituicao_emissora||p.instituicao,160);
   const protocolo=niceCertDashboardClean_(p.protocolo,80).toUpperCase();
   const descricao=niceCertDashboardClean_(p.descricao,500);
   const abrir=String(p.abrir||'').toLowerCase()==='true'||String(p.abrir||'')==='1';
   if(titulo.length<3) return {ok:false,error:'Informe o título do evento.'};
   if(!data) return {ok:false,error:'Informe a data do evento.'};
+  if(!instituicao) return {ok:false,error:'Informe a instituição emissora.'};
 
   const lock=LockService.getScriptLock(); lock.waitLock(30000);
   try{
@@ -153,6 +156,7 @@ function niceCertDashboardCreateEvent_(p){
       LOCAL:local,
       CARGA_HORARIA:carga,
       RESPONSAVEL:responsavel,
+      INSTITUICAO_EMISSORA:instituicao,
       DESCRICAO:descricao,
       STATUS:abrir?NICE_CERT_DASHBOARD.OPEN_STATUS:NICE_CERT_DASHBOARD.CLOSED_STATUS,
       URL_PUBLICA:NICE_CERT_DASHBOARD.PUBLIC_BASE+'/'+code,
