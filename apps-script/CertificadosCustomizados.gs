@@ -183,19 +183,22 @@ function niceCertCustomGeneratePdf_(link,cert){
   slide.getPageElements().forEach(x=>x.remove());
   const C=niceCertClassicFrame_(slide);
   niceCertClassicHeader_(slide,'CERTIFICADO');
-  niceCertTextSerif_(slide,'Certificamos que',90,126,540,20,13,C.navy,false,'CENTER');
-  niceCertTextSerif_(slide,cert.nome,55,151,610,36,23,C.gold,true,'CENTER');
-  niceCertClassicDivider_(slide,142,193,578);
+  niceCertTextSerif_(slide,'Certificamos que',90,128,540,18,11,C.gray,false,'CENTER');
+  niceCertTextSerif_(slide,cert.nome,58,153,604,34,21,C.navy,true,'CENTER');
+  niceCertClassicDivider_(slide,180,195,540);
   const body='participou do evento “'+cert.evento+'”, na função de “'+cert.funcao+'”, com carga horária de '+cert.carga+'.';
-  niceCertTextSerif_(slide,body,86,205,548,47,12,C.navy,false,'CENTER');
-  niceCertClassicBookSeal_(slide,304,251,70);
-  niceCertTextSerif_(slide,'CERTIFICADO REGISTRADO',268,319,142,10,7,C.navy,true,'CENTER');
-  niceCertTextSerif_(slide,'EM LIVRO ATA INSTITUCIONAL',246,330,186,9,6,C.navy,true,'CENTER');
+  niceCertTextSerif_(slide,body,82,210,556,44,11,C.text,false,'CENTER');
+
+  niceCertClassicBookSeal_(slide,118,268,62);
+  niceCertTextSerif_(slide,'CERTIFICADO REGISTRADO',196,270,190,12,8,C.gold,true,'START');
+  niceCertTextSerif_(slide,'EM LIVRO ATA INSTITUCIONAL',196,289,190,12,8,C.navy,true,'START');
+
   niceCertClassicRegistryInfo_(slide,{
     line1:'Livro Ata: '+String(cert.livro_ata||'—'),
     line2:'Registro: '+String(cert.registro||'—'),
     line3:String(cert.via_emitida||'1ª Via Emitida')
   });
+
   niceCertClassicValidation_(slide,cert.codigo,cert.signature,cert.emitido);
   pres.saveAndClose();Utilities.sleep(2000);
   const source=DriveApp.getFileById(pres.getId()),blob=source.getBlob().getAs(MimeType.PDF).setName(cert.codigo+'.pdf'),file=folder.createFile(blob);
