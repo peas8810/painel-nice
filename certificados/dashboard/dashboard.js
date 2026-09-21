@@ -20,7 +20,7 @@
   function setAdmin(ok){
     newEventBtn.disabled=!ok;customLinkBtn.disabled=!ok;authBtn.textContent=ok?'Sair da administração':'Acessar administração';
     adminState.textContent=ok?'Acesso administrativo ativo nesta sessão':'Acesso administrativo não autenticado';adminState.classList.toggle('ok',ok);
-    if(!ok){customLinks=[];renderCustomLinks()}renderEvents()
+    if(!ok){customLinks=[];renderCustomLinks()}renderEvents();renderCerts()
   }
   async function authenticate(){if(adminKey){adminKey='';localStorage.removeItem('nice_cert_admin_key');setAdmin(false);return;}const key=prompt('Digite a chave administrativa do Dashboard de Certificados:');if(!key)return;adminKey=key.trim();try{const p=await adminCall('auth');if(!p||!p.ok)throw new Error(p&&p.error||'Chave inválida.');localStorage.setItem('nice_cert_admin_key',adminKey);setAdmin(true);await loadCustomLinks()}catch(e){adminKey='';localStorage.removeItem('nice_cert_admin_key');setAdmin(false);alert(e.message||'Não foi possível autenticar.')}}
   async function restoreAuth(){if(!adminKey){setAdmin(false);return}try{const p=await adminCall('auth');if(!p||!p.ok)throw new Error();setAdmin(true);await loadCustomLinks()}catch(_){adminKey='';localStorage.removeItem('nice_cert_admin_key');setAdmin(false)}}
@@ -29,7 +29,7 @@
 
   function renderEvents(){const q=eventSearch.value.trim().toLowerCase(),st=eventStatus.value,isAdmin=!!adminKey;const rows=(data.events||[]).filter(e=>{const hay=[e.id,e.titulo,e.campus_unidade,e.protocolo_nice].join(' ').toLowerCase();return(!q||hay.includes(q))&&(!st||String(e.status).toUpperCase()===st)});eventsBody.innerHTML=rows.length?rows.map(e=>{const open=String(e.status||'').toUpperCase()==='EMISSAO_ABERTA';return `<tr><td><strong>${esc(e.id)}</strong></td><td>${esc(e.titulo||'—')}</td><td>${fmtDate(e.data_evento)}</td><td>${esc(e.campus_unidade||'—')}</td><td>${pill(e.status)}</td><td>${Number(e.certificados_emitidos||0).toLocaleString('pt-BR')}</td><td><div class="actions"><a class="mini primary" target="_blank" rel="noopener" href="${esc(e.url_publica)}">Abrir</a><button class="mini copy" data-link="${esc(e.url_publica)}">Copiar link</button></div></td><td><div class="actions">${isAdmin?`<button class="mini toggle ${open?'danger':'success'}" data-id="${esc(e.id)}" data-next="${open?'EMISSAO_FECHADA':'EMISSAO_ABERTA'}">${open?'Fechar emissão':'Abrir emissão'}</button>`:'<span class="admin-hint">Autentique para controlar</span>'}</div></td></tr>`}).join(''):`<tr><td colspan="8" class="empty">Nenhum evento encontrado.</td></tr>`;eventsBody.querySelectorAll('.copy').forEach(b=>b.onclick=()=>copy(b.dataset.link,b));eventsBody.querySelectorAll('.toggle').forEach(b=>b.onclick=()=>toggleStatus(b))}
 
-  function renderCerts(){const q=certSearch.value.trim().toLowerCase(),st=certStatus.value;const rows=(data.certificates||[]).filter(c=>{const hay=[c.codigo,c.evento_id].join(' ').toLowerCase();return(!q||hay.includes(q))&&(!st||String(c.status).toUpperCase()===st)});certsBody.innerHTML=rows.length?rows.map(c=>`<tr><td class="code">${esc(c.codigo)}</td><td>${esc(c.evento_id)}</td><td>${pill(c.status)}</td><td>${fmtDateTime(c.emitido_em)}</td><td><a class="mini primary" target="_blank" rel="noopener" href="${esc(c.validacao)}">Validar</a></td></tr>`).join(''):`<tr><td colspan="5" class="empty">Nenhum certificado encontrado.</td></tr>`}
+  function renderCerts(){const q=certSearch.value.trim().toLowerCase(),st=certStatus.value,isAdmin=!!adminKey;const rows=(data.certificates||[]).filter(c=>{const hay=[c.codigo,c.evento_id].join(' ').toLowerCase();return(!q||hay.includes(q))&&(!st||String(c.status).toUpperCase()===st)});certsBody.innerHTML=rows.length?rows.map(c=>`<tr><td class="code">${esc(c.codigo)}</td><td>${esc(c.evento_id)}</td><td>${pill(c.status)}</td><td>${fmtDateTime(c.emitido_em)}</td><td><a class="mini primary" target="_blank" rel="noopener" href="${esc(c.validacao)}">Validar</a></td><td>${isAdmin?`<button class="mini regen" data-code="${esc(c.codigo)}">Atualizar PDF</button>`:'<span class="admin-hint">Autentique</span>'}</td></tr>`).join(''):`<tr><td colspan="6" class="empty">Nenhum certificado encontrado.</td></tr>`;certsBody.querySelectorAll('.regen').forEach(b=>b.onclick=()=>regenerateCertificate(b))}
 
   function renderCustomLinks(){
     if(!adminKey){customLinksBody.innerHTML='<tr><td colspan="6" class="empty">Os links customizados ficam salvos no sistema. Acesse a administração para visualizar, copiar ou controlar os links.</td></tr>';return}
@@ -44,6 +44,19 @@
     if(rotulo===null)return;
     customLinkBtn.disabled=true;
     try{const p=await adminCall('create_custom_link',{rotulo:rotulo.trim()||'Emissão customizada'});if(!p||!p.ok)throw new Error(p&&p.error||'Não foi possível criar o link.');await loadCustomLinks();await copy(p.link.url_publica);alert('Link customizado criado e copiado.\n\n'+p.link.url_publica+'\n\nA pessoa poderá informar função, carga horária, nome, evento e e-mail.')}catch(e){alert(e.message||'Falha ao criar link customizado.')}finally{customLinkBtn.disabled=false}
+  }
+
+  async function regenerateCertificate(btn){
+    const code=btn.dataset.code;
+    if(!confirm('Regenerar o PDF de '+code+' com o layout institucional premium?\n\nO código, o HMAC e a data original de emissão serão preservados.'))return;
+    const old=btn.textContent;btn.disabled=true;btn.textContent='Atualizando…';
+    try{
+      const p=await adminCall('regenerate_certificate',{code});
+      if(!p||!p.ok)throw new Error(p&&p.error||'Não foi possível regenerar o PDF.');
+      alert('PDF atualizado com sucesso.\n\n'+code+'\n\nA validação digital permanece a mesma.');
+      await load();
+    }catch(e){alert(e.message||'Falha ao atualizar o PDF.')}
+    finally{btn.disabled=false;btn.textContent=old}
   }
 
   async function toggleCustomStatus(btn){const id=btn.dataset.id,next=btn.dataset.next;if(!confirm((next==='ABERTO'?'Abrir':'Fechar')+' a emissão do link '+id+'?'))return;btn.disabled=true;try{const p=await adminCall('set_custom_status',{link_id:id,status:next});if(!p||!p.ok)throw new Error(p&&p.error||'Falha ao alterar status.');await loadCustomLinks()}catch(e){alert(e.message||'Falha ao atualizar.')}finally{btn.disabled=false}}
