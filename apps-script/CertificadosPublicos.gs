@@ -147,7 +147,10 @@ function niceCertPublicEventPayload_(ev){
     descricao:String(ev.DESCRICAO||''),
     protocolo_nice:String(ev.PROTOCOLO_NICE||''),
     status:String(ev.STATUS||''),
-    emissao_aberta:String(ev.STATUS||'').toUpperCase()===NICE_CERT_PUBLIC.OPEN_STATUS,
+    emissao_inicio:niceCertIsoDateTime_(ev.EMISSAO_INICIO),
+    emissao_fim:niceCertIsoDateTime_(ev.EMISSAO_FIM),
+    emissao_aberta:niceCertEmissionWindow_(ev).open,
+    emissao_mensagem:niceCertEmissionWindow_(ev).message,
     url:NICE_CERT_PUBLIC.PUBLIC_BASE+'/'+niceCertPublicFormatId_(id)
   };
 }
@@ -163,7 +166,7 @@ function niceCertPublicIssue_(params){
   if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))return{ok:false,error:'Informe um e-mail válido.'};
   const ev=niceCertFindEvent_(id);
   if(!ev)return{ok:false,error:'Evento não localizado.'};
-  if(String(ev.STATUS||'').toUpperCase()!==NICE_CERT_PUBLIC.OPEN_STATUS)return{ok:false,error:'A emissão de certificados deste evento não está disponível no momento.'};
+  const janela=niceCertEmissionWindow_(ev);if(!janela.open)return{ok:false,error:janela.message};
 
   const lock=LockService.getScriptLock(); lock.waitLock(30000);
   try{
