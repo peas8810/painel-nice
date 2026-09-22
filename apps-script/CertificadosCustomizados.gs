@@ -133,7 +133,20 @@ function niceCertCustomGetLinkById_(linkId){
 function niceCertCustomPublicLink_(token){
   const link=niceCertCustomGetLinkByToken_(token);
   if(!link)return{ok:false,error:'Link de emissão customizada inválido ou inexistente.'};
-  return{ok:true,link:{id:link.id,rotulo:link.rotulo,status:link.status,aberto:String(link.status).toUpperCase()===NICE_CERT_CUSTOM.OPEN_STATUS}};
+  const janela=niceCertEmissionWindow_({
+    STATUS:link.status,
+    EMISSAO_INICIO:link.emissao_inicio,
+    EMISSAO_FIM:link.emissao_fim
+  });
+  return{ok:true,link:{
+    id:link.id,
+    rotulo:link.rotulo,
+    status:link.status,
+    aberto:janela.open,
+    emissao_inicio:link.emissao_inicio||'',
+    emissao_fim:link.emissao_fim||'',
+    emissao_mensagem:janela.message
+  }};
 }
 
 function niceCertCustomIssue_(p){
