@@ -27,13 +27,13 @@
 
   function renderKpis(){const s=data.summary||{};const items=[['Eventos',s.eventos||0],['Emissão aberta',s.emissao_aberta||0],['Emissão fechada',s.emissao_fechada||0],['Certificados emitidos',s.certificados_emitidos||0],['Revogados',s.certificados_revogados||0]];kpis.innerHTML=items.map(([l,v])=>`<div class="kpi"><span>${esc(l)}</span><strong>${Number(v||0).toLocaleString('pt-BR')}</strong></div>`).join('')}
 
-  function renderEvents(){const q=eventSearch.value.trim().toLowerCase(),st=eventStatus.value,isAdmin=!!adminKey;const rows=(data.events||[]).filter(e=>{const hay=[e.id,e.titulo,e.campus_unidade,e.protocolo_nice].join(' ').toLowerCase();return(!q||hay.includes(q))&&(!st||String(e.status).toUpperCase()===st)});eventsBody.innerHTML=rows.length?rows.map(e=>{const open=String(e.status||'').toUpperCase()==='EMISSAO_ABERTA';return `<tr><td><strong>${esc(e.id)}</strong></td><td>${esc(e.titulo||'—')}</td><td>${fmtDate(e.data_evento)}</td><td>${esc(e.campus_unidade||'—')}</td><td>${pill(e.status)}</td><td>${Number(e.certificados_emitidos||0).toLocaleString('pt-BR')}</td><td><div class="actions"><a class="mini primary" target="_blank" rel="noopener" href="${esc(e.url_publica)}">Abrir</a><button class="mini copy" data-link="${esc(e.url_publica)}">Copiar link</button></div></td><td><div class="actions">${isAdmin?`<button class="mini toggle ${open?'danger':'success'}" data-id="${esc(e.id)}" data-next="${open?'EMISSAO_FECHADA':'EMISSAO_ABERTA'}">${open?'Fechar emissão':'Abrir emissão'}</button>`:'<span class="admin-hint">Autentique para controlar</span>'}</div></td></tr>`}).join(''):`<tr><td colspan="8" class="empty">Nenhum evento encontrado.</td></tr>`;eventsBody.querySelectorAll('.copy').forEach(b=>b.onclick=()=>copy(b.dataset.link,b));eventsBody.querySelectorAll('.toggle').forEach(b=>b.onclick=()=>toggleStatus(b))}
+  function renderEvents(){const q=eventSearch.value.trim().toLowerCase(),st=eventStatus.value,isAdmin=!!adminKey;const rows=(data.events||[]).filter(e=>{const hay=[e.id,e.titulo,e.campus_unidade,e.protocolo_nice].join(' ').toLowerCase();return(!q||hay.includes(q))&&(!st||String(e.status).toUpperCase()===st)});eventsBody.innerHTML=rows.length?rows.map(e=>{const open=String(e.status||'').toUpperCase()==='EMISSAO_ABERTA';return `<tr><td><strong>${esc(e.id)}</strong></td><td>${esc(e.titulo||'—')}</td><td>${fmtDate(e.data_evento)}</td><td>${esc(e.campus_unidade||'—')}</td><td>${e.emissao_inicio||e.emissao_fim?`${fmtDateTime(e.emissao_inicio)}<br><span class="admin-hint">até ${fmtDateTime(e.emissao_fim)}</span>`:'Sem limite automático'}</td><td>${pill(e.status)}</td><td>${Number(e.certificados_emitidos||0).toLocaleString('pt-BR')}</td><td><div class="actions"><a class="mini primary" target="_blank" rel="noopener" href="${esc(e.url_publica)}">Abrir</a><button class="mini copy" data-link="${esc(e.url_publica)}">Copiar link</button></div></td><td><div class="actions">${isAdmin?`<button class="mini toggle ${open?'danger':'success'}" data-id="${esc(e.id)}" data-next="${open?'EMISSAO_FECHADA':'EMISSAO_ABERTA'}">${open?'Fechar emissão':'Abrir emissão'}</button>`:'<span class="admin-hint">Autentique para controlar</span>'}</div></td></tr>`}).join(''):`<tr><td colspan="9" class="empty">Nenhum evento encontrado.</td></tr>`;eventsBody.querySelectorAll('.copy').forEach(b=>b.onclick=()=>copy(b.dataset.link,b));eventsBody.querySelectorAll('.toggle').forEach(b=>b.onclick=()=>toggleStatus(b))}
 
-  function renderCerts(){const q=certSearch.value.trim().toLowerCase(),st=certStatus.value,isAdmin=!!adminKey;const rows=(data.certificates||[]).filter(c=>{const hay=[c.codigo,c.evento_id].join(' ').toLowerCase();return(!q||hay.includes(q))&&(!st||String(c.status).toUpperCase()===st)});certsBody.innerHTML=rows.length?rows.map(c=>`<tr><td class="code">${esc(c.codigo)}</td><td>${esc(c.evento_id)}</td><td>${pill(c.status)}</td><td>${fmtDateTime(c.emitido_em)}</td><td><a class="mini primary" target="_blank" rel="noopener" href="${esc(c.validacao)}">Validar</a></td><td>${isAdmin?`<button class="mini regen" data-code="${esc(c.codigo)}">Atualizar PDF</button>`:'<span class="admin-hint">Autentique</span>'}</td></tr>`).join(''):`<tr><td colspan="6" class="empty">Nenhum certificado encontrado.</td></tr>`;certsBody.querySelectorAll('.regen').forEach(b=>b.onclick=()=>regenerateCertificate(b))}
+  function renderCerts(){const q=certSearch.value.trim().toLowerCase(),st=certStatus.value,isAdmin=!!adminKey;const rows=(data.certificates||[]).filter(c=>{const hay=[c.codigo,c.evento_id].join(' ').toLowerCase();return(!q||hay.includes(q))&&(!st||String(c.status).toUpperCase()===st)});certsBody.innerHTML=rows.length?rows.map(c=>{const revoked=String(c.status||'').toUpperCase()==='REVOGADO';return `<tr><td class="code">${esc(c.codigo)}</td><td>${esc(c.evento_id)}</td><td>${pill(c.status)}</td><td>${fmtDateTime(c.emitido_em)}</td><td><a class="mini primary" target="_blank" rel="noopener" href="${esc(c.validacao)}">Validar</a></td><td>${isAdmin?`<div class="actions"><button class="mini regen" data-code="${esc(c.codigo)}">Atualizar PDF</button>${revoked?'':`<button class="mini danger revoke" data-code="${esc(c.codigo)}">Cancelar certificado</button>`}</div>`:'<span class="admin-hint">Autentique</span>'}</td></tr>`}).join(''):`<tr><td colspan="6" class="empty">Nenhum certificado encontrado.</td></tr>`;certsBody.querySelectorAll('.regen').forEach(b=>b.onclick=()=>regenerateCertificate(b));certsBody.querySelectorAll('.revoke').forEach(b=>b.onclick=()=>revokeCertificate(b))}
 
   function renderCustomLinks(){
     if(!adminKey){customLinksBody.innerHTML='<tr><td colspan="7" class="empty">Os links customizados ficam salvos no sistema. Acesse a administração para visualizar, copiar ou controlar os links.</td></tr>';return}
-    customLinksBody.innerHTML=customLinks.length?customLinks.map(l=>{const open=String(l.status).toUpperCase()==='ABERTO';return `<tr><td><strong>${esc(l.id)}</strong></td><td>${esc(l.rotulo||'—')}</td><td><strong>${esc(l.instituicao_emissora||'—')}</strong><br><span class="admin-hint">Livro: ${esc(l.livro_ata||'—')} · Registro: ${esc(l.registro||'—')} · ${esc(l.via_emitida||'1ª Via Emitida')}</span></td><td>${pill(l.status)}</td><td>${Number(l.emitidos||0).toLocaleString('pt-BR')}</td><td><div class="actions"><a class="mini primary" target="_blank" rel="noopener" href="${esc(l.url_publica)}">Abrir</a><button class="mini custom-copy" data-link="${esc(l.url_publica)}">Copiar link</button></div></td><td><button class="mini custom-toggle ${open?'danger':'success'}" data-id="${esc(l.id)}" data-next="${open?'FECHADO':'ABERTO'}">${open?'Fechar emissão':'Abrir emissão'}</button></td></tr>`}).join(''):'<tr><td colspan="7" class="empty">Nenhum link customizado criado.</td></tr>';
+    customLinksBody.innerHTML=customLinks.length?customLinks.map(l=>{const open=String(l.status).toUpperCase()==='ABERTO';return `<tr><td><strong>${esc(l.id)}</strong></td><td>${esc(l.rotulo||'—')}</td><td><strong>${esc(l.instituicao_emissora||'—')}</strong><br><span class="admin-hint">Livro: ${esc(l.livro_ata||'—')} · Registro: ${esc(l.registro||'—')} · ${esc(l.via_emitida||'1ª Via Emitida')}</span>${l.emissao_inicio||l.emissao_fim?`<br><span class="admin-hint">${fmtDateTime(l.emissao_inicio)} → ${fmtDateTime(l.emissao_fim)}</span>`:''}</td><td>${pill(l.status)}</td><td>${Number(l.emitidos||0).toLocaleString('pt-BR')}</td><td><div class="actions"><a class="mini primary" target="_blank" rel="noopener" href="${esc(l.url_publica)}">Abrir</a><button class="mini custom-copy" data-link="${esc(l.url_publica)}">Copiar link</button></div></td><td><button class="mini custom-toggle ${open?'danger':'success'}" data-id="${esc(l.id)}" data-next="${open?'FECHADO':'ABERTO'}">${open?'Fechar emissão':'Abrir emissão'}</button></td></tr>`}).join(''):'<tr><td colspan="7" class="empty">Nenhum link customizado criado.</td></tr>';
     customLinksBody.querySelectorAll('.custom-copy').forEach(b=>b.onclick=()=>copy(b.dataset.link,b));customLinksBody.querySelectorAll('.custom-toggle').forEach(b=>b.onclick=()=>toggleCustomStatus(b));
   }
 
@@ -48,6 +48,10 @@
     if(livroAta===null)return;
     const registro=prompt('Informe o número/código do registro que constará no certificado:','');
     if(registro===null)return;
+    const inicio=prompt('Início da emissão (opcional).\nFormato: AAAA-MM-DDTHH:MM\nEx.: 2026-09-25T18:00','');
+    if(inicio===null)return;
+    const fim=prompt('Fim da emissão (opcional).\nFormato: AAAA-MM-DDTHH:MM\nEx.: 2026-09-25T23:59','');
+    if(fim===null)return;
     if(!instituicao.trim()){alert('A instituição emissora é obrigatória.');return}
     if(!livroAta.trim()){alert('O Livro Ata é obrigatório.');return}
     if(!registro.trim()){alert('O registro é obrigatório.');return}
@@ -58,13 +62,31 @@
         instituicao_emissora:instituicao.trim(),
         livro_ata:livroAta.trim(),
         registro:registro.trim(),
-        via_emitida:'1ª Via Emitida'
+        via_emitida:'1ª Via Emitida',
+        emissao_inicio:inicio.trim(),
+        emissao_fim:fim.trim()
       });
       if(!p||!p.ok)throw new Error(p&&p.error||'Não foi possível criar o link.');
       await loadCustomLinks();await copy(p.link.url_publica);
-      alert('Link customizado criado e copiado.\n\n'+p.link.url_publica+'\n\nInstituição emissora: '+p.link.instituicao_emissora+'\nLivro Ata: '+p.link.livro_ata+'\nRegistro: '+p.link.registro+'\n1ª Via Emitida');
+      alert('Link customizado criado e copiado.\n\n'+p.link.url_publica+'\n\nInstituição emissora: '+p.link.instituicao_emissora+'\nLivro Ata: '+p.link.livro_ata+'\nRegistro: '+p.link.registro+'\n1ª Via Emitida'+(p.link.emissao_inicio?'\nInício: '+fmtDateTime(p.link.emissao_inicio):'')+(p.link.emissao_fim?'\nFim: '+fmtDateTime(p.link.emissao_fim):''));
     }catch(e){alert(e.message||'Falha ao criar link customizado.')}
     finally{customLinkBtn.disabled=false}
+  }
+
+  async function revokeCertificate(btn){
+    const code=btn.dataset.code;
+    const reason=prompt('Informe o motivo do cancelamento deste certificado.\n\nO código continuará consultável, mas aparecerá como REVOGADO e sem validade:');
+    if(reason===null)return;
+    if(reason.trim().length<3){alert('Informe um motivo para o cancelamento.');return}
+    if(!confirm('Cancelar definitivamente o certificado '+code+'?\n\nEle perderá a validade no validador público.'))return;
+    const old=btn.textContent;btn.disabled=true;btn.textContent='Cancelando…';
+    try{
+      const p=await adminCall('revoke_certificate',{code,reason:reason.trim()});
+      if(!p||!p.ok)throw new Error(p&&p.error||'Não foi possível cancelar o certificado.');
+      alert(p.message||'Certificado cancelado.');
+      await load();
+    }catch(e){alert(e.message||'Falha ao cancelar o certificado.')}
+    finally{btn.disabled=false;btn.textContent=old}
   }
 
   async function regenerateCertificate(btn){
@@ -87,7 +109,7 @@
   function openModal(){formResult.textContent='';eventForm.reset();modal.hidden=false;document.body.classList.add('modal-open');setTimeout(()=>eventForm.elements.titulo.focus(),50)}
   function closeModal(){modal.hidden=true;document.body.classList.remove('modal-open')}
 
-  eventForm.addEventListener('submit',async e=>{e.preventDefault();const f=new FormData(eventForm),rawDate=String(f.get('data')||'');let brDate=rawDate;if(/^\d{4}-\d{2}-\d{2}$/.test(rawDate)){const [y,m,d]=rawDate.split('-');brDate=`${d}/${m}/${y}`};const params={titulo:f.get('titulo')||'',tipo:f.get('tipo')||'',data:brDate,campus:f.get('campus')||'',local:f.get('local')||'',carga:f.get('carga')||'',responsavel:f.get('responsavel')||'',instituicao_emissora:f.get('instituicao')||'',protocolo:f.get('protocolo')||'',descricao:f.get('descricao')||'',abrir:f.get('abrir')?'1':'0'};formResult.textContent='Criando evento e publicando a página…';createBtn.disabled=true;try{const p=await adminCall('create_event',params);if(!p||!p.ok)throw new Error(p&&p.error||'Falha ao criar o evento.');formResult.innerHTML=`<strong>Evento ${esc(p.event.id)} criado com sucesso.</strong><br><a target="_blank" rel="noopener" href="${esc(p.event.url_publica)}">Abrir página pública</a>`;await load();setTimeout(closeModal,1800)}catch(err){formResult.textContent=err.message||'Não foi possível criar o evento.'}finally{createBtn.disabled=false}});
+  eventForm.addEventListener('submit',async e=>{e.preventDefault();const f=new FormData(eventForm),rawDate=String(f.get('data')||'');let brDate=rawDate;if(/^\d{4}-\d{2}-\d{2}$/.test(rawDate)){const [y,m,d]=rawDate.split('-');brDate=`${d}/${m}/${y}`};const params={titulo:f.get('titulo')||'',tipo:f.get('tipo')||'',data:brDate,campus:f.get('campus')||'',local:f.get('local')||'',carga:f.get('carga')||'',responsavel:f.get('responsavel')||'',instituicao_emissora:f.get('instituicao')||'',protocolo:f.get('protocolo')||'',emissao_inicio:f.get('emissao_inicio')||'',emissao_fim:f.get('emissao_fim')||'',descricao:f.get('descricao')||'',abrir:f.get('abrir')?'1':'0'};formResult.textContent='Criando evento e publicando a página…';createBtn.disabled=true;try{const p=await adminCall('create_event',params);if(!p||!p.ok)throw new Error(p&&p.error||'Falha ao criar o evento.');formResult.innerHTML=`<strong>Evento ${esc(p.event.id)} criado com sucesso.</strong><br><a target="_blank" rel="noopener" href="${esc(p.event.url_publica)}">Abrir página pública</a>`;await load();setTimeout(closeModal,1800)}catch(err){formResult.textContent=err.message||'Não foi possível criar o evento.'}finally{createBtn.disabled=false}});
 
   async function load(){statusEl.textContent='Atualizando dados…';try{const p=await dashboardCall();if(!p||!p.ok)throw new Error(p&&p.error||'Falha ao carregar.');data=p;renderKpis();renderEvents();renderCerts();statusEl.textContent='Atualizado em '+fmtDateTime(p.updated_at)+' · atualização automática a cada 60 segundos';if(adminKey)loadCustomLinks()}catch(e){statusEl.textContent=e.message||'Falha ao carregar o dashboard.'}}
 
