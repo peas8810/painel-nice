@@ -5,7 +5,7 @@
  */
 const NICE_CERT_CUSTOM = Object.freeze({
   LINKS_SHEET:'CERT_CUSTOM_LINKS',
-  LINK_HEADERS:['LINK_ID','TOKEN','ROTULO','INSTITUICAO_EMISSORA','LIVRO_ATA','REGISTRO','VIA_EMITIDA','STATUS','URL_PUBLICA','PASTA_DRIVE','CRIADO_EM','ATUALIZADO_EM'],
+  LINK_HEADERS:['LINK_ID','TOKEN','ROTULO','INSTITUICAO_EMISSORA','LIVRO_ATA','REGISTRO','VIA_EMITIDA','EMISSAO_INICIO','EMISSAO_FIM','STATUS','URL_PUBLICA','PASTA_DRIVE','CRIADO_EM','ATUALIZADO_EM'],
   OPEN_STATUS:'ABERTO',
   CLOSED_STATUS:'FECHADO',
   PUBLIC_URL:'https://www.protocolo.me/certificados/customizado/'
@@ -44,6 +44,10 @@ function niceCertCustomCreateLink_(p){
   const livroAta=niceCertDashboardClean_(p.livro_ata||p.livro||'',80);
   const registro=niceCertDashboardClean_(p.registro||'',80);
   const viaEmitida=niceCertDashboardClean_(p.via_emitida||'1ª Via Emitida',40)||'1ª Via Emitida';
+  const inicio=niceCertParseLocalDateTime_(p.emissao_inicio),fim=niceCertParseLocalDateTime_(p.emissao_fim);
+  if(String(p.emissao_inicio||'').trim()&&!inicio)return{ok:false,error:'Data/hora inicial inválida.'};
+  if(String(p.emissao_fim||'').trim()&&!fim)return{ok:false,error:'Data/hora final inválida.'};
+  if(inicio&&fim&&fim<=inicio)return{ok:false,error:'O fim da emissão deve ser posterior ao início.'};
   if(!instituicao)return{ok:false,error:'Informe a instituição emissora.'};
   if(!livroAta)return{ok:false,error:'Informe o Livro Ata.'};
   if(!registro)return{ok:false,error:'Informe o registro do certificado.'};
@@ -51,9 +55,9 @@ function niceCertCustomCreateLink_(p){
   const folder=niceFolder_(root,'Customizado '+code+' - '+rotulo.replace(/[\\/:*?"<>|]/g,' ').slice(0,80));
   const url=NICE_CERT_CUSTOM.PUBLIC_URL+'?chave='+encodeURIComponent(token);
   const now=new Date();
-  niceCertAppendObject_(sh,{LINK_ID:id,TOKEN:token,ROTULO:rotulo,INSTITUICAO_EMISSORA:instituicao,LIVRO_ATA:livroAta,REGISTRO:registro,VIA_EMITIDA:viaEmitida,STATUS:NICE_CERT_CUSTOM.OPEN_STATUS,URL_PUBLICA:url,PASTA_DRIVE:folder.getUrl(),CRIADO_EM:now,ATUALIZADO_EM:now});
+  niceCertAppendObject_(sh,{LINK_ID:id,TOKEN:token,ROTULO:rotulo,INSTITUICAO_EMISSORA:instituicao,LIVRO_ATA:livroAta,REGISTRO:registro,VIA_EMITIDA:viaEmitida,EMISSAO_INICIO:inicio||'',EMISSAO_FIM:fim||'',STATUS:NICE_CERT_CUSTOM.OPEN_STATUS,URL_PUBLICA:url,PASTA_DRIVE:folder.getUrl(),CRIADO_EM:now,ATUALIZADO_EM:now});
   niceCertLog_('LINK_CUSTOMIZADO_CRIADO',code,'','Link customizado '+rotulo+' · Livro Ata '+livroAta+' · Registro '+registro);
-  return {ok:true,link:{id:code,rotulo,instituicao_emissora:instituicao,livro_ata:livroAta,registro,via_emitida:viaEmitida,status:NICE_CERT_CUSTOM.OPEN_STATUS,url_publica:url,emitidos:0}};
+  return {ok:true,link:{id:code,rotulo,instituicao_emissora:instituicao,livro_ata:livroAta,registro,via_emitida:viaEmitida,emissao_inicio:niceCertIsoDateTime_(inicio),emissao_fim:niceCertIsoDateTime_(fim),status:NICE_CERT_CUSTOM.OPEN_STATUS,url_publica:url,emitidos:0}};
 }
 
 function niceCertCustomAdminList_(){
@@ -69,7 +73,7 @@ function niceCertCustomAdminList_(){
   for(let i=v.length-1;i>=1;i--){
     const id=Number(v[i][h.LINK_ID])||0;if(!id)continue;
     const code='C'+String(id).padStart(4,'0');
-    links.push({id:code,rotulo:String(v[i][h.ROTULO]||''),instituicao_emissora:String(v[i][h.INSTITUICAO_EMISSORA]||''),livro_ata:String(v[i][h.LIVRO_ATA]||''),registro:String(v[i][h.REGISTRO]||''),via_emitida:String(v[i][h.VIA_EMITIDA]||'1ª Via Emitida'),status:String(v[i][h.STATUS]||''),url_publica:String(v[i][h.URL_PUBLICA]||''),emitidos:counts[code]||0,criado_em:niceApiIso_(v[i][h.CRIADO_EM])});
+    links.push({id:code,rotulo:String(v[i][h.ROTULO]||''),instituicao_emissora:String(v[i][h.INSTITUICAO_EMISSORA]||''),livro_ata:String(v[i][h.LIVRO_ATA]||''),registro:String(v[i][h.REGISTRO]||''),via_emitida:String(v[i][h.VIA_EMITIDA]||'1ª Via Emitida'),emissao_inicio:niceApiIso_(v[i][h.EMISSAO_INICIO]),emissao_fim:niceApiIso_(v[i][h.EMISSAO_FIM]),status:String(v[i][h.STATUS]||''),url_publica:String(v[i][h.URL_PUBLICA]||''),emitidos:counts[code]||0,criado_em:niceApiIso_(v[i][h.CRIADO_EM])});
   }
   return{ok:true,links};
 }
@@ -95,7 +99,7 @@ function niceCertCustomGetLinkByToken_(token){
   const h=niceCertHeaderMap_(v[0]);
   for(let i=1;i<v.length;i++)if(String(v[i][h.TOKEN]||'')===wanted){
     const id=Number(v[i][h.LINK_ID])||0;
-    return{id:'C'+String(id).padStart(4,'0'),id_num:id,token:wanted,rotulo:String(v[i][h.ROTULO]||''),instituicao_emissora:String(v[i][h.INSTITUICAO_EMISSORA]||''),livro_ata:String(v[i][h.LIVRO_ATA]||''),registro:String(v[i][h.REGISTRO]||''),via_emitida:String(v[i][h.VIA_EMITIDA]||'1ª Via Emitida'),status:String(v[i][h.STATUS]||''),url_publica:String(v[i][h.URL_PUBLICA]||''),pasta_drive:String(v[i][h.PASTA_DRIVE]||'')};
+    return{id:'C'+String(id).padStart(4,'0'),id_num:id,token:wanted,rotulo:String(v[i][h.ROTULO]||''),instituicao_emissora:String(v[i][h.INSTITUICAO_EMISSORA]||''),livro_ata:String(v[i][h.LIVRO_ATA]||''),registro:String(v[i][h.REGISTRO]||''),via_emitida:String(v[i][h.VIA_EMITIDA]||'1ª Via Emitida'),emissao_inicio:niceApiIso_(v[i][h.EMISSAO_INICIO]),emissao_fim:niceApiIso_(v[i][h.EMISSAO_FIM]),status:String(v[i][h.STATUS]||''),url_publica:String(v[i][h.URL_PUBLICA]||''),pasta_drive:String(v[i][h.PASTA_DRIVE]||'')};
   }
   return null;
 }
@@ -116,6 +120,8 @@ function niceCertCustomGetLinkById_(linkId){
       livro_ata:String(v[i][h.LIVRO_ATA]||''),
       registro:String(v[i][h.REGISTRO]||''),
       via_emitida:String(v[i][h.VIA_EMITIDA]||'1ª Via Emitida'),
+      emissao_inicio:niceApiIso_(v[i][h.EMISSAO_INICIO]),
+      emissao_fim:niceApiIso_(v[i][h.EMISSAO_FIM]),
       status:String(v[i][h.STATUS]||''),
       url_publica:String(v[i][h.URL_PUBLICA]||''),
       pasta_drive:String(v[i][h.PASTA_DRIVE]||'')
@@ -134,7 +140,7 @@ function niceCertCustomIssue_(p){
   niceCertCustomEnsureIssueHeaders_();
   const link=niceCertCustomGetLinkByToken_(p.chave||p.token);
   if(!link)return{ok:false,error:'Link de emissão customizada inválido.'};
-  if(String(link.status).toUpperCase()!==NICE_CERT_CUSTOM.OPEN_STATUS)return{ok:false,error:'A emissão por este link está fechada.'};
+  const janela=niceCertEmissionWindow_({STATUS:link.status,EMISSAO_INICIO:link.emissao_inicio,EMISSAO_FIM:link.emissao_fim});if(!janela.open)return{ok:false,error:janela.message};
 
   const nome=niceCertDashboardClean_(p.nome||p.name,180);
   const email=String(p.email||'').trim().toLowerCase();
