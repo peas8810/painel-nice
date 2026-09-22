@@ -28,7 +28,7 @@
 
   <section class="card panel">
     <div class="panel-head"><div><span class="eyebrow">EVENTOS</span><h2>Eventos de certificação</h2></div><div class="filters"><input id="eventSearch" type="search" placeholder="Buscar evento, campus ou protocolo"><select id="eventStatus"><option value="">Todos os status</option><option value="EMISSAO_ABERTA">Emissão aberta</option><option value="EMISSAO_FECHADA">Emissão fechada</option></select></div></div>
-    <div class="table-wrap"><table><thead><tr><th>Evento</th><th>Título</th><th>Data</th><th>Campus / Unidade</th><th>Status</th><th>Emitidos</th><th>Divulgação</th><th>Controle</th></tr></thead><tbody id="eventsBody"></tbody></table></div>
+    <div class="table-wrap"><table><thead><tr><th>Evento</th><th>Título</th><th>Data</th><th>Campus / Unidade</th><th>Período de emissão</th><th>Status</th><th>Emitidos</th><th>Divulgação</th><th>Controle</th></tr></thead><tbody id="eventsBody"></tbody></table></div>
   </section>
 
 
@@ -60,6 +60,8 @@
       <label>Responsável<input name="responsavel"></label>
       <label>Instituição emissora<input name="instituicao" required placeholder="Ex.: AlfaUnipac"></label>
       <label>Protocolo NICE<input name="protocolo" placeholder="NICE-2026-00001"></label>
+      <label>Início da emissão<input name="emissao_inicio" type="datetime-local"></label>
+      <label>Fim da emissão<input name="emissao_fim" type="datetime-local"></label>
       <label class="wide">Descrição<textarea name="descricao" rows="3"></textarea></label>
       <label class="switchrow wide"><input name="abrir" type="checkbox"><span>Já criar com emissão aberta</span></label>
       <div class="form-actions wide"><button type="button" class="btn secondary" data-close>Cancelar</button><button id="createBtn" type="submit" class="btn orange">Criar evento</button></div>
@@ -69,6 +71,6 @@
 </div>
 
 <div class="build-tag">Dashboard v3 · 18/09/2026</div>
-<script src="dashboard.js?v=20260921-2"></script>
+<script src="dashboard.js?v=20260922-1"></script>
 </body>
 </html>
