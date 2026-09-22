@@ -1,15 +1,15 @@
 {
   "id": 5,
-  "status": "EMISSAO_ABERTA",
+  "status": "EMISSAO_FECHADA",
   "protocolo_nice": "",
   "titulo": "Um bate papo sobre a comunidade surda",
   "tipo": "Palestra",
   "data_evento": "2026-09-22",
   "campus_unidade": "Teófilo Otoni",
   "local": "Auditório",
-  "carga_horaria": "2",
+  "carga_horaria": 2,
   "responsavel": "Denise dos Anjos",
   "descricao": "",
-  "certificados_emitidos": 0,
-  "updated_at": "2026-09-22T18:23:53.095Z"
+  "certificados_emitidos": 1,
+  "updated_at": "2026-09-22T18:27:01.898Z"
 }
