@@ -1,6 +1,15 @@
 {
-  "updated_at": "2026-09-22T18:27:04.808Z",
+  "updated_at": "2026-09-22T18:43:29.483Z",
   "events": [
+    {
+      "id": 6,
+      "titulo": "Um bate papo sobre a comunidade surda",
+      "data_evento": "2026-09-22",
+      "campus_unidade": "Teófilo Otoni",
+      "protocolo_nice": "NICE-2026-00009",
+      "status": "EMISSAO_ABERTA",
+      "certificados_emitidos": 0
+    },
     {
       "id": 5,
       "titulo": "Um bate papo sobre a comunidade surda",
