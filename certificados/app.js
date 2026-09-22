@@ -16,6 +16,8 @@
         <div class="meta"><span>Carga horária</span><strong>${esc(e.carga_horaria||'—')}</strong></div>
         <div class="meta"><span>Protocolo NICE</span><strong>${esc(e.protocolo_nice||'—')}</strong></div>
         <div class="meta"><span>Certificados emitidos</span><strong>${Number(e.certificados_emitidos||0).toLocaleString('pt-BR')}</strong></div>
+        <div class="meta"><span>Início da emissão</span><strong>${e.emissao_inicio?new Date(e.emissao_inicio).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo'}):'Sem agendamento'}</strong></div>
+        <div class="meta"><span>Fim da emissão</span><strong>${e.emissao_fim?new Date(e.emissao_fim).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo'}):'Sem prazo automático'}</strong></div>
       </div>
       <div class="actions"><a class="btn orange" href="/certificados/validar/">Validar certificado</a><a class="btn ghost" href="/certificados/">Ver todos os eventos</a></div>`;
   }
