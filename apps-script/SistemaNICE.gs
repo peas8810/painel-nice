@@ -3,7 +3,9 @@ const NICE = Object.freeze({
   RELATORIO_SPREADSHEET_ID:'1M6I6Wc1d0IehylAbQ1Equ-NJ1_jZrwRhowuWZ6roBJk',
   CONTROLE:'CONTROLE_NICE', CONFIG:'CONFIG_NICE', HISTORICO:'HISTORICO_NICE', LOG:'LOG_NICE', PREFIXO:'NICE',
   STATUS:['PROTOCOLADO','EM_ANALISE','APROVADO','AGUARDANDO_REALIZACAO','AGUARDANDO_RELATORIO','RELATORIO_EM_ATRASO','FINALIZADO','CANCELADO'],
-  HEADERS:['ID_NICE','STATUS','DATA_PROTOCOLO','TIPO_ACAO','CURSO','UNIDADE','AUDITORIO','RESPONSAVEL','EMAIL','TITULO_ACAO','DATA_INICIO','DATA_FIM','PRAZO_RELATORIO','DATA_RELATORIO','DATA_ENCERRAMENTO','DIAS_PENDENTE','ENCERRADO','LINK_PASTA','LINK_PROTOCOLO','LINK_RELATORIO','LINK_FORM_RELATORIO','PLANILHA_ORIGEM','ABA_ORIGEM','LINHA_ORIGEM','ULTIMA_ATUALIZACAO','OBSERVACOES']
+  HEADERS:['ID_NICE','STATUS','DATA_PROTOCOLO','TIPO_ACAO','CURSO','UNIDADE','AUDITORIO','RESPONSAVEL','EMAIL','TITULO_ACAO','DATA_INICIO','DATA_FIM','PRAZO_RELATORIO','DATA_RELATORIO','DATA_ENCERRAMENTO','DIAS_PENDENTE','ENCERRADO','LINK_PASTA','LINK_PROTOCOLO','LINK_RELATORIO','LINK_FORM_RELATORIO','PLANILHA_ORIGEM','ABA_ORIGEM','LINHA_ORIGEM','ULTIMA_ATUALIZACAO','OBSERVACOES'],
+  PROTOCOL_EMAIL_BCC:'coordenacaoensino@unipacto.com.br',
+  PROTOCOL_REPLY_TO:'nice@unipacto.com.br'
 });
 
 function onOpen(){
@@ -70,7 +72,9 @@ function onProtocolFormSubmit(e){
       'Auditório'
     ]);
     const responsavel=niceValue_(d,['Professor responsável','Responsável','Nome do responsável','Coordenador responsável','Docente','Nome completo']);
-    const email=niceEmail_(d);
+    const emailProfessor=niceEmailByAliases_(d,['E-mail do professor','Email do professor','E-mail professor','Email professor','E-mail do responsável','Email do responsável','E-mail do docente','Email do docente','Seu e-mail','Seu email','E-mail','Email']);
+    const emailCoordenador=niceEmailByAliases_(d,['E-mail do coordenador','Email do coordenador','E-mail da coordenação','Email da coordenação','E-mail coordenação','Email coordenação','Coordenador - e-mail','Coordenador - email']);
+    const email=emailProfessor||niceEmail_(d);
     const titulo=niceValue_(d,['Identificação do evento','Identificação do projeto','Nome do evento','Nome do projeto','Título do evento','Título da ação','Tema do evento','Tema','Título'])||tipo||'Ação institucional';
     const inicio=niceDate_(niceValue_(d,['Data de início','Data início','Data do evento','Data da realização','Data de realização','Início do evento']));
     const fim=niceDate_(niceValue_(d,['Data de término','Data final','Data fim','Término do evento','Fim do evento']))||inicio;
@@ -84,6 +88,11 @@ function onProtocolFormSubmit(e){
       DATA_INICIO:inicio||'',DATA_FIM:fim||'',PRAZO_RELATORIO:prazo,ENCERRADO:'NAO',LINK_PASTA:folder.url||'',LINK_FORM_RELATORIO:reportUrl||'',PLANILHA_ORIGEM:NICE.FORMALIZACAO_SPREADSHEET_ID,ABA_ORIGEM:sh.getName(),LINHA_ORIGEM:row,ULTIMA_ATUALIZACAO:new Date()
     });
     niceHistory_(id,'','PROTOCOLADO','FORMULARIO_PROTOCOLO','Chamado criado automaticamente.');
+    try{
+      niceSendProtocolEmail_({id,sh,row,d,responsavel,emailProfessor:emailProfessor||email,emailCoordenador,titulo,tipo,curso,unidade,inicio,fim,prazo,reportUrl,folderUrl:folder.url||''});
+    }catch(mailErr){
+      niceLog_('ALERTA','niceSendProtocolEmail_',id,mailErr.stack||mailErr.message||mailErr);
+    }
   }catch(err){niceLog_('ERRO','onProtocolFormSubmit','',err.stack||err.message);throw err}
 }
 
@@ -147,6 +156,102 @@ function niceMap_(sh){const m={};sh.getRange(1,1,1,sh.getLastColumn()).getDispla
 function niceAppend_(sh,o){const m=niceMap_(sh),row=Array(sh.getLastColumn()).fill('');Object.entries(o).forEach(([k,v])=>{if(m[k])row[m[k]-1]=v});sh.appendRow(row)}
 function niceRow_(sh,row){const h=sh.getRange(1,1,1,sh.getLastColumn()).getDisplayValues()[0],v=sh.getRange(row,1,1,sh.getLastColumn()).getValues()[0],d={};h.forEach((x,i)=>d[String(x).trim()]=v[i]);return d}
 function niceValue_(d,aliases){for(const a of aliases){for(const [k,v] of Object.entries(d))if(niceNorm_(k)===niceNorm_(a)&&String(v??'').trim()!=='')return v}return''}
+function niceEmailByAliases_(d,aliases){
+  const entries=Object.entries(d||{});
+  for(const alias of aliases||[]){
+    const wanted=niceNorm_(alias);
+    for(const [k,v] of entries){
+      if(niceNorm_(k)!==wanted)continue;
+      const emails=niceExtractEmails_(v);
+      if(emails.length)return emails[0];
+    }
+  }
+  return'';
+}
+function niceExtractEmails_(value){
+  const txt=String(value||'');
+  const found=txt.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi)||[];
+  return [...new Set(found.map(x=>x.trim().toLowerCase()))];
+}
+function niceProtocolSenderOptions_(){
+  const target=String(NICE.PROTOCOL_REPLY_TO||'').trim();
+  const out={replyTo:target,name:'NICE - Núcleo Integrado de Ciência e Extensão'};
+  try{
+    const effective=String(Session.getEffectiveUser().getEmail()||'').toLowerCase();
+    const aliases=GmailApp.getAliases().map(x=>String(x).toLowerCase());
+    if(target&&effective!==target.toLowerCase()&&aliases.includes(target.toLowerCase()))out.from=target;
+  }catch(_){}
+  return out;
+}
+function niceSendProtocolEmail_(o){
+  const done=String(niceReadHelper_(o.sh,o.row,'PROTOCOLO_EMAIL_NICE')||'').trim().toUpperCase();
+  if(done==='ENVIADO')return;
+
+  const to=String(o.emailProfessor||'').trim().toLowerCase();
+  if(!to)throw new Error('E-mail do professor/responsável não localizado no formulário.');
+
+  let cc=String(o.emailCoordenador||'').trim().toLowerCase();
+  const bcc=String(NICE.PROTOCOL_EMAIL_BCC||'').trim().toLowerCase();
+  if(cc===to||cc===bcc)cc='';
+
+  const fmt=v=>{
+    const d=niceDate_(v);
+    return d?Utilities.formatDate(d,Session.getScriptTimeZone()||'America/Sao_Paulo','dd/MM/yyyy'):'—';
+  };
+  const subject='[NICE] Protocolo '+o.id+' · '+String(o.titulo||'Ação institucional');
+  const plain=[
+    'Olá, '+(o.responsavel||'professor(a)')+'.',
+    '',
+    'Seu protocolo foi registrado com sucesso.',
+    '',
+    'Protocolo: '+o.id,
+    'Status: PROTOCOLADO',
+    'Ação: '+(o.titulo||'—'),
+    'Tipo: '+(o.tipo||'—'),
+    'Curso: '+(o.curso||'—'),
+    'Campus / Unidade: '+(o.unidade||'—'),
+    'Data de início: '+fmt(o.inicio),
+    'Data de término: '+fmt(o.fim),
+    'Prazo para relatório final: '+fmt(o.prazo),
+    '',
+    o.reportUrl?'Relatório final: '+o.reportUrl:'',
+    o.folderUrl?'Pasta do protocolo: '+o.folderUrl:'',
+    '',
+    'Em caso de dúvida, responda a este e-mail.',
+    '',
+    'NICE - Núcleo Integrado de Ciência e Extensão'
+  ].filter(Boolean).join('\n');
+
+  const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+  const html='<div style="font-family:Arial,sans-serif;color:#24364b;line-height:1.55;max-width:680px">'+
+    '<h2 style="color:#17365D;margin-bottom:6px">Protocolo registrado com sucesso</h2>'+
+    '<p>Olá, <strong>'+esc(o.responsavel||'professor(a)')+'</strong>.</p>'+
+    '<p>O NICE registrou sua solicitação sob o protocolo <strong>'+esc(o.id)+'</strong>.</p>'+
+    '<table style="border-collapse:collapse;width:100%;margin:18px 0">'+
+      '<tr><td style="padding:7px;border-bottom:1px solid #e2e8f0"><strong>Status</strong></td><td style="padding:7px;border-bottom:1px solid #e2e8f0">PROTOCOLADO</td></tr>'+
+      '<tr><td style="padding:7px;border-bottom:1px solid #e2e8f0"><strong>Ação</strong></td><td style="padding:7px;border-bottom:1px solid #e2e8f0">'+esc(o.titulo||'—')+'</td></tr>'+
+      '<tr><td style="padding:7px;border-bottom:1px solid #e2e8f0"><strong>Tipo</strong></td><td style="padding:7px;border-bottom:1px solid #e2e8f0">'+esc(o.tipo||'—')+'</td></tr>'+
+      '<tr><td style="padding:7px;border-bottom:1px solid #e2e8f0"><strong>Curso</strong></td><td style="padding:7px;border-bottom:1px solid #e2e8f0">'+esc(o.curso||'—')+'</td></tr>'+
+      '<tr><td style="padding:7px;border-bottom:1px solid #e2e8f0"><strong>Campus / Unidade</strong></td><td style="padding:7px;border-bottom:1px solid #e2e8f0">'+esc(o.unidade||'—')+'</td></tr>'+
+      '<tr><td style="padding:7px;border-bottom:1px solid #e2e8f0"><strong>Período</strong></td><td style="padding:7px;border-bottom:1px solid #e2e8f0">'+esc(fmt(o.inicio))+' a '+esc(fmt(o.fim))+'</td></tr>'+
+      '<tr><td style="padding:7px;border-bottom:1px solid #e2e8f0"><strong>Prazo do relatório</strong></td><td style="padding:7px;border-bottom:1px solid #e2e8f0">'+esc(fmt(o.prazo))+'</td></tr>'+
+    '</table>'+
+    (o.reportUrl?'<p><a href="'+esc(o.reportUrl)+'" style="display:inline-block;background:#17365D;color:#fff;text-decoration:none;padding:10px 15px;border-radius:7px">Abrir formulário de relatório final</a></p>':'')+
+    '<p style="font-size:13px;color:#667788">Em caso de dúvida, basta responder a esta mensagem.</p>'+
+    '</div>';
+
+  const opts={htmlBody:html,bcc:bcc};
+  if(cc)opts.cc=cc;
+  Object.assign(opts,niceProtocolSenderOptions_());
+
+  GmailApp.sendEmail(to,subject,plain,opts);
+  niceWriteHelper_(o.sh,o.row,'PROTOCOLO_EMAIL_NICE','ENVIADO');
+  niceWriteHelper_(o.sh,o.row,'PROTOCOLO_EMAIL_PARA',to);
+  niceWriteHelper_(o.sh,o.row,'PROTOCOLO_EMAIL_CC',cc);
+  niceWriteHelper_(o.sh,o.row,'PROTOCOLO_EMAIL_BCC',bcc);
+  niceWriteHelper_(o.sh,o.row,'PROTOCOLO_EMAIL_DATA',new Date());
+  niceLog_('INFO','niceSendProtocolEmail_',o.id,'E-mail do protocolo enviado para '+to+(cc?' | CC '+cc:'')+' | BCC '+bcc+'.');
+}
 function niceEmail_(d){for(const [k,v] of Object.entries(d)){if(/email|e-mail/i.test(k)){const s=String(v||'').trim();if(/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s))return s}}return''}
 function niceNorm_(s){return String(s??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim()}
 function niceDate_(v){if(!v)return null;if(v instanceof Date&&!isNaN(v))return v;const d=new Date(v);return isNaN(d)?null:d}
