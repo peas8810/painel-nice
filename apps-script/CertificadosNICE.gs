@@ -415,8 +415,8 @@ function niceCertSign_(text){const secret=PropertiesService.getScriptProperties(
 function niceCertIssuedCount_(id){const sh=niceCertIssuesSheet_(),v=sh.getDataRange().getValues();if(v.length<2)return 0;const m=niceCertHeaderMap_(v[0]);let n=0;for(let i=1;i<v.length;i++)if(Number(v[i][m.EVENTO_ID])===Number(id)&&['ENVIADO','ATIVO'].includes(String(v[i][m.STATUS]||'').toUpperCase()))n++;return n}
 function niceCertFindEvent_(id){const sh=niceCertEventsSheet_(),v=sh.getDataRange().getValues();if(v.length<2)return null;const m=niceCertHeaderMap_(v[0]);for(let i=1;i<v.length;i++)if(Number(v[i][m.EVENTO_ID])===Number(id)){const o={};v[0].forEach((h,j)=>o[String(h)]=v[i][j]);return o}return null}
 function niceCertObjectFromRow_(sh,row){const h=sh.getRange(1,1,1,sh.getLastColumn()).getValues()[0],v=sh.getRange(row,1,1,sh.getLastColumn()).getValues()[0],o={};h.forEach((x,i)=>o[String(x)]=v[i]);return o}
-function niceCertEventsSheet_(){return niceCertRequireSheet_(NICE_CERT.EVENTOS)}
-function niceCertIssuesSheet_(){return niceCertRequireSheet_(NICE_CERT.EMISSOES)}
+function niceCertEventsSheet_(){return niceCertSheet_(niceMaster_(),NICE_CERT.EVENTOS,NICE_CERT.EVENT_HEADERS)}
+function niceCertIssuesSheet_(){return niceCertSheet_(niceMaster_(),NICE_CERT.EMISSOES,NICE_CERT.ISSUE_HEADERS)}
 function niceCertRequireSheet_(name){const sh=niceMaster_().getSheetByName(name);if(!sh)throw new Error('Execute instalarSistemaCertificados().');return sh}
 function niceCertSheet_(ss,name,heads){let sh=ss.getSheetByName(name)||ss.insertSheet(name);if(sh.getLastRow()===0)sh.getRange(1,1,1,heads.length).setValues([heads]);const current=sh.getRange(1,1,1,Math.max(sh.getLastColumn(),1)).getDisplayValues()[0];heads.forEach(h=>{if(!current.includes(h)){sh.getRange(1,sh.getLastColumn()+1).setValue(h);current.push(h)}});sh.setFrozenRows(1);return sh}
 function niceCertHeaderMap_(h){const m={};h.forEach((x,i)=>m[String(x).trim()]=i);return m}
