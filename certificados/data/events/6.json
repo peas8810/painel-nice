@@ -1,15 +1,17 @@
 {
   "id": 6,
-  "status": "EMISSAO_ABERTA",
+  "status": "EMISSAO_FECHADA",
   "protocolo_nice": "NICE-2026-00009",
   "titulo": "Um bate papo sobre a comunidade surda",
   "tipo": "Palestra",
   "data_evento": "2026-09-22",
   "campus_unidade": "Teófilo Otoni",
   "local": "Auditório do Campus da AlfaUnipac",
-  "carga_horaria": "2",
+  "carga_horaria": 2,
   "responsavel": "Denise dos Anjos",
   "descricao": "",
-  "certificados_emitidos": 0,
-  "updated_at": "2026-09-22T18:43:26.398Z"
+  "emissao_inicio": "",
+  "emissao_fim": "",
+  "certificados_emitidos": 49,
+  "updated_at": "2026-09-23T00:53:24.633Z"
 }
