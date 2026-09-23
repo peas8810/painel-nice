@@ -111,6 +111,7 @@ function niceCertDashboardAdmin_(params){
   if(op==='auth') return {ok:true,authorized:true};
   if(op==='create_event') return niceCertDashboardCreateEvent_(p);
   if(op==='set_status') return niceCertDashboardSetStatus_(p);
+  if(op==='set_event_institution') return niceCertDashboardSetInstitution_(p);
   if(op==='create_custom_link') return niceCertCustomCreateLink_(p);
   if(op==='custom_links') return niceCertCustomAdminList_();
   if(op==='set_custom_status') return niceCertCustomSetStatus_(p);
@@ -180,6 +181,45 @@ function niceCertDashboardCreateEvent_(p){
     if(typeof niceCertLog_==='function') niceCertLog_('EVENTO_CRIADO_DASHBOARD',id,'','Criado pelo dashboard administrativo.');
     return {ok:true,event:{id:code,titulo,url_publica:event.URL_PUBLICA,status:event.STATUS}};
   }finally{lock.releaseLock();}
+}
+
+function niceCertDashboardSetInstitution_(p){
+  const id=Number(String(p.event_id||'').replace(/\D/g,''));
+  const instituicao=niceCertDashboardClean_(p.instituicao_emissora||p.instituicao,160);
+  if(!id)return{ok:false,error:'Evento inválido.'};
+  if(!instituicao)return{ok:false,error:'Informe a instituição emissora.'};
+
+  const sh=niceCertEventsSheet_(),v=sh.getDataRange().getValues();
+  if(v.length<2)return{ok:false,error:'Nenhum evento cadastrado.'};
+  const m=niceCertHeaderMap_(v[0]);
+  let found=false;
+  for(let r=1;r<v.length;r++){
+    if(Number(v[r][m.EVENTO_ID])!==id)continue;
+    niceCertSetByMap_(sh,r+1,m,'INSTITUICAO_EMISSORA',instituicao);
+    niceCertSetByMap_(sh,r+1,m,'ATUALIZADO_EM',new Date());
+    found=true;
+    break;
+  }
+  if(!found)return{ok:false,error:'Evento não encontrado.'};
+
+  const ish=niceCertIssuesSheet_(),iv=ish.getDataRange().getValues(),im=niceCertHeaderMap_(iv[0]);
+  let updated=0;
+  for(let i=1;i<iv.length;i++){
+    if(Number(iv[i][im.EVENTO_ID])!==id)continue;
+    niceCertSetByMap_(ish,i+1,im,'INSTITUICAO_EMISSORA',instituicao);
+    updated++;
+  }
+
+  const ev=niceCertFindEvent_(id);
+  try{niceCertPublishEvent_(ev)}catch(_){}
+  if(typeof niceCertPublicEnsureEventPage_==='function'){
+    try{niceCertPublicEnsureEventPage_(String(id).padStart(4,'0'))}catch(_){}
+  }
+  if(typeof niceCertLog_==='function'){
+    niceCertLog_('INSTITUICAO_EMISSORA_ATUALIZADA',id,'',instituicao+' · '+updated+' certificado(s) atualizado(s).');
+  }
+
+  return{ok:true,event_id:String(id).padStart(4,'0'),instituicao_emissora:instituicao,certificados_atualizados:updated};
 }
 
 function niceCertDashboardSetStatus_(p){
