@@ -71,7 +71,7 @@ function onProtocolFormSubmit(e){
       'Precisa de auditório?',
       'Auditório'
     ]);
-    const responsavel=niceValue_(d,['Professor responsável','Responsável','Nome do responsável','Coordenador responsável','Docente','Nome completo']);
+    const responsavel=niceResponsavel_(d);
     const emailProfessor=niceEmailByAliases_(d,['E-mail do professor','Email do professor','E-mail professor','Email professor','E-mail do responsável','Email do responsável','E-mail do docente','Email do docente','Seu e-mail','Seu email','E-mail','Email']);
     const emailCoordenador=niceEmailByAliases_(d,['E-mail do coordenador','Email do coordenador','E-mail da coordenação','Email da coordenação','E-mail coordenação','Email coordenação','Coordenador - e-mail','Coordenador - email']);
     const email=emailProfessor||niceEmail_(d);
@@ -155,6 +155,90 @@ function niceBool_(k,d){return /^(sim|yes|true|1)$/i.test(String(niceConfig_(k,d
 function niceMap_(sh){const m={};sh.getRange(1,1,1,sh.getLastColumn()).getDisplayValues()[0].forEach((h,i)=>m[String(h).trim()]=i+1);return m}
 function niceAppend_(sh,o){const m=niceMap_(sh),row=Array(sh.getLastColumn()).fill('');Object.entries(o).forEach(([k,v])=>{if(m[k])row[m[k]-1]=v});sh.appendRow(row)}
 function niceRow_(sh,row){const h=sh.getRange(1,1,1,sh.getLastColumn()).getDisplayValues()[0],v=sh.getRange(row,1,1,sh.getLastColumn()).getValues()[0],d={};h.forEach((x,i)=>d[String(x).trim()]=v[i]);return d}
+function niceResponsavel_(d){
+  // 1) Correspondência exata com os nomes mais comuns do formulário.
+  const exact=niceValue_(d,[
+    'Professor responsável',
+    'Professor(a) responsável',
+    'Nome do professor responsável',
+    'Nome do(a) professor(a) responsável',
+    'Professor responsável pelo evento',
+    'Professor responsável pelo projeto',
+    'Professor responsável pela ação',
+    'Professor responsável pela atividade',
+    'Responsável',
+    'Nome do responsável',
+    'Responsável pelo evento',
+    'Responsável pelo projeto',
+    'Responsável pela ação',
+    'Responsável pela atividade',
+    'Docente responsável',
+    'Nome do docente',
+    'Docente',
+    'Nome completo'
+  ]);
+  if(String(exact||'').trim())return String(exact).trim();
+
+  // 2) Fallback semântico: aceita pequenas mudanças no texto da pergunta do Google Forms.
+  // Prioriza cabeçalhos que contenham professor/docente + responsável.
+  const entries=Object.entries(d||{});
+  const ranked=[];
+  for(const [key,val] of entries){
+    const value=String(val??'').trim();
+    if(!value)continue;
+    const k=niceNorm_(key);
+    if(/e.?mail|email|coordenador|coordenacao|curso|campus|unidade|telefone|whatsapp|cpf|matricula/.test(k))continue;
+    let score=0;
+    if(k.includes('professor')||k.includes('docente'))score+=5;
+    if(k.includes('responsavel'))score+=5;
+    if(k.includes('nome'))score+=2;
+    if(k.includes('proponente'))score+=3;
+    if(k.includes('solicitante'))score+=3;
+    if(score>0)ranked.push({score,value,key});
+  }
+  ranked.sort((a,b)=>b.score-a.score);
+  return ranked.length?ranked[0].value:'';
+}
+
+function corrigirResponsaveisVaziosNICE(){
+  const control=niceControl_();
+  const values=control.getDataRange().getValues();
+  if(values.length<2){SpreadsheetApp.getUi().alert('Nenhum protocolo encontrado.');return}
+  const m=niceMap_(control);
+  const source=SpreadsheetApp.openById(NICE.FORMALIZACAO_SPREADSHEET_ID);
+  let corrigidos=0,naoLocalizados=0;
+
+  for(let r=2;r<=control.getLastRow();r++){
+    const atual=String(niceAt_(control,r,m.RESPONSAVEL)||'').trim();
+    if(atual)continue;
+
+    const aba=String(niceAt_(control,r,m.ABA_ORIGEM)||'').trim();
+    const linha=Number(niceAt_(control,r,m.LINHA_ORIGEM)||0);
+    if(!aba||linha<2){naoLocalizados++;continue}
+
+    const sh=source.getSheetByName(aba);
+    if(!sh||linha>sh.getLastRow()){naoLocalizados++;continue}
+
+    const d=niceRow_(sh,linha);
+    const responsavel=niceResponsavel_(d);
+    if(!responsavel){naoLocalizados++;continue}
+
+    niceSet_(control,r,m.RESPONSAVEL,responsavel);
+    niceSet_(control,r,m.ULTIMA_ATUALIZACAO,new Date());
+    corrigidos++;
+  }
+
+  try{
+    if(typeof niceGitHubDispatch_==='function')niceGitHubDispatch_();
+  }catch(_){}
+
+  SpreadsheetApp.getUi().alert(
+    'Correção concluída.\n\nResponsáveis preenchidos: '+corrigidos+
+    '\nNão localizados: '+naoLocalizados+
+    '\n\nO dashboard será atualizado na próxima sincronização.'
+  );
+}
+
 function niceValue_(d,aliases){for(const a of aliases){for(const [k,v] of Object.entries(d))if(niceNorm_(k)===niceNorm_(a)&&String(v??'').trim()!=='')return v}return''}
 function niceEmailByAliases_(d,aliases){
   const entries=Object.entries(d||{});
