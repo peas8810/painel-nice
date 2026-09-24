@@ -35,6 +35,7 @@ function niceCertOnOpen(){
       .addItem('Instalar / atualizar sistema','instalarSistemaCertificados')
       .addItem('Criar novo evento','novoEventoCertificados')
       .addItem('Abrir planilha de participantes','abrirEmissoesCertificados')
+      .addItem('Abrir Livro Digital','abrirLivroDigitalCertificacoes')
       .addSeparator()
       .addItem('Emitir certificados pendentes','emitirCertificadosPendentes')
       .addItem('Republicar evento selecionado','republicarEventoSelecionado')
