@@ -50,6 +50,9 @@ function niceCertDashboardPublic_(){
         evento_id: tipoCert==='CUSTOMIZADO'?(customLinkId||'CUSTOM'):String(eventId).padStart(4,'0'),
         status: status || 'SEM_STATUS',
         emitido_em: niceApiIso_(niceApiCell_(values[i], h, 'EMITIDO_EM')),
+        instituicao_emissora: niceApiPublicText_(niceApiCell_(values[i], h, 'INSTITUICAO_EMISSORA')),
+        livro_digital: niceApiPublicText_(niceApiCell_(values[i], h, 'LIVRO_DIGITAL')),
+        registro_digital: niceApiPublicText_(niceApiCell_(values[i], h, 'REGISTRO_DIGITAL')),
         validacao: NICE_CERT_DASHBOARD.PUBLIC_BASE + '/validar/?codigo=' + encodeURIComponent(code)
       });
       if (certs.length >= 1000) break;
@@ -114,6 +117,7 @@ function niceCertDashboardAdmin_(params){
   if(op==='set_event_institution') return niceCertDashboardSetInstitution_(p);
   if(op==='create_custom_link') return niceCertCustomCreateLink_(p);
   if(op==='custom_links') return niceCertCustomAdminList_();
+  if(op==='digital_books') return typeof niceCertBookAdminData_==='function'?niceCertBookAdminData_():{ok:false,error:'Livro Digital de Certificações não instalado.'};
   if(op==='set_custom_status') return niceCertCustomSetStatus_(p);
   if(op==='regenerate_certificate') return niceCertRegenerateByCode_(p.code);
   if(op==='revoke_certificate') return niceCertRevokeByCode_(p.code,p.reason);
