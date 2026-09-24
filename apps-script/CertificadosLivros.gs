@@ -43,6 +43,12 @@ function instalarLivroDigitalCertificacoes(){
   try{SpreadsheetApp.getUi().alert('Livro Digital de Certificações instalado e atualizado.');}catch(_){}
 }
 
+function abrirLivroDigitalCertificacoes(){
+  const sh=niceCertRegistersSheet_();
+  SpreadsheetApp.getActive().setActiveSheet(sh);
+  sh.activate();
+}
+
 function niceCertBookInstitutionsSheet_(){
   return niceCertSheet_(niceMaster_(),NICE_CERT_BOOK.INSTITUTIONS,NICE_CERT_BOOK.INSTITUTION_HEADERS);
 }
