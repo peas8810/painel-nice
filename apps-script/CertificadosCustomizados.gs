@@ -20,7 +20,7 @@ function instalarCertificadosCustomizados(){
 
 function niceCertCustomEnsureIssueHeaders_(){
   const sh=niceCertIssuesSheet_();
-  ['TIPO_CERTIFICADO','FUNCAO_EVENTO','TITULO_EVENTO_CUSTOM','CUSTOM_LINK_ID','LIVRO_ATA','REGISTRO_CERTIFICADO','VIA_EMITIDA','INSTITUICAO_EMISSORA'].forEach(h=>{
+  ['TIPO_CERTIFICADO','FUNCAO_EVENTO','TITULO_EVENTO_CUSTOM','CUSTOM_LINK_ID','LIVRO_ATA','REGISTRO_CERTIFICADO','VIA_EMITIDA','INSTITUICAO_EMISSORA','INSTITUICAO_ID','LIVRO_DIGITAL','ANO_LIVRO','REGISTRO_DIGITAL','REGISTRO_ID','HASH_PDF'].forEach(h=>{
     const heads=sh.getRange(1,1,1,sh.getLastColumn()).getDisplayValues()[0];
     if(!heads.includes(h)) sh.getRange(1,sh.getLastColumn()+1).setValue(h);
   });
@@ -41,22 +41,20 @@ function niceCertCustomCreateLink_(p){
   const token=(Utilities.getUuid()+Utilities.getUuid()).replace(/-/g,'').slice(0,40);
   const rotulo=niceCertDashboardClean_(p.rotulo||'Emissão customizada '+code,160);
   const instituicao=niceCertDashboardClean_(p.instituicao_emissora||p.instituicao||'',160);
-  const livroAta=niceCertDashboardClean_(p.livro_ata||p.livro||'',80);
-  const registro=niceCertDashboardClean_(p.registro||'',80);
-  const viaEmitida=niceCertDashboardClean_(p.via_emitida||'1ª Via Emitida',40)||'1ª Via Emitida';
+  const livroAta='';
+  const registro='';
+  const viaEmitida='1ª Via Emitida';
   const inicio=niceCertParseLocalDateTime_(p.emissao_inicio),fim=niceCertParseLocalDateTime_(p.emissao_fim);
   if(String(p.emissao_inicio||'').trim()&&!inicio)return{ok:false,error:'Data/hora inicial inválida.'};
   if(String(p.emissao_fim||'').trim()&&!fim)return{ok:false,error:'Data/hora final inválida.'};
   if(inicio&&fim&&fim<=inicio)return{ok:false,error:'O fim da emissão deve ser posterior ao início.'};
   if(!instituicao)return{ok:false,error:'Informe a instituição emissora.'};
-  if(!livroAta)return{ok:false,error:'Informe o Livro Ata.'};
-  if(!registro)return{ok:false,error:'Informe o registro do certificado.'};
   const root=niceCertEnsureRootFolder_();
   const folder=niceFolder_(root,'Customizado '+code+' - '+rotulo.replace(/[\\/:*?"<>|]/g,' ').slice(0,80));
   const url=NICE_CERT_CUSTOM.PUBLIC_URL+'?chave='+encodeURIComponent(token);
   const now=new Date();
   niceCertAppendObject_(sh,{LINK_ID:id,TOKEN:token,ROTULO:rotulo,INSTITUICAO_EMISSORA:instituicao,LIVRO_ATA:livroAta,REGISTRO:registro,VIA_EMITIDA:viaEmitida,EMISSAO_INICIO:inicio||'',EMISSAO_FIM:fim||'',STATUS:NICE_CERT_CUSTOM.OPEN_STATUS,URL_PUBLICA:url,PASTA_DRIVE:folder.getUrl(),CRIADO_EM:now,ATUALIZADO_EM:now});
-  niceCertLog_('LINK_CUSTOMIZADO_CRIADO',code,'','Link customizado '+rotulo+' · Livro Ata '+livroAta+' · Registro '+registro);
+  niceCertLog_('LINK_CUSTOMIZADO_CRIADO',code,'','Link customizado '+rotulo+' · registro automático pelo Livro Digital de Certificações.');
   return {ok:true,link:{id:code,rotulo,instituicao_emissora:instituicao,livro_ata:livroAta,registro,via_emitida:viaEmitida,emissao_inicio:niceCertIsoDateTime_(inicio),emissao_fim:niceCertIsoDateTime_(fim),status:NICE_CERT_CUSTOM.OPEN_STATUS,url_publica:url,emitidos:0}};
 }
 
@@ -187,14 +185,50 @@ function niceCertCustomIssue_(p){
 
   const code='CERT-NICE-CUS-'+Utilities.getUuid().replace(/-/g,'').slice(0,10).toUpperCase();
   const emittedAt=new Date();
-  const instituicao=String(link.instituicao_emissora||'').trim(),livroAta=String(link.livro_ata||'').trim(),registro=String(link.registro||'').trim(),viaEmitida=String(link.via_emitida||'1ª Via Emitida').trim();
-  const canonical=niceCertCustomCanonicalV3_({codigo:code,linkId:link.id,nome,funcao,evento,carga,instituicao,livroAta,registro,viaEmitida,emitido:emittedAt.toISOString()});
+  const instituicao=String(link.instituicao_emissora||'').trim();
+  if(!instituicao)return{ok:false,error:'Instituição emissora não informada no link.'};
+  if(typeof niceCertBookAllocate_!=='function')return{ok:false,error:'Módulo Livro Digital de Certificações não instalado.'};
+
+  const registry=niceCertBookAllocate_({
+    instituicao,
+    codigo:code,
+    tipo:'CUSTOMIZADO',
+    custom_link_id:link.id,
+    nome,email,
+    evento,
+    funcao,
+    carga,
+    emitido:emittedAt
+  });
+
+  const livroDigital=registry.livro_display;
+  const registroDigital=registry.registro;
+  const viaEmitida='1ª Via Emitida';
+  const canonical=niceCertCustomCanonicalV3_({
+    codigo:code,linkId:link.id,nome,funcao,evento,carga,instituicao,
+    livroAta:livroDigital,registro:registroDigital,viaEmitida,emitido:emittedAt.toISOString()
+  });
   const signature=niceCertSign_(canonical);
-  const pdf=niceCertCustomGeneratePdf_(link,{nome,email,funcao,carga,evento,codigo:code,signature,emitido:emittedAt,livro_ata:livroAta,registro,via_emitida:viaEmitida,instituicao_emissora:instituicao});
+  const pdf=niceCertCustomGeneratePdf_(link,{
+    nome,email,funcao,carga,evento,codigo:code,signature,emitido:emittedAt,
+    livro_ata:livroDigital,registro:registroDigital,
+    livro_digital:livroDigital,registro_digital:registroDigital,
+    via_emitida:viaEmitida,instituicao_emissora:instituicao
+  });
+  const hash=typeof niceCertBookSha256Blob_==='function'?niceCertBookSha256Blob_(pdf.blob):'';
+  if(typeof niceCertBookFinalize_==='function')niceCertBookFinalize_(registry,{hash_pdf:hash,pdf_url:pdf.url});
+
   niceCertCustomSendMail_(email,nome,evento,funcao,pdf.blob,code);
-  niceCertAppendObject_(sh,{EVENTO_ID:'',NOME:nome,EMAIL:email,CARGA_HORARIA:carga,CODIGO:code,ASSINATURA_HMAC:signature,STATUS:'ENVIADO',EMITIDO_EM:emittedAt,ENVIADO_EM:new Date(),PDF_URL:pdf.url,TENTATIVAS_EMAIL:1,ULTIMO_ERRO:'',TIPO_CERTIFICADO:'CUSTOMIZADO',FUNCAO_EVENTO:funcao,TITULO_EVENTO_CUSTOM:evento,CUSTOM_LINK_ID:link.id,LIVRO_ATA:livroAta,REGISTRO_CERTIFICADO:registro,VIA_EMITIDA:viaEmitida,INSTITUICAO_EMISSORA:instituicao});
-  niceCertLog_('CERTIFICADO_CUSTOMIZADO_EMITIDO',link.id,code,funcao+' · '+evento+' · '+email);
-  return{ok:true,sent:true,reused:false,code,message:'Certificado customizado gerado e enviado.'};
+  niceCertAppendObject_(sh,{
+    EVENTO_ID:'',NOME:nome,EMAIL:email,CARGA_HORARIA:carga,CODIGO:code,ASSINATURA_HMAC:signature,
+    STATUS:'ENVIADO',EMITIDO_EM:emittedAt,ENVIADO_EM:new Date(),PDF_URL:pdf.url,TENTATIVAS_EMAIL:1,
+    ULTIMO_ERRO:'',TIPO_CERTIFICADO:'CUSTOMIZADO',FUNCAO_EVENTO:funcao,TITULO_EVENTO_CUSTOM:evento,
+    CUSTOM_LINK_ID:link.id,LIVRO_ATA:livroDigital,REGISTRO_CERTIFICADO:registroDigital,VIA_EMITIDA:viaEmitida,
+    INSTITUICAO_EMISSORA:instituicao,INSTITUICAO_ID:registry.instituicao_id,LIVRO_DIGITAL:livroDigital,
+    ANO_LIVRO:registry.ano,REGISTRO_DIGITAL:registroDigital,REGISTRO_ID:registry.registro_id,HASH_PDF:hash
+  });
+  niceCertLog_('CERTIFICADO_CUSTOMIZADO_EMITIDO',link.id,code,livroDigital+' · Registro '+registroDigital+' · '+funcao+' · '+evento+' · '+email);
+  return{ok:true,sent:true,reused:false,code,livro_digital:livroDigital,registro_digital:registroDigital,message:'Certificado customizado gerado, registrado e enviado.'};
 }
 
 function niceCertCustomCanonical_(o){return[o.codigo,'CUSTOM',o.linkId,o.nome,o.funcao,o.evento,o.carga,o.emitido].map(v=>String(v==null?'':v).trim()).join('|')}
@@ -220,11 +254,11 @@ function niceCertCustomGeneratePdf_(link,cert){
   // Selo e texto ficam entre Y=247 e Y=311.
   niceCertClassicBookSeal_(slide,128,247,54);
   niceCertTextSerif_(slide,'CERTIFICADO REGISTRADO',202,249,180,12,8,C.gold,true,'START');
-  niceCertTextSerif_(slide,'EM LIVRO ATA INSTITUCIONAL',202,268,180,12,8,C.navy,true,'START');
+  niceCertTextSerif_(slide,'NO LIVRO DIGITAL DE CERTIFICAÇÕES',202,268,184,12,7,C.navy,true,'START');
 
   niceCertClassicRegistryInfo_(slide,{
-    line1:'Livro Ata: '+String(cert.livro_ata||'—'),
-    line2:'Registro: '+String(cert.registro||'—'),
+    line1:String(cert.livro_digital||cert.livro_ata||'Livro não informado'),
+    line2:'Registro '+String(cert.registro_digital||cert.registro||'—'),
     line3:String(cert.via_emitida||'1ª Via Emitida')
   });
 
@@ -253,8 +287,8 @@ function niceCertCustomGeneratePdf_(link,cert){
 
 function niceCertCustomRegistryBlock_(slide,cert){
   return niceCertClassicRegistryInfo_(slide,{
-    line1:'Livro Ata: '+String(cert.livro_ata||'—'),
-    line2:'Registro: '+String(cert.registro||'—'),
+    line1:String(cert.livro_digital||cert.livro_ata||'Livro não informado'),
+    line2:'Registro '+String(cert.registro_digital||cert.registro||'—'),
     line3:String(cert.via_emitida||'1ª Via Emitida')
   });
 }
@@ -274,11 +308,11 @@ function niceCertCustomVerify_(code){
   for(let i=1;i<v.length;i++){
     if(String(v[i][m.CODIGO]||'').trim().toUpperCase()!==wanted)continue;
     const emitted=niceCertDate_(v[i][m.EMITIDO_EM]),linkId=String(v[i][m.CUSTOM_LINK_ID]||''),nome=String(v[i][m.NOME]||''),funcao=String(v[i][m.FUNCAO_EVENTO]||''),evento=String(v[i][m.TITULO_EVENTO_CUSTOM]||''),carga=String(v[i][m.CARGA_HORARIA]||'');
-    const instituicao=String(v[i][m.INSTITUICAO_EMISSORA]||''),livroAta=String(v[i][m.LIVRO_ATA]||''),registro=String(v[i][m.REGISTRO_CERTIFICADO]||''),viaEmitida=String(v[i][m.VIA_EMITIDA]||'');
+    const instituicao=String(v[i][m.INSTITUICAO_EMISSORA]||''),livroAta=String(v[i][m.LIVRO_ATA]||''),registro=String(v[i][m.REGISTRO_CERTIFICADO]||''),viaEmitida=String(v[i][m.VIA_EMITIDA]||''),livroDigital=String(v[i][m.LIVRO_DIGITAL]||livroAta),registroDigital=String(v[i][m.REGISTRO_DIGITAL]||registro);
     const emittedIso=emitted?emitted.toISOString():'';
     const canonical=instituicao?niceCertCustomCanonicalV3_({codigo:wanted,linkId,nome,funcao,evento,carga,instituicao,livroAta,registro,viaEmitida:viaEmitida||'1ª Via Emitida',emitido:emittedIso}):(livroAta||registro)?niceCertCustomCanonicalV2_({codigo:wanted,linkId,nome,funcao,evento,carga,livroAta,registro,viaEmitida:viaEmitida||'1ª Via Emitida',emitido:emittedIso}):niceCertCustomCanonical_({codigo:wanted,linkId,nome,funcao,evento,carga,emitido:emittedIso});
     const expected=niceCertSign_(canonical),stored=String(v[i][m.ASSINATURA_HMAC]||''),status=String(v[i][m.STATUS]||'').toUpperCase();
-    return{ok:true,valid:!!stored&&stored===expected,revoked:status==='REVOGADO',status,nome,codigo:wanted,carga_horaria:carga,emitido_em:emittedIso,selo:stored,funcao_evento:funcao,tipo_certificado:'CUSTOMIZADO',instituicao_emissora:instituicao,livro_ata:livroAta,registro_certificado:registro,via_emitida:viaEmitida||'1ª Via Emitida',evento:{id:linkId,titulo:evento,data_evento:'—',campus_unidade:'—',local:'—',protocolo_nice:'—'},motivo_revogacao:String(v[i][m.MOTIVO_REVOGACAO]||'')};
+    return{ok:true,valid:!!stored&&stored===expected,revoked:status==='REVOGADO',status,nome,codigo:wanted,carga_horaria:carga,emitido_em:emittedIso,selo:stored,funcao_evento:funcao,tipo_certificado:'CUSTOMIZADO',instituicao_emissora:instituicao,livro_ata:livroAta,registro_certificado:registro,livro_digital:livroDigital,registro_digital:registroDigital,registro_id:String(v[i][m.REGISTRO_ID]||''),hash_pdf:String(v[i][m.HASH_PDF]||''),via_emitida:viaEmitida||'1ª Via Emitida',evento:{id:linkId,titulo:evento,data_evento:'—',campus_unidade:'—',local:'—',protocolo_nice:'—'},motivo_revogacao:String(v[i][m.MOTIVO_REVOGACAO]||'')};
   }
   return{ok:true,valid:false,error:'Certificado não encontrado.'};
 }
