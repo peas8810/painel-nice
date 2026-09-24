@@ -16,6 +16,7 @@ function onOpen(){
     .addSeparator()
     .addItem('Atualizar status agora','atualizarStatusDiario')
     .addItem('Aprovar linhas selecionadas','aprovarLinhasSelecionadas')
+    .addItem('Corrigir responsáveis vazios','corrigirResponsaveisVaziosNICE')
     .addToUi();
 }
 
