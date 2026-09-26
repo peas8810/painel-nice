@@ -17,6 +17,7 @@ function onOpen(){
     .addItem('Atualizar status agora','atualizarStatusDiario')
     .addItem('Aprovar linhas selecionadas','aprovarLinhasSelecionadas')
     .addItem('Corrigir responsáveis vazios','corrigirResponsaveisVaziosNICE')
+    .addItem('Corrigir responsável de um protocolo','corrigirResponsavelManualNICE')
     .addToUi();
 }
 
@@ -199,6 +200,33 @@ function niceResponsavel_(d){
   }
   ranked.sort((a,b)=>b.score-a.score);
   return ranked.length?ranked[0].value:'';
+}
+
+function corrigirResponsavelManualNICE(){
+  const ui=SpreadsheetApp.getUi();
+  const idRaw=ui.prompt('Corrigir responsável','Informe o protocolo NICE. Ex.: NICE-2026-00012',ui.ButtonSet.OK_CANCEL);
+  if(idRaw.getSelectedButton()!==ui.Button.OK)return;
+  const id=String(idRaw.getResponseText()||'').trim().toUpperCase();
+  if(!/^NICE-\d{4}-\d{5}$/.test(id)){ui.alert('Protocolo inválido.');return}
+
+  const nomeRaw=ui.prompt('Responsável','Informe o nome correto do responsável pelo protocolo '+id+'.',ui.ButtonSet.OK_CANCEL);
+  if(nomeRaw.getSelectedButton()!==ui.Button.OK)return;
+  const nome=String(nomeRaw.getResponseText()||'').replace(/\s+/g,' ').trim();
+  if(nome.length<3){ui.alert('Nome inválido.');return}
+
+  const found=niceFind_(id);
+  if(!found){ui.alert('Protocolo não localizado em CONTROLE_NICE.');return}
+
+  const sh=found.sheet,m=niceMap_(sh);
+  niceSet_(sh,found.row,m.RESPONSAVEL,nome);
+  niceSet_(sh,found.row,m.ULTIMA_ATUALIZACAO,new Date());
+  niceHistory_(id,'','', 'GESTAO_NICE','Responsável corrigido manualmente para: '+nome);
+
+  try{
+    if(typeof niceGitHubDispatch_==='function')niceGitHubDispatch_();
+  }catch(_){}
+
+  ui.alert('Responsável atualizado.\n\n'+id+'\n'+nome+'\n\nO dashboard será atualizado na próxima sincronização.');
 }
 
 function corrigirResponsaveisVaziosNICE(){
