@@ -45,6 +45,12 @@
     <div class="table-wrap"><table><thead><tr><th>Instituição</th><th>Livro</th><th>Registro</th><th>Certificado</th><th>Status</th><th>Emitido em</th></tr></thead><tbody id="bookRegistersBody"><tr><td colspan="6" class="empty">Autentique para visualizar os registros.</td></tr></tbody></table></div>
   </section>
 
+  <section class="card panel" id="authorSearchPanel">
+    <div class="panel-head"><div><span class="eyebrow">BUSCA POR TITULAR</span><h2>Localizar certificados por nome</h2><p class="desc">Área administrativa. Pesquise pelo nome completo ou parte do nome do titular.</p></div><div class="filters"><input id="authorSearch" type="search" placeholder="Ex.: Maria da Silva"><button id="authorSearchBtn" class="btn orange" type="button">Pesquisar</button></div></div>
+    <div id="authorSearchStatus" class="statusline">Autentique para pesquisar titulares.</div>
+    <div class="table-wrap"><table><thead><tr><th>Titular</th><th>E-mail</th><th>Evento</th><th>Código</th><th>Livro / Registro</th><th>Status</th><th>Emitido em</th><th>Ação</th></tr></thead><tbody id="authorSearchBody"><tr><td colspan="8" class="empty">Nenhuma pesquisa realizada.</td></tr></tbody></table></div>
+  </section>
+
   <section class="card panel">
     <div class="panel-head"><div><span class="eyebrow">CERTIFICADOS</span><h2>Certificados gerados</h2><p class="desc">Por segurança, esta visão não expõe nome nem e-mail dos participantes.</p></div><div class="filters"><input id="certSearch" type="search" placeholder="Buscar código ou evento"><select id="certStatus"><option value="">Todos os status</option><option value="ENVIADO">Enviado</option><option value="ATIVO">Ativo</option><option value="REVOGADO">Revogado</option></select></div></div>
     <div class="table-wrap"><table><thead><tr><th>Código</th><th>Evento</th><th>Status</th><th>Emitido em</th><th>Validação</th><th>Documento</th></tr></thead><tbody id="certsBody"></tbody></table></div>
@@ -79,6 +85,6 @@
 </div>
 
 <div class="build-tag">Dashboard v3 · 18/09/2026</div>
-<script src="dashboard.js?v=20260924-1"></script>
+<script src="dashboard.js?v=20260926-1"></script>
 </body>
 </html>
