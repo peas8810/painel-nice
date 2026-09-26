@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Consulte os certificados emitidos em seu nome.">
+  <meta name="theme-color" content="#17365d">
+  <link rel="icon" type="image/svg+xml" href="../../assets/amonia-logo.svg">
+  <title>Meus Certificados | NICE</title>
+  <link rel="stylesheet" href="../styles.css?v=20260926-1">
+</head>
+<body>
+<header class="top">
+  <div class="top-inner">
+    <a class="brand" href="../"><img src="../../assets/amonia-logo.svg" alt=""><div><strong>Certificados NICE</strong><span>Emissão, rastreabilidade e validação digital</span></div></a>
+    <nav><a href="../">Certificados</a><a href="../validar/">Validar certificado</a><a class="primary" href="./">Meus certificados</a></nav>
+  </div>
+</header>
+<main class="container">
+  <section class="hero"><div><span class="eyebrow">CONSULTA PESSOAL</span><h1>Encontre seus certificados</h1><p>Informe seu nome completo. Para proteger seus dados, os detalhes dos certificados são liberados após confirmar o e-mail usado na emissão.</p></div><div class="hero-badge"><strong>Consulta segura</strong><span>nome + confirmação</span></div></section>
+  <section class="card">
+    <h2>Buscar certificados</h2>
+    <p class="desc">Digite seu nome exatamente como foi informado no momento da emissão.</p>
+    <div class="searchbox"><input id="name" type="text" autocomplete="name" placeholder="Nome completo"><button id="search" class="btn orange" type="button">Pesquisar</button></div>
+    <div id="emailStage" class="searchbox" hidden><input id="email" type="email" autocomplete="email" placeholder="E-mail usado na emissão"><button id="confirm" class="btn" type="button">Confirmar e-mail</button></div>
+    <div id="result" class="verify-result"></div>
+  </section>
+</main>
+<footer>PEAS - Technology®</footer>
+<script src="app.js?v=20260926-1"></script>
+</body>
+</html>
