@@ -4,6 +4,7 @@
   const eventSearch=document.getElementById('eventSearch'),eventStatus=document.getElementById('eventStatus'),certSearch=document.getElementById('certSearch'),certStatus=document.getElementById('certStatus');
   const authBtn=document.getElementById('authBtn'),newEventBtn=document.getElementById('newEventBtn'),customLinkBtn=document.getElementById('customLinkBtn'),adminState=document.getElementById('adminState');
   const modal=document.getElementById('modal'),eventForm=document.getElementById('eventForm'),formResult=document.getElementById('formResult'),createBtn=document.getElementById('createBtn');
+  const authorSearch=document.getElementById('authorSearch'),authorSearchBtn=document.getElementById('authorSearchBtn'),authorSearchStatus=document.getElementById('authorSearchStatus'),authorSearchBody=document.getElementById('authorSearchBody');
   const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const fmtDate=v=>{if(!v)return'—';const d=new Date(v);return isNaN(d)?esc(v):d.toLocaleDateString('pt-BR',{timeZone:'America/Sao_Paulo'})};
   const fmtDateTime=v=>{if(!v)return'—';const d=new Date(v);return isNaN(d)?esc(v):d.toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo'})};
@@ -20,7 +21,7 @@
   function setAdmin(ok){
     newEventBtn.disabled=!ok;customLinkBtn.disabled=!ok;authBtn.textContent=ok?'Sair da administração':'Acessar administração';
     adminState.textContent=ok?'Acesso administrativo ativo nesta sessão':'Acesso administrativo não autenticado';adminState.classList.toggle('ok',ok);
-    if(!ok){customLinks=[];digitalBooks={books:[],recent:[],summary:{}};renderCustomLinks();renderDigitalBooks()}renderEvents();renderCerts()
+    if(!ok){customLinks=[];digitalBooks={books:[],recent:[],summary:{}};renderCustomLinks();renderDigitalBooks();if(authorSearchStatus)authorSearchStatus.textContent='Autentique para pesquisar titulares.';if(authorSearchBody)authorSearchBody.innerHTML='<tr><td colspan="8" class="empty">Nenhuma pesquisa realizada.</td></tr>'}else if(authorSearchStatus){authorSearchStatus.textContent='Digite um nome para pesquisar.'}renderEvents();renderCerts()
   }
   async function authenticate(){if(adminKey){adminKey='';localStorage.removeItem('nice_cert_admin_key');setAdmin(false);return;}const key=prompt('Digite a chave administrativa do Dashboard de Certificados:');if(!key)return;adminKey=key.trim();try{const p=await adminCall('auth');if(!p||!p.ok)throw new Error(p&&p.error||'Chave inválida.');localStorage.setItem('nice_cert_admin_key',adminKey);setAdmin(true);await Promise.all([loadCustomLinks(),loadDigitalBooks()])}catch(e){adminKey='';localStorage.removeItem('nice_cert_admin_key');setAdmin(false);alert(e.message||'Não foi possível autenticar.')}}
   async function restoreAuth(){if(!adminKey){setAdmin(false);return}try{const p=await adminCall('auth');if(!p||!p.ok)throw new Error();setAdmin(true);await Promise.all([loadCustomLinks(),loadDigitalBooks()])}catch(_){adminKey='';localStorage.removeItem('nice_cert_admin_key');setAdmin(false)}}
@@ -30,6 +31,33 @@
   function renderEvents(){const q=eventSearch.value.trim().toLowerCase(),st=eventStatus.value,isAdmin=!!adminKey;const rows=(data.events||[]).filter(e=>{const hay=[e.id,e.titulo,e.campus_unidade,e.protocolo_nice].join(' ').toLowerCase();return(!q||hay.includes(q))&&(!st||String(e.status).toUpperCase()===st)});eventsBody.innerHTML=rows.length?rows.map(e=>{const open=String(e.status||'').toUpperCase()==='EMISSAO_ABERTA';return `<tr><td><strong>${esc(e.id)}</strong></td><td>${esc(e.titulo||'—')}</td><td>${fmtDate(e.data_evento)}</td><td>${esc(e.campus_unidade||'—')}</td><td>${e.emissao_inicio||e.emissao_fim?`${fmtDateTime(e.emissao_inicio)}<br><span class="admin-hint">até ${fmtDateTime(e.emissao_fim)}</span>`:'Sem limite automático'}</td><td>${pill(e.status)}</td><td>${Number(e.certificados_emitidos||0).toLocaleString('pt-BR')}</td><td><div class="actions"><a class="mini primary" target="_blank" rel="noopener" href="${esc(e.url_publica)}">Abrir</a><button class="mini copy" data-link="${esc(e.url_publica)}">Copiar link</button></div></td><td><div class="actions">${isAdmin?`<button class="mini institution" data-id="${esc(e.id)}" data-current="${esc(e.instituicao_emissora||'')}">Instituição</button><button class="mini toggle ${open?'danger':'success'}" data-id="${esc(e.id)}" data-next="${open?'EMISSAO_FECHADA':'EMISSAO_ABERTA'}">${open?'Fechar emissão':'Abrir emissão'}</button>`:'<span class="admin-hint">Autentique para controlar</span>'}</div></td></tr>`}).join(''):`<tr><td colspan="9" class="empty">Nenhum evento encontrado.</td></tr>`;eventsBody.querySelectorAll('.copy').forEach(b=>b.onclick=()=>copy(b.dataset.link,b));eventsBody.querySelectorAll('.toggle').forEach(b=>b.onclick=()=>toggleStatus(b));eventsBody.querySelectorAll('.institution').forEach(b=>b.onclick=()=>setEventInstitution(b))}
 
   function renderCerts(){const q=certSearch.value.trim().toLowerCase(),st=certStatus.value,isAdmin=!!adminKey;const rows=(data.certificates||[]).filter(c=>{const hay=[c.codigo,c.evento_id].join(' ').toLowerCase();return(!q||hay.includes(q))&&(!st||String(c.status).toUpperCase()===st)});certsBody.innerHTML=rows.length?rows.map(c=>{const revoked=String(c.status||'').toUpperCase()==='REVOGADO';return `<tr><td class="code">${esc(c.codigo)}</td><td>${esc(c.evento_id)}</td><td>${pill(c.status)}</td><td>${fmtDateTime(c.emitido_em)}</td><td><a class="mini primary" target="_blank" rel="noopener" href="${esc(c.validacao)}">Validar</a></td><td>${isAdmin?`<div class="actions"><button class="mini regen" data-code="${esc(c.codigo)}">Atualizar PDF</button>${revoked?'':`<button class="mini danger revoke" data-code="${esc(c.codigo)}">Cancelar certificado</button>`}</div>`:'<span class="admin-hint">Autentique</span>'}</td></tr>`}).join(''):`<tr><td colspan="6" class="empty">Nenhum certificado encontrado.</td></tr>`;certsBody.querySelectorAll('.regen').forEach(b=>b.onclick=()=>regenerateCertificate(b));certsBody.querySelectorAll('.revoke').forEach(b=>b.onclick=()=>revokeCertificate(b))}
+
+  async function searchCertificatesByName(){
+    if(!adminKey){alert('Acesse a administração para pesquisar titulares.');return}
+    const q=String(authorSearch&&authorSearch.value||'').trim();
+    if(q.length<2){if(authorSearchStatus)authorSearchStatus.textContent='Informe ao menos 2 caracteres.';authorSearch?.focus();return}
+    authorSearchBtn.disabled=true;
+    if(authorSearchStatus)authorSearchStatus.textContent='Pesquisando…';
+    try{
+      const p=await adminCall('search_certificates_by_name',{q});
+      if(!p||!p.ok)throw new Error(p&&p.error||'Falha na pesquisa.');
+      const rows=p.results||[];
+      if(authorSearchStatus)authorSearchStatus.textContent=rows.length===1?'1 certificado encontrado':rows.length+' certificados encontrados';
+      authorSearchBody.innerHTML=rows.length?rows.map(x=>`<tr>
+        <td><strong>${esc(x.nome||'—')}</strong></td>
+        <td>${esc(x.email||'—')}</td>
+        <td>${esc(x.titulo_evento||x.evento_id||'—')}</td>
+        <td class="code">${esc(x.codigo||'—')}</td>
+        <td>${esc(x.livro_digital||'—')}<br><span class="admin-hint">Registro ${esc(x.registro_digital||'—')}</span></td>
+        <td>${pill(x.status)}</td>
+        <td>${fmtDateTime(x.emitido_em)}</td>
+        <td><a class="mini primary" target="_blank" rel="noopener" href="${esc(x.validacao)}">Validar</a></td>
+      </tr>`).join(''):'<tr><td colspan="8" class="empty">Nenhum certificado encontrado para esse nome.</td></tr>';
+    }catch(e){
+      if(authorSearchStatus)authorSearchStatus.textContent=e.message||'Falha na pesquisa.';
+      if(authorSearchBody)authorSearchBody.innerHTML='<tr><td colspan="8" class="empty">Não foi possível realizar a pesquisa.</td></tr>';
+    }finally{authorSearchBtn.disabled=false}
+  }
 
   function renderCustomLinks(){
     if(!adminKey){customLinksBody.innerHTML='<tr><td colspan="7" class="empty">Os links customizados ficam salvos no sistema. Acesse a administração para visualizar, copiar ou controlar os links.</td></tr>';return}
@@ -167,7 +195,7 @@
 
   async function load(){statusEl.textContent='Atualizando dados…';try{const p=await dashboardCall();if(!p||!p.ok)throw new Error(p&&p.error||'Falha ao carregar.');data=p;renderKpis();renderEvents();renderCerts();statusEl.textContent='Atualizado em '+fmtDateTime(p.updated_at)+' · atualização automática a cada 60 segundos';if(adminKey)Promise.all([loadCustomLinks(),loadDigitalBooks()])}catch(e){statusEl.textContent=e.message||'Falha ao carregar o dashboard.'}}
 
-  authBtn.addEventListener('click',authenticate);newEventBtn.addEventListener('click',openModal);customLinkBtn.addEventListener('click',createCustomLink);document.querySelectorAll('[data-close]').forEach(x=>x.addEventListener('click',closeModal));document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!modal.hidden)closeModal()});
+  authBtn.addEventListener('click',authenticate);newEventBtn.addEventListener('click',openModal);customLinkBtn.addEventListener('click',createCustomLink);if(authorSearchBtn)authorSearchBtn.addEventListener('click',searchCertificatesByName);if(authorSearch)authorSearch.addEventListener('keydown',e=>{if(e.key==='Enter')searchCertificatesByName()});document.querySelectorAll('[data-close]').forEach(x=>x.addEventListener('click',closeModal));document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!modal.hidden)closeModal()});
   [eventSearch,eventStatus].forEach(x=>x.addEventListener('input',renderEvents));[certSearch,certStatus].forEach(x=>x.addEventListener('input',renderCerts));
   restoreAuth();load();setInterval(load,60000);window.addEventListener('focus',load);
 })();
