@@ -399,42 +399,72 @@ function niceCertPublicVerify_(code){
 
   for(let i=1;i<v.length;i++){
     if(String(v[i][m.CODIGO]||'').trim().toUpperCase()!==wanted)continue;
-    const event=niceCertFindEvent_(Number(v[i][m.EVENTO_ID]));
+
+    const eventId=Number(v[i][m.EVENTO_ID]||0);
+    const event=niceCertFindEvent_(eventId);
     if(!event)return{ok:true,valid:false,error:'Evento associado não localizado.'};
 
     const emitted=niceCertDate_(v[i][m.EMITIDO_EM]);
-    const instituicao=String(v[i][m.INSTITUICAO_EMISSORA]||event.INSTITUICAO_EMISSORA||'');
-    const livro=String(v[i][m.LIVRO_DIGITAL]||'');
-    const registro=String(v[i][m.REGISTRO_DIGITAL]||'');
+    const instituicao=String(v[i][m.INSTITUICAO_EMISSORA]||event.INSTITUICAO_EMISSORA||'').trim();
+    const livro=String(v[i][m.LIVRO_DIGITAL]||v[i][m.LIVRO_ATA]||'').trim();
+    const registro=String(v[i][m.REGISTRO_DIGITAL]||v[i][m.REGISTRO_CERTIFICADO]||'').trim();
+    const stored=String(v[i][m.ASSINATURA_HMAC]||'').trim();
+
     const base={
-      codigo:wanted,eventId:event.EVENTO_ID,nome:String(v[i][m.NOME]||''),
-      titulo:event.TITULO_EVENTO,data:niceCertIsoDate_(event.DATA_EVENTO),
+      codigo:wanted,
+      eventId:event.EVENTO_ID,
+      nome:String(v[i][m.NOME]||''),
+      titulo:String(event.TITULO_EVENTO||''),
+      data:niceCertIsoDate_(event.DATA_EVENTO),
       carga:String(v[i][m.CARGA_HORARIA]||event.CARGA_HORARIA||''),
       emitido:emitted?emitted.toISOString():''
     };
-    const payload=livro&&registro
-      ?niceCertCanonicalV2_({...base,instituicao,livro,registro})
-      :niceCertCanonical_(base);
-    const expected=niceCertSign_(payload);
-    const stored=String(v[i][m.ASSINATURA_HMAC]||'');
-    const valid=stored&&expected===stored;
-    const status=String(v[i][m.STATUS]||'').toUpperCase();
 
+    const candidates=[];
+    if(livro&&registro){
+      candidates.push(niceCertCanonicalV2_({...base,instituicao,livro,registro}));
+    }
+    // Backward compatibility for certificates issued before Livro Digital.
+    candidates.push(niceCertCanonical_(base));
+
+    let valid=false,signatureVersion='';
+    for(let k=0;k<candidates.length;k++){
+      try{
+        if(stored&&niceCertSign_(candidates[k])===stored){
+          valid=true;
+          signatureVersion=(k===0&&livro&&registro)?'BOOK_V2':'LEGACY_V1';
+          break;
+        }
+      }catch(_){}
+    }
+
+    const status=String(v[i][m.STATUS]||'').trim().toUpperCase();
     return{
-      ok:true,valid:!!valid,revoked:status==='REVOGADO',status,
-      nome:String(v[i][m.NOME]||''),codigo:wanted,
+      ok:true,
+      valid:!!valid,
+      revoked:status==='REVOGADO',
+      status,
+      nome:String(v[i][m.NOME]||''),
+      codigo:wanted,
       carga_horaria:String(v[i][m.CARGA_HORARIA]||event.CARGA_HORARIA||''),
-      emitido_em:emitted?emitted.toISOString():'',selo:stored,
+      emitido_em:emitted?emitted.toISOString():'',
+      selo:stored,
+      signature_version:signatureVersion,
       instituicao_emissora:instituicao,
       livro_digital:livro,
       registro_digital:registro,
       registro_id:String(v[i][m.REGISTRO_ID]||''),
       hash_pdf:String(v[i][m.HASH_PDF]||''),
       evento:{
-        id:event.EVENTO_ID,titulo:event.TITULO_EVENTO,data_evento:niceCertBrDate_(event.DATA_EVENTO),
-        campus_unidade:event.CAMPUS_UNIDADE,local:event.LOCAL,protocolo_nice:event.PROTOCOLO_NICE
+        id:event.EVENTO_ID,
+        titulo:event.TITULO_EVENTO,
+        data_evento:niceCertBrDate_(event.DATA_EVENTO),
+        campus_unidade:event.CAMPUS_UNIDADE,
+        local:event.LOCAL,
+        protocolo_nice:event.PROTOCOLO_NICE
       },
-      motivo_revogacao:String(v[i][m.MOTIVO_REVOGACAO]||'')
+      motivo_revogacao:String(v[i][m.MOTIVO_REVOGACAO]||''),
+      error:valid?'':'A assinatura digital armazenada não corresponde aos dados registrados.'
     };
   }
   return{ok:true,valid:false,error:'Certificado não encontrado.'};
