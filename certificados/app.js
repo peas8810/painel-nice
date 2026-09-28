@@ -31,7 +31,7 @@
     const name=document.getElementById('certName'),email=document.getElementById('certEmail'),btn=document.getElementById('certIssueBtn'),status=document.getElementById('certIssueStatus');
     const n=String(name&&name.value||'').trim(),mail=String(email&&email.value||'').trim();
     if(n.length<3){status.innerHTML='<div class="card invalid"><strong>Informe seu nome completo.</strong></div>';if(name)name.focus();return}
-    if(!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(mail)){status.innerHTML='<div class="card invalid"><strong>Informe um e-mail válido.</strong></div>';if(email)email.focus();return}
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mail)){status.innerHTML='<div class="card invalid"><strong>Informe um e-mail válido.</strong></div>';if(email)email.focus();return}
     btn.disabled=true;btn.textContent='Gerando…';status.innerHTML='<div class="card loading">Gerando certificado…</div>';
     try{
       const p=await jsonp({action:'cert_issue',event_id:e.id,name:n,email:mail},60000);
