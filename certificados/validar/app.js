@@ -47,7 +47,8 @@
     result.innerHTML='<div class="card loading">Consultando assinatura digital…</div>';
     btn.disabled=true;
     try{
-      const payload=await jsonp({action:'cert_verify',code:c});
+      let payload;
+      try{payload=await jsonp({action:'cert_verify',code:c},45000)}catch(firstErr){await new Promise(r=>setTimeout(r,1200));payload=await jsonp({action:'cert_verify',code:c},45000)}
       render(payload);
     }catch(err){
       render({ok:false,error:err.message||'Não foi possível consultar o certificado.'});
