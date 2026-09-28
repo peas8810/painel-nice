@@ -1,6 +1,15 @@
 {
-  "updated_at": "2026-09-23T00:57:40.746Z",
+  "updated_at": "2026-09-28T18:27:30.921Z",
   "events": [
+    {
+      "id": 7,
+      "titulo": "XVI JORNADA FARMACÊUTICA - Palestra: “Saúde Financeira: Por Onde Começar Sem Complicar?",
+      "data_evento": "2026-09-28",
+      "campus_unidade": "Teófilo Otoni",
+      "protocolo_nice": "NICE-2026-00014",
+      "status": "EMISSAO_ABERTA",
+      "certificados_emitidos": 0
+    },
     {
       "id": 6,
       "titulo": "Um bate papo sobre a comunidade surda",
