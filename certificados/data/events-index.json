@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-09-29T15:32:37.793Z",
+  "updated_at": "2026-09-29T16:42:35.558Z",
   "events": [
     {
       "id": 9,
@@ -25,7 +25,7 @@
       "data_evento": "2026-09-28",
       "campus_unidade": "Teófilo Otoni",
       "protocolo_nice": "NICE-2026-00014",
-      "status": "EMISSAO_FECHADA",
+      "status": "EMISSAO_ABERTA",
       "certificados_emitidos": 138
     },
     {
