@@ -1,6 +1,15 @@
 {
-  "updated_at": "2026-09-29T20:22:23.615Z",
+  "updated_at": "2026-09-29T20:26:27.629Z",
   "events": [
+    {
+      "id": 11,
+      "titulo": "Setembro Amarelo: Falar é um ato de cuidado",
+      "data_evento": "2026-09-29",
+      "campus_unidade": "Teófilo Otoni",
+      "protocolo_nice": "",
+      "status": "EMISSAO_ABERTA",
+      "certificados_emitidos": 0
+    },
     {
       "id": 10,
       "titulo": "Setembro Amarelo: Falar é um ato de cuidado",
