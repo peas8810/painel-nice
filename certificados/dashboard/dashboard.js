@@ -12,7 +12,16 @@
   let adminKey=localStorage.getItem('nice_cert_admin_key')||'';
 
   function jsonp(params,timeout=30000){return new Promise((resolve,reject)=>{const cb='__nice_dash_'+Date.now()+'_'+Math.random().toString(36).slice(2),s=document.createElement('script'),u=new URL(API);Object.entries({...params,callback:cb,_:Date.now()}).forEach(([k,v])=>u.searchParams.set(k,v));let done=false;const finish=(err,p)=>{if(done)return;done=true;clearTimeout(t);try{delete window[cb]}catch(_){}s.remove();err?reject(err):resolve(p)};window[cb]=p=>finish(null,p);s.onerror=()=>finish(new Error('Não foi possível comunicar com o sistema.'));const t=setTimeout(()=>finish(new Error('Tempo esgotado na comunicação.')),timeout);s.src=u.toString();document.head.appendChild(s)})}
-  const dashboardCall=()=>jsonp({action:'cert_dashboard'});
+  async function dashboardCall(){
+    try{
+      const r=await fetch('./live-data.json?ts='+Date.now(),{cache:'no-store'});
+      if(r.ok){
+        const p=await r.json();
+        if(p&&p.ok)return p;
+      }
+    }catch(_){}
+    return jsonp({action:'cert_dashboard'});
+  }
   const adminCall=(op,params={})=>jsonp({action:'cert_admin',op,admin_key:adminKey,...params},60000);
 
   function pill(status){const s=String(status||'').toUpperCase();let cls='closed',label=s||'SEM STATUS';if(['EMISSAO_ABERTA','ABERTO'].includes(s)){cls='open';label=s==='ABERTO'?'ABERTO':'EMISSÃO ABERTA'}else if(['EMISSAO_FECHADA','FECHADO'].includes(s)){cls='closed';label=s==='FECHADO'?'FECHADO':'EMISSÃO FECHADA'}else if(s==='REVOGADO'){cls='revoked'}else if(s==='ENVIADO'){cls='sent'}else if(s==='ATIVO'){cls='active'}return `<span class="pill ${cls}">${esc(label)}</span>`}
