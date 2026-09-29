@@ -1,0 +1,17 @@
+{
+  "id": 9,
+  "status": "EMISSAO_ABERTA",
+  "protocolo_nice": "",
+  "titulo": "Feira Literária Descubra quem Pegou",
+  "tipo": "Feira Literária",
+  "data_evento": "2026-09-29",
+  "campus_unidade": "Teófilo Otoni",
+  "local": "AlfaUnipac",
+  "carga_horaria": "2 horas",
+  "responsavel": "",
+  "descricao": "",
+  "emissao_inicio": "2026-09-29T22:00:00.000Z",
+  "emissao_fim": "2026-09-30T01:00:00.000Z",
+  "certificados_emitidos": 0,
+  "updated_at": "2026-09-29T15:32:34.812Z"
+}
