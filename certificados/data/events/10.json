@@ -1,0 +1,17 @@
+{
+  "id": 10,
+  "status": "EMISSAO_ABERTA",
+  "protocolo_nice": "",
+  "titulo": "Setembro Amarelo: Falar é um ato de cuidado",
+  "tipo": "Palestra",
+  "data_evento": "2026-09-29",
+  "campus_unidade": "Teófilo Otoni",
+  "local": "Auditório",
+  "carga_horaria": "3 horas",
+  "responsavel": "Aléxia Penha",
+  "descricao": "",
+  "emissao_inicio": "2026-09-29T20:21:00.000Z",
+  "emissao_fim": "2026-10-01T20:22:00.000Z",
+  "certificados_emitidos": 0,
+  "updated_at": "2026-09-29T20:22:18.936Z"
+}
