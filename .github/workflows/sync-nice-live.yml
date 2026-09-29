@@ -40,6 +40,7 @@ jobs:
           curl -fsSL --retry 4 --retry-delay 2 --connect-timeout 15 --max-time 60 "$API?action=health&_=$BUST" -o /tmp/health.json
           curl -fsSL --retry 4 --retry-delay 2 --connect-timeout 15 --max-time 60 "$API?action=stats&_=$BUST" -o /tmp/stats.json
           curl -fsSL --retry 4 --retry-delay 2 --connect-timeout 15 --max-time 90 "$API?action=projects&limit=500&_=$BUST" -o /tmp/projects.json
+          curl -fsSL --retry 4 --retry-delay 2 --connect-timeout 15 --max-time 90 "$API?action=cert_dashboard&_=$BUST" -o /tmp/cert_dashboard.json
 
       - name: Validar e gerar cache público
         shell: bash
@@ -56,6 +57,7 @@ jobs:
           health = load('/tmp/health.json')
           stats = load('/tmp/stats.json')
           projects = load('/tmp/projects.json')
+          cert_dashboard = load('/tmp/cert_dashboard.json')
 
           if not health.get('ok'):
               raise SystemExit('Health check NICE retornou falha')
@@ -63,6 +65,8 @@ jobs:
               raise SystemExit('Stats NICE retornou falha')
           if not projects.get('ok'):
               raise SystemExit('Projects NICE retornou falha')
+          if not cert_dashboard.get('ok'):
+              raise SystemExit('Dashboard público de certificados retornou falha')
 
           out = {
               'ok': True,
@@ -76,17 +80,25 @@ jobs:
               json.dumps(out, ensure_ascii=False, separators=(',', ':')) + '\n',
               encoding='utf-8'
           )
+
+          cert_out = dict(cert_dashboard)
+          cert_out['synced_at'] = datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z')
+          cert_out['source'] = 'Google Apps Script via GitHub Actions'
+          Path('certificados/dashboard/live-data.json').write_text(
+              json.dumps(cert_out, ensure_ascii=False, separators=(',', ':')) + '\n',
+              encoding='utf-8'
+          )
           PY
 
       - name: Publicar somente se houver alteração
         shell: bash
         run: |
-          if git diff --quiet -- protocolos/live-data.json; then
-            echo 'Sem alterações na base pública.'
+          if git diff --quiet -- protocolos/live-data.json certificados/dashboard/live-data.json; then
+            echo 'Sem alterações nas bases públicas.'
             exit 0
           fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add protocolos/live-data.json
+          git add protocolos/live-data.json certificados/dashboard/live-data.json
           git commit -m 'chore: sincroniza base pública NICE'
           git push
