@@ -1,6 +1,6 @@
 {
   "id": 10,
-  "status": "EMISSAO_ABERTA",
+  "status": "EMISSAO_FECHADA",
   "protocolo_nice": "",
   "titulo": "Setembro Amarelo: Falar é um ato de cuidado",
   "tipo": "Palestra",
@@ -13,5 +13,5 @@
   "emissao_inicio": "2026-09-29T20:21:00.000Z",
   "emissao_fim": "2026-10-01T20:22:00.000Z",
   "certificados_emitidos": 0,
-  "updated_at": "2026-09-29T20:22:18.936Z"
+  "updated_at": "2026-09-29T20:29:47.123Z"
 }
