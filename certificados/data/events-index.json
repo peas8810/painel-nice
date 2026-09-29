@@ -1,6 +1,15 @@
 {
-  "updated_at": "2026-09-29T15:28:59.022Z",
+  "updated_at": "2026-09-29T15:32:37.793Z",
   "events": [
+    {
+      "id": 9,
+      "titulo": "Feira Literária Descubra quem Pegou",
+      "data_evento": "2026-09-29",
+      "campus_unidade": "Teófilo Otoni",
+      "protocolo_nice": "",
+      "status": "EMISSAO_ABERTA",
+      "certificados_emitidos": 0
+    },
     {
       "id": 8,
       "titulo": "Feira Literária Descubra quem Pegou",
