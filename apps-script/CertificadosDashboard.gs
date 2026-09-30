@@ -55,7 +55,7 @@ function niceCertDashboardPublic_(){
         registro_digital: niceApiPublicText_(niceApiCell_(values[i], h, 'REGISTRO_DIGITAL')),
         validacao: NICE_CERT_DASHBOARD.PUBLIC_BASE + '/validar/?codigo=' + encodeURIComponent(code)
       });
-      if (certs.length >= 1000) break;
+      // Todas as linhas são contabilizadas; a paginação ocorre na interface.
     }
   }
 
@@ -111,6 +111,7 @@ function niceCertDashboardAdmin_(params){
   const key=String(p.admin_key||'').trim();
   niceCertDashboardRequireAdmin_(key);
   const op=String(p.op||'').trim().toLowerCase();
+  if(op==='reports') return niceCertReportsAdmin_(p);
   if(op==='auth') return {ok:true,authorized:true};
   if(op==='create_event') return niceCertDashboardCreateEvent_(p);
   if(op==='set_status') return niceCertDashboardSetStatus_(p);
@@ -249,3 +250,4 @@ function niceCertDashboardSetStatus_(p){
 }
 
 function niceCertDashboardClean_(v,max){return String(v==null?'':v).replace(/[<>]/g,'').replace(/\s+/g,' ').trim().slice(0,max||300);}
+
