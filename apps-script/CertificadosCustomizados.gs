@@ -219,7 +219,7 @@ function niceCertCustomIssue_(p){
   if(typeof niceCertBookFinalize_==='function')niceCertBookFinalize_(registry,{hash_pdf:hash,pdf_url:pdf.url});
 
   niceCertCustomSendMail_(email,nome,evento,funcao,pdf.blob,code);
-  niceCertAppendObject_(sh,{
+  niceCertCustomAppendIssue_(sh,{
     EVENTO_ID:'',NOME:nome,EMAIL:email,CARGA_HORARIA:carga,CODIGO:code,ASSINATURA_HMAC:signature,
     STATUS:'ENVIADO',EMITIDO_EM:emittedAt,ENVIADO_EM:new Date(),PDF_URL:pdf.url,TENTATIVAS_EMAIL:1,
     ULTIMO_ERRO:'',TIPO_CERTIFICADO:'CUSTOMIZADO',FUNCAO_EVENTO:funcao,TITULO_EVENTO_CUSTOM:evento,
@@ -310,9 +310,43 @@ function niceCertCustomVerify_(code){
     const emitted=niceCertDate_(v[i][m.EMITIDO_EM]),linkId=String(v[i][m.CUSTOM_LINK_ID]||''),nome=String(v[i][m.NOME]||''),funcao=String(v[i][m.FUNCAO_EVENTO]||''),evento=String(v[i][m.TITULO_EVENTO_CUSTOM]||''),carga=String(v[i][m.CARGA_HORARIA]||'');
     const instituicao=String(v[i][m.INSTITUICAO_EMISSORA]||''),livroAta=String(v[i][m.LIVRO_ATA]||''),registro=String(v[i][m.REGISTRO_CERTIFICADO]||''),viaEmitida=String(v[i][m.VIA_EMITIDA]||''),livroDigital=String(v[i][m.LIVRO_DIGITAL]||livroAta),registroDigital=String(v[i][m.REGISTRO_DIGITAL]||registro);
     const emittedIso=emitted?emitted.toISOString():'';
-    const canonical=instituicao?niceCertCustomCanonicalV3_({codigo:wanted,linkId,nome,funcao,evento,carga,instituicao,livroAta,registro,viaEmitida:viaEmitida||'1ª Via Emitida',emitido:emittedIso}):(livroAta||registro)?niceCertCustomCanonicalV2_({codigo:wanted,linkId,nome,funcao,evento,carga,livroAta,registro,viaEmitida:viaEmitida||'1ª Via Emitida',emitido:emittedIso}):niceCertCustomCanonical_({codigo:wanted,linkId,nome,funcao,evento,carga,emitido:emittedIso});
-    const expected=niceCertSign_(canonical),stored=String(v[i][m.ASSINATURA_HMAC]||''),status=String(v[i][m.STATUS]||'').toUpperCase();
-    return{ok:true,valid:!!stored&&stored===expected,revoked:status==='REVOGADO',status,nome,codigo:wanted,carga_horaria:carga,emitido_em:emittedIso,selo:stored,funcao_evento:funcao,tipo_certificado:'CUSTOMIZADO',instituicao_emissora:instituicao,livro_ata:livroAta,registro_certificado:registro,livro_digital:livroDigital,registro_digital:registroDigital,registro_id:String(v[i][m.REGISTRO_ID]||''),hash_pdf:String(v[i][m.HASH_PDF]||''),via_emitida:viaEmitida||'1ª Via Emitida',evento:{id:linkId,titulo:evento,data_evento:'—',campus_unidade:'—',local:'—',protocolo_nice:'—'},motivo_revogacao:String(v[i][m.MOTIVO_REVOGACAO]||'')};
+    const base={codigo:wanted,linkId,nome,funcao,evento,carga,instituicao,livroAta,registro,viaEmitida:viaEmitida||'1ª Via Emitida',emitido:emittedIso};
+    const stored=String(v[i][m.ASSINATURA_HMAC]||'').trim(),status=String(v[i][m.STATUS]||'').trim().toUpperCase();
+    const verified=niceCertCustomVerifySignature_(base,stored,{livroDigital,registroDigital});
+    return{ok:true,valid:verified.valid,signature_version:verified.version,error:verified.valid?'':'A assinatura digital armazenada não corresponde aos dados registrados.',revoked:status==='REVOGADO',status,nome,codigo:wanted,carga_horaria:carga,emitido_em:emittedIso,selo:stored,funcao_evento:funcao,tipo_certificado:'CUSTOMIZADO',instituicao_emissora:instituicao,livro_ata:livroAta,registro_certificado:registro,livro_digital:livroDigital,registro_digital:registroDigital,registro_id:String(v[i][m.REGISTRO_ID]||''),hash_pdf:String(v[i][m.HASH_PDF]||''),via_emitida:viaEmitida||'1ª Via Emitida',evento:{id:linkId,titulo:evento,data_evento:'—',campus_unidade:'—',local:'—',protocolo_nice:'—'},motivo_revogacao:String(v[i][m.MOTIVO_REVOGACAO]||'')};
   }
   return{ok:true,valid:false,error:'Certificado não encontrado.'};
+}
+
+
+/** Keep register identifiers as text before Sheets can coerce them to numbers. */
+function niceCertCustomAppendIssue_(sh,obj){
+  const headers=sh.getRange(1,1,1,sh.getLastColumn()).getDisplayValues()[0];
+  const row=sh.getLastRow()+1;
+  if(row>sh.getMaxRows())sh.insertRowsAfter(sh.getMaxRows(),1);
+  ['REGISTRO_CERTIFICADO','REGISTRO_DIGITAL'].forEach(key=>{
+    const col=headers.indexOf(key);if(col>=0)sh.getRange(row,col+1).setNumberFormat('@');
+  });
+  niceCertAppendObject_(sh,obj);
+}
+
+/** Only accept a candidate if its HMAC matches the stored signature exactly. */
+function niceCertCustomVerifySignature_(base,stored,digital){
+  if(!stored)return{valid:false,version:''};
+  const variants=[{livroAta:base.livroAta,registro:base.registro}];
+  // Livro Digital issues sign a six-digit string; Sheets may return the number 151.
+  const numeric=String(digital.registroDigital||base.registro||'').trim();
+  if(digital.livroDigital&&/^\d{1,6}$/.test(numeric)){
+    variants.push({livroAta:digital.livroDigital,registro:numeric.padStart(6,'0')});
+  }
+  const candidates=[];
+  variants.forEach(v=>{
+    if(base.instituicao)candidates.push({version:'CUSTOM_V3',value:niceCertCustomCanonicalV3_(Object.assign({},base,v))});
+    if(v.livroAta||v.registro)candidates.push({version:'CUSTOM_V2',value:niceCertCustomCanonicalV2_(Object.assign({},base,v))});
+  });
+  candidates.push({version:'CUSTOM_V1',value:niceCertCustomCanonical_(base)});
+  for(let i=0;i<candidates.length;i++){
+    if(niceCertSign_(candidates[i].value)===stored)return{valid:true,version:candidates[i].version};
+  }
+  return{valid:false,version:''};
 }
