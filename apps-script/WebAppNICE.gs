@@ -38,7 +38,7 @@ function doGet(e) {
 
 function niceApiHealth_() {
   const sh = niceApiSheet_();
-  return {ok:true,service:'NICE Protocolos e Certificados',version:'2.6',rows:Math.max(0,sh.getLastRow()-1),updated_at:new Date().toISOString(),transport:'bridge'};
+  return {ok:true,service:'NICE Protocolos e Certificados',version:'2.7',rows:Math.max(0,sh.getLastRow()-1),updated_at:new Date().toISOString(),transport:'bridge'};
 }
 
 function niceApiStats_() {
@@ -90,13 +90,25 @@ function niceApiProjects_(q, statusFilter, limit) {
       const haystack = niceApiNorm_([id,responsavel,titulo,curso,unidade,auditorio,status].join(' '));
       if (!haystack.includes(query)) continue;
     }
-    projects.push({id,responsavel,titulo,curso,unidade,auditorio,status,
+    projects.push({
+      id,responsavel,titulo,curso,unidade,auditorio,status,
+      modalidade:niceApiPublicText_(niceApiCell_(row,h,'MODALIDADE')),
+      alcance:niceApiPublicText_(niceApiCell_(row,h,'ALCANCE')),
+      publico_estimado:niceApiNumber_(niceApiCell_(row,h,'PUBLICO_ESTIMADO')),
+      participantes_informados:niceApiNumber_(niceApiCell_(row,h,'PARTICIPANTES_INFORMADOS')),
+      participantes_consolidados:niceApiNumber_(niceApiCell_(row,h,'PARTICIPANTES_CONSOLIDADOS')),
+      alunos_estimados:niceApiNumber_(niceApiCell_(row,h,'ALUNOS_ESTIMADOS')),
+      parceria:niceApiPublicText_(niceApiCell_(row,h,'PARCERIA')),
+      certificados:niceApiPublicText_(niceApiCell_(row,h,'CERTIFICADOS')),
+      tema:niceApiPublicText_(niceApiCell_(row,h,'TEMA')),
+      ods:niceApiPublicText_(niceApiCell_(row,h,'ODS')),
       data_protocolo:niceApiIso_(niceApiCell_(row,h,'DATA_PROTOCOLO')),
       data_inicio:niceApiIso_(niceApiCell_(row,h,'DATA_INICIO')),
-      prazo_relatorio:niceApiIso_(niceApiCell_(row,h,'PRAZO_RELATORIO'))});
+      prazo_relatorio:niceApiIso_(niceApiCell_(row,h,'PRAZO_RELATORIO'))
+    });
     if (projects.length >= max) break;
   }
-  return {ok:true,total:projects.length,projects,public_fields:['id','responsavel','titulo','curso','unidade','auditorio','status','data_protocolo','data_inicio','prazo_relatorio']};
+  return {ok:true,total:projects.length,projects,public_fields:['id','responsavel','titulo','curso','unidade','auditorio','status','modalidade','alcance','publico_estimado','participantes_informados','participantes_consolidados','alunos_estimados','parceria','certificados','tema','ods','data_protocolo','data_inicio','prazo_relatorio']};
 }
 
 function niceApiProtocol_(id) {
@@ -134,6 +146,15 @@ function niceApiSheet_() {const ss=SpreadsheetApp.openById(NICE_API.SPREADSHEET_
 function niceApiMapHeaders_(headers) {const out={}; headers.forEach((v,i)=>out[String(v).trim()]=i); return out;}
 function niceApiCell_(row, h, name) {return Object.prototype.hasOwnProperty.call(h,name) ? row[h[name]] : '';}
 function niceApiIso_(v) {if (!v) return '';if (Object.prototype.toString.call(v)==='[object Date]'&&!isNaN(v)) return v.toISOString();const d=new Date(v); return isNaN(d)?'':d.toISOString();}
+function niceApiNumber_(v) {
+  if (v===null||v===undefined||v==='') return 0;
+  if (typeof v==='number'&&Number.isFinite(v)) return Math.max(0,Math.round(v));
+  const s=String(v).trim().replace(/\./g,'').replace(',','.');
+  const m=s.match(/\d+(?:\.\d+)?/);
+  if (!m) return 0;
+  const n=Number(m[0]);
+  return Number.isFinite(n)?Math.max(0,Math.round(n)):0;
+}
 function niceApiPublicText_(v) {return String(v==null?'':v).replace(/[<>]/g,'').trim().slice(0,300);}
 function niceApiNorm_(v) {return String(v==null?'':v).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/\s+/g,' ').trim();}
 function niceApiSafePublicUrl_(v) {const s=String(v||'').trim();if (/^https:\/\/(docs\.google\.com\/forms|forms\.gle)\//i.test(s)) return s;return '';}
