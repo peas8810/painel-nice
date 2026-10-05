@@ -39,6 +39,9 @@ function aplicarPacoteAtualizacaoNICE(){
   // Corrige protocolos antigos que ficaram sem responsável.
   run('Reparo de responsáveis vazios',()=>corrigirResponsaveisVaziosNICE());
 
+  // Enriquece protocolos antigos com os campos usados pelos indicadores do dashboard.
+  run('Enriquecimento analítico',()=>niceAtualizarCamposAnaliticos_(false));
+
   try{
     SpreadsheetApp.getUi().alert(
       'Pacote de atualização concluído.\n\n'+etapas.join('\n')+
