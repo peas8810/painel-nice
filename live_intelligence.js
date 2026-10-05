@@ -23,6 +23,7 @@
   };
   const inferReach=p=>p.alcance||p.reach||'Não identificado';
   const inferTheme=p=>p.tema||p.theme||'Não informado';
+  const livePeople=p=>{const raw=String(p.responsavel||'').trim();if(!raw||/^(nao se aplica|não se aplica|sem responsavel|sem responsável)$/i.test(raw))return[];return raw.split(/\s+-\s+|[;\n\/]+/).map(x=>x.trim()).filter(Boolean).map(x=>'LIVE:'+norm(x));};
   const yearOf=p=>{
     const d=new Date(p.data_protocolo||p.data_inicio||'');
     return Number.isFinite(d.getTime())?d.getFullYear():new Date().getFullYear();
@@ -41,16 +42,17 @@
     unit:cleanUnit(p.unidade),
     reach:inferReach(p),
     theme:inferTheme(p),
-    inf:numberOf(p,'participantes_informados','participantes','publico_estimado'),
-    part:numberOf(p,'participantes','participantes_informados','publico_estimado'),
-    stud:numberOf(p,'alunos_estimados','alunos','estudantes'),
-    est:!numberOf(p,'participantes_informados','participantes'),
+    inf:numberOf(p,'participantes_informados'),
+    part:numberOf(p,'participantes_consolidados','participantes_informados','publico_estimado'),
+    stud:numberOf(p,'alunos_estimados'),
+    est:!numberOf(p,'participantes_informados','participantes_consolidados')&&!!numberOf(p,'publico_estimado'),
     ext:/extens/i.test(String(p.tipo||p.titulo||'')),
     partner:yes(p.parceria||p.parceiro),
     cert:yes(p.certificados||p.certificado),
     lab:yes(p.auditorio)||yes(p.laboratorio),
     veh:yes(p.veiculo),
-    people:[]
+    ods:String(p.ods||'').trim(),
+    people:livePeople(p)
   });
   const toReport=p=>({id:'REL-'+p.id,_live:true,year:yearOf(p),type:inferType(p),course:String(p.curso||'Não informado').trim()||'Não informado'});
 
@@ -81,7 +83,7 @@
       n.style='max-width:1400px;margin:10px auto 0;padding:8px 14px;border:1px solid #cfe0ee;background:#f7fbfe;color:#476177;border-radius:10px;font:12px Segoe UI,Arial,sans-serif;text-align:center';
       const nav=document.querySelector('.tabs');nav?.insertAdjacentElement('afterend',n);
     }
-    n.textContent=`Base integrada automaticamente: histórico consolidado + ${count} protocolo${count===1?'':'s'} do sistema atual. Sincronização operacional pelo GitHub.`;
+    n.textContent=`Base integrada automaticamente: histórico consolidado + ${count} protocolo${count===1?'':'s'} do sistema atual, incluindo campos analíticos disponíveis. Sincronização operacional pelo GitHub.`;
   }
 
   async function sync(){
