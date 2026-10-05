@@ -3,7 +3,7 @@ const NICE = Object.freeze({
   RELATORIO_SPREADSHEET_ID:'1M6I6Wc1d0IehylAbQ1Equ-NJ1_jZrwRhowuWZ6roBJk',
   CONTROLE:'CONTROLE_NICE', CONFIG:'CONFIG_NICE', HISTORICO:'HISTORICO_NICE', LOG:'LOG_NICE', PREFIXO:'NICE',
   STATUS:['PROTOCOLADO','EM_ANALISE','APROVADO','AGUARDANDO_REALIZACAO','AGUARDANDO_RELATORIO','RELATORIO_EM_ATRASO','FINALIZADO','CANCELADO'],
-  HEADERS:['ID_NICE','STATUS','DATA_PROTOCOLO','TIPO_ACAO','CURSO','UNIDADE','AUDITORIO','RESPONSAVEL','EMAIL','TITULO_ACAO','DATA_INICIO','DATA_FIM','PRAZO_RELATORIO','DATA_RELATORIO','DATA_ENCERRAMENTO','DIAS_PENDENTE','ENCERRADO','LINK_PASTA','LINK_PROTOCOLO','LINK_RELATORIO','LINK_FORM_RELATORIO','PLANILHA_ORIGEM','ABA_ORIGEM','LINHA_ORIGEM','ULTIMA_ATUALIZACAO','OBSERVACOES'],
+  HEADERS:['ID_NICE','STATUS','DATA_PROTOCOLO','TIPO_ACAO','CURSO','UNIDADE','AUDITORIO','RESPONSAVEL','EMAIL','TITULO_ACAO','MODALIDADE','ALCANCE','PUBLICO_ESTIMADO','PARTICIPANTES_INFORMADOS','PARTICIPANTES_CONSOLIDADOS','ALUNOS_ESTIMADOS','PARCERIA','CERTIFICADOS','TEMA','ODS','DATA_INICIO','DATA_FIM','PRAZO_RELATORIO','DATA_RELATORIO','DATA_ENCERRAMENTO','DIAS_PENDENTE','ENCERRADO','LINK_PASTA','LINK_PROTOCOLO','LINK_RELATORIO','LINK_FORM_RELATORIO','PLANILHA_ORIGEM','ABA_ORIGEM','LINHA_ORIGEM','ULTIMA_ATUALIZACAO','OBSERVACOES'],
   PROTOCOL_EMAIL_BCC:'coordenacaoensino@unipacto.com.br',
   PROTOCOL_REPLY_TO:'nice@unipacto.com.br'
 });
@@ -18,6 +18,7 @@ function onOpen(){
     .addItem('Aprovar linhas selecionadas','aprovarLinhasSelecionadas')
     .addItem('Corrigir responsáveis vazios','corrigirResponsaveisVaziosNICE')
     .addItem('Corrigir responsável de um protocolo','corrigirResponsavelManualNICE')
+    .addItem('Atualizar campos analíticos','corrigirCamposAnaliticosNICE')
     .addToUi();
 }
 
@@ -78,6 +79,7 @@ function onProtocolFormSubmit(e){
     const emailCoordenador=niceEmailByAliases_(d,['E-mail do coordenador','Email do coordenador','E-mail da coordenação','Email da coordenação','E-mail coordenação','Email coordenação','Coordenador - e-mail','Coordenador - email']);
     const email=emailProfessor||niceEmail_(d);
     const titulo=niceValue_(d,['Identificação do evento','Identificação do projeto','Nome do evento','Nome do projeto','Título do evento','Título da ação','Tema do evento','Tema','Título'])||tipo||'Ação institucional';
+    const analiticos=niceAnaliticos_(d,{tipo,titulo});
     const inicio=niceDate_(niceValue_(d,['Data de início','Data início','Data do evento','Data da realização','Data de realização','Início do evento']));
     const fim=niceDate_(niceValue_(d,['Data de término','Data final','Data fim','Término do evento','Fim do evento']))||inicio;
     const prazo=fim?niceAddDays_(fim,Number(niceConfig_('PRAZO_RELATORIO_DIAS','10'))||10):'';
@@ -87,6 +89,7 @@ function onProtocolFormSubmit(e){
     niceWriteHelper_(sh,row,'LINK_PASTA_NICE',folder.url||''); niceWriteHelper_(sh,row,'LINK_RELATORIO_NICE',reportUrl||'');
     niceAppend_(niceControl_(),{
       ID_NICE:id,STATUS:'PROTOCOLADO',DATA_PROTOCOLO:stamp,TIPO_ACAO:tipo,CURSO:curso,UNIDADE:unidade,AUDITORIO:auditorio,RESPONSAVEL:responsavel,EMAIL:email,TITULO_ACAO:titulo,
+      MODALIDADE:analiticos.modalidade,ALCANCE:analiticos.alcance,PUBLICO_ESTIMADO:analiticos.publicoEstimado,PARTICIPANTES_INFORMADOS:analiticos.participantesInformados,PARTICIPANTES_CONSOLIDADOS:analiticos.participantesConsolidados,ALUNOS_ESTIMADOS:analiticos.alunosEstimados,PARCERIA:analiticos.parceria,CERTIFICADOS:analiticos.certificados,TEMA:analiticos.tema,ODS:analiticos.ods,
       DATA_INICIO:inicio||'',DATA_FIM:fim||'',PRAZO_RELATORIO:prazo,ENCERRADO:'NAO',LINK_PASTA:folder.url||'',LINK_FORM_RELATORIO:reportUrl||'',PLANILHA_ORIGEM:NICE.FORMALIZACAO_SPREADSHEET_ID,ABA_ORIGEM:sh.getName(),LINHA_ORIGEM:row,ULTIMA_ATUALIZACAO:new Date()
     });
     niceHistory_(id,'','PROTOCOLADO','FORMULARIO_PROTOCOLO','Chamado criado automaticamente.');
@@ -157,6 +160,173 @@ function niceBool_(k,d){return /^(sim|yes|true|1)$/i.test(String(niceConfig_(k,d
 function niceMap_(sh){const m={};sh.getRange(1,1,1,sh.getLastColumn()).getDisplayValues()[0].forEach((h,i)=>m[String(h).trim()]=i+1);return m}
 function niceAppend_(sh,o){const m=niceMap_(sh),row=Array(sh.getLastColumn()).fill('');Object.entries(o).forEach(([k,v])=>{if(m[k])row[m[k]-1]=v});sh.appendRow(row)}
 function niceRow_(sh,row){const h=sh.getRange(1,1,1,sh.getLastColumn()).getDisplayValues()[0],v=sh.getRange(row,1,1,sh.getLastColumn()).getValues()[0],d={};h.forEach((x,i)=>d[String(x).trim()]=v[i]);return d}
+function niceAnaliticos_(d,ctx){
+  const pick=(aliases,include,exclude)=>niceValueSemantic_(d,aliases,include,exclude);
+  const modalidadeRaw=pick(
+    ['Modalidade','Modalidade do evento','Modalidade da ação','Formato','Forma de realização','Formato da atividade','Presencial ou on-line','Presencial ou online'],
+    ['modalidade','formato','forma de realizacao','presencial','online','on line'],
+    ['curso','carga horaria']
+  );
+  const alcanceRaw=pick(
+    ['Alcance','Perfil de alcance','Público interno/externo','Publico interno/externo','Abrangência','Abrangencia'],
+    ['alcance','abrangencia','publico interno','publico externo'],
+    ['quantidade','numero','estimado']
+  );
+  const publicoRaw=pick(
+    ['Público estimado','Publico estimado','Número estimado de participantes','Numero estimado de participantes','Quantidade estimada de participantes','Previsão de participantes'],
+    ['publico estimado','estimado de participantes','previsao de participantes'],
+    ['alunos','estudantes']
+  );
+  const participantesRaw=pick(
+    ['Número de participantes','Numero de participantes','Quantidade de participantes','Participantes informados','Total de participantes','Público participante'],
+    ['numero de participantes','quantidade de participantes','participantes informados','total de participantes','publico participante'],
+    ['estimado','previsao','alunos','estudantes']
+  );
+  const consolidadosRaw=pick(
+    ['Participações consolidadas','Participacoes consolidadas','Participantes consolidados','Total consolidado de participações'],
+    ['consolidad'],
+    []
+  );
+  const alunosRaw=pick(
+    ['Alunos estimados','Número de alunos','Numero de alunos','Quantidade de alunos','Número de estudantes','Numero de estudantes','Quantidade de estudantes'],
+    ['alunos','estudantes'],
+    ['curso','nome']
+  );
+  const parceriaRaw=pick(
+    ['Haverá parceria?','Havera parceria?','Parceria','Possui parceria?','Instituição parceira','Instituicao parceira','Parceiro'],
+    ['parceria','parceir'],
+    ['email','telefone']
+  );
+  const certificadosRaw=pick(
+    ['Terá emissão de certificados?','Tera emissão de certificados?','Tera emissao de certificados?','Emissão de certificados','Emissao de certificados','Certificados'],
+    ['certificad'],
+    ['carga','modelo']
+  );
+  const tema=pick(
+    ['Tema transversal','Temática','Tematica','Tema da ação','Tema da acao','Tema do projeto','Área temática','Area tematica'],
+    ['tema','tematica'],
+    ['titulo','nome do evento']
+  );
+  const ods=pick(
+    ['ODS','Objetivos de Desenvolvimento Sustentável','Objetivos de Desenvolvimento Sustentavel','ODS relacionados','ODS relacionado'],
+    ['ods','objetivos de desenvolvimento sustentavel'],
+    []
+  );
+
+  return{
+    modalidade:niceNormalizeModalidade_(modalidadeRaw),
+    alcance:niceNormalizeAlcance_(alcanceRaw),
+    publicoEstimado:niceNumberValue_(publicoRaw),
+    participantesInformados:niceNumberValue_(participantesRaw),
+    participantesConsolidados:niceNumberValue_(consolidadosRaw),
+    alunosEstimados:niceNumberValue_(alunosRaw),
+    parceria:niceNormalizeYesNo_(parceriaRaw),
+    certificados:niceNormalizeYesNo_(certificadosRaw),
+    tema:String(tema||'').trim(),
+    ods:String(ods||'').trim()
+  };
+}
+
+function niceValueSemantic_(d,aliases,includeTerms,excludeTerms){
+  const exact=niceValue_(d,aliases||[]);
+  if(String(exact??'').trim()!=='')return exact;
+  const rows=[];
+  for(const [key,val] of Object.entries(d||{})){
+    const value=String(val??'').trim(); if(!value)continue;
+    const nk=niceNorm_(key);
+    if((excludeTerms||[]).some(t=>nk.includes(niceNorm_(t))))continue;
+    let score=0;
+    for(const t of includeTerms||[])if(nk.includes(niceNorm_(t)))score+=niceNorm_(t).split(' ').length+1;
+    if(score>0)rows.push({score,value});
+  }
+  rows.sort((a,b)=>b.score-a.score);
+  return rows.length?rows[0].value:'';
+}
+
+function niceNumberValue_(v){
+  if(v===null||v===undefined||v==='')return'';
+  if(typeof v==='number'&&Number.isFinite(v))return Math.max(0,Math.round(v));
+  const s=String(v).trim().replace(/\./g,'').replace(',','.');
+  const m=s.match(/\d+(?:\.\d+)?/);
+  if(!m)return'';
+  const n=Number(m[0]);return Number.isFinite(n)?Math.max(0,Math.round(n)):'';
+}
+
+function niceNormalizeYesNo_(v){
+  const s=niceNorm_(v);
+  if(!s)return'';
+  if(/^(nao|n|no|false|0)$/.test(s)||s.includes('nao havera')||s.includes('sem parceria'))return'Não';
+  if(/^(sim|s|yes|true|1)$/.test(s)||s.includes('havera')||s.includes('possui')||s.includes('parceria'))return'Sim';
+  return String(v).trim();
+}
+
+function niceNormalizeModalidade_(v){
+  const s=niceNorm_(v); if(!s)return'Não informado';
+  const presencial=s.includes('presencial'),online=s.includes('online')||s.includes('on line')||s.includes('remoto')||s.includes('virtual');
+  if(presencial&&online)return'Híbrido';
+  if(online)return'On-line';
+  if(presencial)return'Presencial';
+  if(s.includes('hibrid'))return'Híbrido';
+  return String(v).trim();
+}
+
+function niceNormalizeAlcance_(v){
+  const s=niceNorm_(v); if(!s)return'Não identificado';
+  const interno=/intern|academ|alun|docent|discente/.test(s);
+  const externo=/extern|comunidade|publico geral|sociedade/.test(s);
+  if(interno&&externo)return'Misto (interno + externo)';
+  if(externo)return'Externo/comunidade';
+  if(interno)return'Interno/acadêmico';
+  if(s.includes('misto'))return'Misto (interno + externo)';
+  return String(v).trim();
+}
+
+function corrigirCamposAnaliticosNICE(){
+  const control=niceControl_(),m=niceMap_(control);
+  const source=SpreadsheetApp.openById(NICE.FORMALIZACAO_SPREADSHEET_ID);
+  let linhas=0,campos=0,naoLocalizados=0;
+
+  for(let r=2;r<=control.getLastRow();r++){
+    const aba=String(niceAt_(control,r,m.ABA_ORIGEM)||'').trim();
+    const linha=Number(niceAt_(control,r,m.LINHA_ORIGEM)||0);
+    if(!aba||linha<2){naoLocalizados++;continue}
+    const sh=source.getSheetByName(aba);
+    if(!sh||linha>sh.getLastRow()){naoLocalizados++;continue}
+
+    const d=niceRow_(sh,linha);
+    const tipo=niceAt_(control,r,m.TIPO_ACAO),titulo=niceAt_(control,r,m.TITULO_ACAO);
+    const a=niceAnaliticos_(d,{tipo,titulo});
+    const values={
+      MODALIDADE:a.modalidade==='Não informado'?'':a.modalidade,
+      ALCANCE:a.alcance==='Não identificado'?'':a.alcance,
+      PUBLICO_ESTIMADO:a.publicoEstimado,
+      PARTICIPANTES_INFORMADOS:a.participantesInformados,
+      PARTICIPANTES_CONSOLIDADOS:a.participantesConsolidados,
+      ALUNOS_ESTIMADOS:a.alunosEstimados,
+      PARCERIA:a.parceria,
+      CERTIFICADOS:a.certificados,
+      TEMA:a.tema,
+      ODS:a.ods
+    };
+    let changed=false;
+    for(const [key,val] of Object.entries(values)){
+      if(val===''||!m[key])continue;
+      const atual=niceAt_(control,r,m[key]);
+      if(String(atual??'').trim()!=='')continue;
+      niceSet_(control,r,m[key],val);campos++;changed=true;
+    }
+    if(changed){niceSet_(control,r,m.ULTIMA_ATUALIZACAO,new Date());linhas++;}
+  }
+
+  try{if(typeof niceGitHubDispatch_==='function')niceGitHubDispatch_();}catch(_){}
+  SpreadsheetApp.getUi().alert(
+    'Atualização analítica concluída.\n\nProtocolos enriquecidos: '+linhas+
+    '\nCampos preenchidos: '+campos+
+    '\nLinhas de origem não localizadas: '+naoLocalizados+
+    '\n\nOs indicadores serão atualizados após a próxima sincronização.'
+  );
+}
+
 function niceResponsavel_(d){
   // 1) Correspondência exata com os nomes mais comuns do formulário.
   const exact=niceValue_(d,[
