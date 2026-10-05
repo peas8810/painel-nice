@@ -281,7 +281,7 @@ function niceNormalizeAlcance_(v){
   return String(v).trim();
 }
 
-function corrigirCamposAnaliticosNICE(){
+function niceAtualizarCamposAnaliticos_(showUi){
   const control=niceControl_(),m=niceMap_(control);
   const source=SpreadsheetApp.openById(NICE.FORMALIZACAO_SPREADSHEET_ID);
   let linhas=0,campos=0,naoLocalizados=0;
@@ -319,12 +319,20 @@ function corrigirCamposAnaliticosNICE(){
   }
 
   try{if(typeof niceGitHubDispatch_==='function')niceGitHubDispatch_();}catch(_){}
-  SpreadsheetApp.getUi().alert(
-    'Atualização analítica concluída.\n\nProtocolos enriquecidos: '+linhas+
-    '\nCampos preenchidos: '+campos+
-    '\nLinhas de origem não localizadas: '+naoLocalizados+
-    '\n\nOs indicadores serão atualizados após a próxima sincronização.'
-  );
+  const stats={linhas,campos,naoLocalizados};
+  if(showUi!==false){
+    SpreadsheetApp.getUi().alert(
+      'Atualização analítica concluída.\n\nProtocolos enriquecidos: '+linhas+
+      '\nCampos preenchidos: '+campos+
+      '\nLinhas de origem não localizadas: '+naoLocalizados+
+      '\n\nOs indicadores serão atualizados após a próxima sincronização.'
+    );
+  }
+  return stats;
+}
+
+function corrigirCamposAnaliticosNICE(){
+  return niceAtualizarCamposAnaliticos_(true);
 }
 
 function niceResponsavel_(d){
