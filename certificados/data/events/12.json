@@ -1,0 +1,17 @@
+{
+  "id": 12,
+  "status": "EMISSAO_ABERTA",
+  "protocolo_nice": "NICE-2026-00043",
+  "titulo": "Gestão e marketing na psicologia clínica",
+  "tipo": "Palestra",
+  "data_evento": "2026-10-07",
+  "campus_unidade": "Teófilo Otoni",
+  "local": "Nucleo de Práticas Psicológicas",
+  "carga_horaria": "3",
+  "responsavel": "Aléxia Rosentino Penha",
+  "descricao": "",
+  "emissao_inicio": "2026-10-07T19:07:00.000Z",
+  "emissao_fim": "2026-10-08T02:00:00.000Z",
+  "certificados_emitidos": 0,
+  "updated_at": "2026-10-07T19:08:32.371Z"
+}
