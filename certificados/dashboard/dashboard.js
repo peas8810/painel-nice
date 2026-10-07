@@ -74,7 +74,22 @@
     customLinksBody.querySelectorAll('.custom-copy').forEach(b=>b.onclick=()=>copy(b.dataset.link,b));customLinksBody.querySelectorAll('.custom-toggle').forEach(b=>b.onclick=()=>toggleCustomStatus(b));
   }
 
-  async function loadCustomLinks(){if(!adminKey)return;try{const p=await adminCall('custom_links');if(!p||!p.ok)throw new Error(p&&p.error||'Falha ao carregar links.');customLinks=p.links||[];renderCustomLinks()}catch(e){customLinksBody.innerHTML='<tr><td colspan="6" class="empty">'+esc(e.message||'Falha ao carregar links customizados.')+'</td></tr>'}}
+  async function loadCustomLinks(){
+    if(!adminKey)return;
+    try{
+      const p=await adminCall('custom_links');
+      if(!p||!p.ok)throw new Error(p&&p.error||'Falha ao carregar links.');
+      if(!adminKey)return;
+      customLinks=p.links||[];
+      renderCustomLinks();
+    }catch(e){
+      if(!adminKey)return;
+      renderCustomLinks();
+      const warning=document.createElement('tr');
+      warning.innerHTML='<td colspan="7" class="empty">'+esc(e.message||'Falha ao carregar links customizados.')+' Os links já carregados foram mantidos. Use Atualizar links para tentar novamente.</td>';
+      customLinksBody.prepend(warning);
+    }
+  }
 
   async function createCustomLink(){
     const rotulo=prompt('Identificação interna para este link customizado:','Emissão customizada');
@@ -97,7 +112,10 @@
         emissao_fim:fim.trim()
       });
       if(!p||!p.ok)throw new Error(p&&p.error||'Não foi possível criar o link.');
-      await loadCustomLinks();
+      if(!p.link||!p.link.id||!p.link.url_publica)throw new Error('O servidor não retornou os dados do link criado. Consulte a lista antes de tentar criar novamente.');
+      customLinks=[p.link,...customLinks.filter(l=>l.id!==p.link.id)];
+      renderCustomLinks();
+      document.getElementById('customLinksPanel')?.scrollIntoView({behavior:'smooth',block:'start'});
       await copy(p.link.url_publica);
       alert('Link customizado criado e copiado.\n\n'+p.link.url_publica+
         '\n\nInstituição emissora: '+p.link.instituicao_emissora+
@@ -206,5 +224,13 @@
 
   authBtn.addEventListener('click',authenticate);newEventBtn.addEventListener('click',openModal);customLinkBtn.addEventListener('click',createCustomLink);if(authorSearchBtn)authorSearchBtn.addEventListener('click',searchCertificatesByName);if(authorSearch)authorSearch.addEventListener('keydown',e=>{if(e.key==='Enter')searchCertificatesByName()});document.querySelectorAll('[data-close]').forEach(x=>x.addEventListener('click',closeModal));document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!modal.hidden)closeModal()});
   [eventSearch,eventStatus].forEach(x=>x.addEventListener('input',renderEvents));[certSearch,certStatus].forEach(x=>x.addEventListener('input',renderCerts));
+  const refreshLinks=document.createElement('button');
+  refreshLinks.type='button';refreshLinks.className='btn secondary';refreshLinks.textContent='Atualizar links';
+  document.querySelector('#customLinksPanel .panel-head')?.appendChild(refreshLinks);
+  refreshLinks.onclick=async()=>{
+    if(!adminKey){alert('Acesse a administração para visualizar os links customizados.');return}
+    refreshLinks.disabled=true;
+    try{await loadCustomLinks()}finally{refreshLinks.disabled=false}
+  };
   restoreAuth();load();setInterval(load,60000);window.addEventListener('focus',load);
 })();
