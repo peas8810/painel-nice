@@ -24,6 +24,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
 
       - name: Contexto da sincronização
         shell: bash
@@ -126,12 +129,52 @@ jobs:
       - name: Publicar somente se houver alteração
         shell: bash
         run: |
-          if git diff --quiet -- protocolos/live-data.json certificados/dashboard/live-data.json; then
-            echo 'Sem alterações nas bases públicas.'
-            exit 0
-          fi
+          set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add protocolos/live-data.json certificados/dashboard/live-data.json
-          git commit -m 'chore: sincroniza base pública NICE'
-          git push
+          snapshot=$(mktemp -d)
+          trap 'rm -rf "$snapshot"' EXIT
+          cp protocolos/live-data.json "$snapshot/projects.json"
+          cp certificados/dashboard/live-data.json "$snapshot/certificates.json"
+          for attempt in 1 2 3 4; do
+            # Refresh the disposable runner checkout; restore only validated cache files.
+            git fetch origin main
+            git reset --hard origin/main
+            python - "$snapshot" <<'PY'
+          import json
+          import sys
+          from datetime import datetime
+          from pathlib import Path
+          
+          for source, target in [
+              ('projects.json', 'protocolos/live-data.json'),
+              ('certificates.json', 'certificados/dashboard/live-data.json'),
+          ]:
+              incoming = Path(sys.argv[1]) / source
+              destination = Path(target)
+              new = json.loads(incoming.read_text(encoding='utf-8'))
+              old = json.loads(destination.read_text(encoding='utf-8'))
+              def timestamp(payload):
+                  value = payload.get('synced_at')
+                  return datetime.fromisoformat(value.replace('Z', '+00:00')) if value else None
+              old_time, new_time = timestamp(old), timestamp(new)
+              if old_time and new_time and old_time >= new_time:
+                  print(f'{target}: mantida a base mais recente do repositório.')
+                  continue
+              destination.write_bytes(incoming.read_bytes())
+          PY
+            if git diff --quiet -- protocolos/live-data.json certificados/dashboard/live-data.json; then
+              echo 'Sem alterações pendentes nas bases públicas.'
+              exit 0
+            fi
+            git add protocolos/live-data.json certificados/dashboard/live-data.json
+            git commit -m 'chore: sincroniza base pública NICE'
+            if git push origin HEAD:main; then
+              echo 'Bases públicas sincronizadas.'
+              exit 0
+            fi
+            echo "::warning::Publicação recusada na tentativa $attempt/4; atualizando a base antes de tentar novamente."
+            if [ "$attempt" -lt 4 ]; then sleep $((attempt * 2)); fi
+          done
+          echo '::error::Não foi possível publicar após 4 tentativas. Confira a permissão de escrita e as regras da branch main.'
+          exit 1
