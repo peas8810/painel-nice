@@ -1,6 +1,15 @@
 {
-  "updated_at": "2026-09-30T20:17:49.357Z",
+  "updated_at": "2026-10-07T19:08:36.158Z",
   "events": [
+    {
+      "id": 12,
+      "titulo": "Gestão e marketing na psicologia clínica",
+      "data_evento": "2026-10-07",
+      "campus_unidade": "Teófilo Otoni",
+      "protocolo_nice": "NICE-2026-00043",
+      "status": "EMISSAO_ABERTA",
+      "certificados_emitidos": 0
+    },
     {
       "id": 11,
       "titulo": "Setembro Amarelo: Falar é um ato de cuidado",
