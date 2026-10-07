@@ -20,6 +20,7 @@ concurrency:
 jobs:
   sync:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -37,10 +38,42 @@ jobs:
           set -euo pipefail
           API='https://script.google.com/macros/s/AKfycby2HN1DU9SXupv2WlthavWzXMr5k1RsdpzDL-Dahd9NN2-TvDvEqT-wqMM6F9fP2DnY/exec'
           BUST="$(date +%s%N)"
-          curl -fsSL --retry 4 --retry-delay 2 --connect-timeout 15 --max-time 60 "$API?action=health&_=$BUST" -o /tmp/health.json
-          curl -fsSL --retry 4 --retry-delay 2 --connect-timeout 15 --max-time 60 "$API?action=stats&_=$BUST" -o /tmp/stats.json
-          curl -fsSL --retry 4 --retry-delay 2 --connect-timeout 15 --max-time 90 "$API?action=projects&limit=500&_=$BUST" -o /tmp/projects.json
-          curl -fsSL --retry 4 --retry-delay 2 --connect-timeout 15 --max-time 90 "$API?action=cert_dashboard&_=$BUST" -o /tmp/cert_dashboard.json
+          # Keep the previous cache if any required public query fails.
+          fetch_public() {
+            local action="$1" output="$2" extra="${3:-}" status rc attempt
+            for attempt in 1 2 3 4; do
+              rc=0
+              status=$(curl -sSL --connect-timeout 15 --max-time 90 \
+                -w '%{http_code}' "$API?action=$action$extra&_=$BUST" -o "$output") || rc=$?
+              echo "Consulta $action: tentativa $attempt/4, HTTP ${status:-000}, curl $rc"
+              if [ "$rc" -eq 0 ] && [ "$status" = "200" ]; then
+                if python - "$output" "$action" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+          path, action = sys.argv[1:]
+          try:
+              payload = json.loads(Path(path).read_text(encoding='utf-8'))
+          except (ValueError, OSError):
+              print(f'::warning::Consulta {action}: resposta não é JSON; confira acesso público do Web App.')
+              raise SystemExit(1)
+          if not isinstance(payload, dict) or payload.get('ok') is not True:
+              print(f'::warning::Consulta {action}: backend retornou falha; confira a execução no Apps Script.')
+              raise SystemExit(1)
+          PY
+                then
+                  return 0
+                fi
+              fi
+              if [ "$attempt" -lt 4 ]; then sleep $((attempt * 5)); fi
+            done
+            echo "::error title=Falha no Apps Script::Consulta $action falhou após 4 tentativas. Último HTTP: ${status:-000}; curl: $rc. HTTP 401/403 ou resposta HTML exigem conferir a implantação e o acesso público. A base anterior foi preservada."
+            return 1
+          }
+          fetch_public health /tmp/health.json
+          fetch_public stats /tmp/stats.json
+          fetch_public projects /tmp/projects.json '&limit=500'
+          fetch_public cert_dashboard /tmp/cert_dashboard.json
 
       - name: Validar e gerar cache público
         shell: bash
