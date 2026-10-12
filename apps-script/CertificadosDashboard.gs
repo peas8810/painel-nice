@@ -18,7 +18,8 @@ function instalarPainelAdminCertificados(){
     key=(Utilities.getUuid()+Utilities.getUuid()).replace(/-/g,'');
     props.setProperty(NICE_CERT_DASHBOARD.ADMIN_KEY_PROPERTY,key);
   }
-  SpreadsheetApp.getUi().alert('Painel administrativo configurado.\n\nChave de acesso:\n'+key+'\n\nGuarde esta chave. Ela não deve ser publicada no GitHub.');
+  try{SpreadsheetApp.getUi().alert('Painel administrativo configurado.\n\nChave de acesso:\n'+key+'\n\nGuarde esta chave. Ela não deve ser publicada no GitHub.');}
+  catch(err){console.log('Chave configurada. Consulte Configurações do projeto > Propriedades do script > CERT_DASHBOARD_ADMIN_KEY.');}
   return key;
 }
 
