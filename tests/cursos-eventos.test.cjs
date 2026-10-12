@@ -7,3 +7,21 @@ test('mesma pessoa pode ter duas funções, sem duplicar a mesma função',()=>{
 test('bloqueia horas inválidas, imagens remotas e CPF público',()=>{for(const val of [-1,0,'NaN']){const c=base();c.pessoas[0].carga=val;assert.throws(()=>ctx.niceCoursesValidate_(c),/Pessoa inválida/)}assert.throws(()=>ctx.niceCoursesValidate_({...base(),logo:'https://example.com/a.png'}),/PNG/);assert.throws(()=>ctx.niceCoursesValidate_({...base(),documento:'123.456.789-00'}),/CPF/)});
 test('não aceita alterar dados ou emitir para pessoa não autorizada',()=>{const c=ctx.niceCoursesValidate_(base());ctx.niceCoursesByLink_=()=>c;assert.throws(()=>ctx.niceCoursesAuthorize_({id:'C1'},{email:'outra@example.com',funcao:'Participante'}),/autorização/);const out=ctx.niceCoursesAuthorize_({id:'C1'},{email:'maria@example.com',funcao:'Participante',nome:'Fraude',carga:'1000',evento:'Outro'});assert.equal(out.nome,'Maria Silva');assert.equal(out.carga,'2 horas');assert.equal(out.evento,'Curso')});
 test('emissão legada mantém parâmetros',()=>{ctx.niceCoursesByLink_=()=>null;const p={nome:'Legado'};assert.equal(ctx.niceCoursesAuthorize_({id:'C1'},p),p)});
+test('edição preserva IDs, cria revisão e mantém snapshots dos certificados existentes',()=>{
+ const old={...base(),id:'CUR-1',link_id:'C0001',cliente_id:'CLIENT-1',url:'https://example.com/link',revisao:1};
+ const stored={text:JSON.stringify(old)},snapshots=[],writes=[];let released=false;
+ ctx.LockService={getScriptLock:()=>({waitLock(){},releaseLock(){released=true}})};
+ ctx.niceCoursesSheet_=()=>({getDataRange:()=>({getValues:()=>[['ID','LINK','CLIENT','FILE'],['CUR-1','C0001','CLIENT-1','FILE1']]})});
+ ctx.DriveApp={getFileById:()=>({getBlob:()=>({getDataAsString:()=>stored.text}),setContent:s=>stored.text=s})};
+ ctx.niceCertCustomGetLinkById_=()=>({id_num:1,pasta_drive:'folder'});
+ ctx.niceCertIssuesSheet_=()=>({getDataRange:()=>({getValues:()=>[['CUSTOM_LINK_ID','CODIGO'],['C0001','CERT-1']]})});
+ ctx.niceCertHeaderMap_=heads=>Object.fromEntries(heads.map((x,i)=>[x,i]));
+ ctx.niceCoursesSnapshot_=(link,code,c)=>snapshots.push({code,title:c.titulo});
+ ctx.niceCertFolderFromUrl_=()=>({createFile(){}});ctx.Utilities.newBlob=x=>x;
+ ctx.niceCertCustomLinksSheet_=()=>({getDataRange:()=>({getValues:()=>[['LINK_ID'],[1]]})});
+ ctx.niceCertSetByMap_=(sh,row,h,key,value)=>writes.push({key,value});ctx.niceCertLog_=()=>{};ctx.niceCertParseLocalDateTime_=()=>null;
+ const revised={...base(),titulo:'Curso corrigido',cliente_id:'tentativa-de-troca'};
+ const out=ctx.niceCoursesUpdate_({id:'CUR-1',revisao:1,dados:JSON.stringify(revised)});
+ assert.equal(out.course.id,'CUR-1');assert.equal(out.course.link_id,'C0001');assert.equal(out.course.cliente_id,'CLIENT-1');assert.equal(out.course.revisao,2);assert.equal(snapshots[0].title,'Curso');assert.equal(JSON.parse(stored.text).titulo,'Curso corrigido');assert.ok(released);
+ assert.throws(()=>ctx.niceCoursesUpdate_({id:'CUR-1',revisao:1,dados:JSON.stringify(revised)}),/outra sessão/);
+});

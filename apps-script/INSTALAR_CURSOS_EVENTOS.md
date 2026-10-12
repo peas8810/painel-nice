@@ -27,3 +27,9 @@ A administração usa a chave global já existente. Não há login próprio de c
 Não inclui cobrança ou disparo de grandes lotes de e-mails em uma só execução. O importador cadastra autorizações; a emissão ocorre individualmente ou por autoatendimento. A entrega de e-mails usa o serviço já disponível no projeto (GmailApp), com suas quotas.
 
 A prévia não substitui a conferência do PDF em um evento piloto. Testes locais cobrem autorização, horas, funções, conclusão, duplicatas e compatibilidade legada; execução de Slides, Drive, e-mail e implantação depende do ambiente Google.
+
+## Edição após aprovação do cliente
+
+Atualize `CursosEventos.gs` e publique nova versão da implantação existente. O botão **Editar evento / certificado** abre os dados cadastrados, lista de pessoas, identidade visual e período. Salvar mantém o mesmo link público e ID do evento. Há controle de revisão para impedir sobrescrita de edição em outra sessão.
+
+Os PDFs já registrados não são modificados ao salvar. O sistema conserva a identidade anterior por código, inclusive para regeneração administrativa. Próximos certificados usam o evento atualizado. Um teste emitido formalmente continua sendo um registro real. Salvar a edição não reemite nem corrige automaticamente esse documento. Reenvios de um certificado existente mantêm o PDF original; seus registros não são apagados.

@@ -26,11 +26,12 @@ function niceCoursesValidate_(c){
 }
 function niceCoursesAdmin_(op,p){
   if(op==='courses_list'){const links=niceCertCustomAdminList_().links;return{ok:true,courses:niceCoursesAll_().map(c=>Object.assign({},c,{link:links.find(l=>l.id===c.link_id)}))};}
+  if(op==='courses_update')return niceCoursesUpdate_(p);
   if(op==='courses_create'){
     const c=niceCoursesValidate_(JSON.parse(p.dados||'{}'));
     const lock=LockService.getScriptLock();lock.waitLock(30000);
     try{const result=niceCertCustomCreateLink_({rotulo:c.titulo,instituicao_emissora:c.emissor,emissao_inicio:p.emissao_inicio,emissao_fim:p.emissao_fim});if(!result.ok)return result;
-      c.id='CUR-'+Utilities.getUuid().slice(0,8).toUpperCase();c.link_id=result.link.id;c.url=result.link.url_publica.replace('/customizado/','/cursos/');
+      c.revisao=1;c.id='CUR-'+Utilities.getUuid().slice(0,8).toUpperCase();c.link_id=result.link.id;c.url=result.link.url_publica.replace('/customizado/','/cursos/');
       const dataFile=niceCertFolderFromUrl_(niceCertCustomGetLinkById_(c.link_id).pasta_drive).createFile(Utilities.newBlob(JSON.stringify(c),'application/json',c.id+'.json'));
       niceCertAppendObject_(niceCoursesSheet_(),{ID:c.id,LINK_ID:c.link_id,CLIENTE_ID:c.cliente_id,DADOS_ARQUIVO_ID:dataFile.getId(),CRIADO_EM:new Date()});
       niceCertLog_('CURSO_EVENTO_CRIADO',c.id,'',c.cliente+' · '+c.titulo);return{ok:true,course:c};
@@ -43,6 +44,7 @@ function niceCoursesPublic_(token){const link=niceCertCustomGetLinkByToken_(toke
 function niceCoursesAuthorize_(link,p){const c=niceCoursesByLink_(link.id);if(!c)return p;const email=String(p.email||'').trim().toLowerCase();const person=c.pessoas.find(x=>x.email===email&&x.funcao===p.funcao);if(!person)throw new Error('Não há autorização para este e-mail e função. Consulte o responsável.');return Object.assign({},p,{nome:person.nome,email,funcao:person.funcao,carga:person.carga,evento:c.titulo});}
 function niceCoursesBlob_(data){const parts=data.split(',');return Utilities.newBlob(Utilities.base64Decode(parts[1]),data.includes('image/png')?'image/png':'image/jpeg','imagem');}
 function niceCoursesPdf_(link,cert,c){
+  c=niceCoursesSnapshot_(link,cert.codigo,c);
   const pres=SlidesApp.create('TMP '+cert.codigo),slide=pres.getSlides()[0];slide.getPageElements().forEach(x=>x.remove());
   const color=c.cor,font=c.layout==='classico'?'Georgia':'Arial';
   function text(t,x,y,w,h,size,bold,align){const box=niceCertText_(slide,t,x,y,w,h,size,color,bold,align||'CENTER');box.getText().getTextStyle().setFontFamily(font);return box;}
@@ -63,3 +65,36 @@ function niceCoursesPdf_(link,cert,c){
   pres.saveAndClose();Utilities.sleep(2000);const source=DriveApp.getFileById(pres.getId());const blob=source.getBlob().getAs(MimeType.PDF).setName(cert.codigo+'.pdf');const file=niceCertFolderFromUrl_(link.pasta_drive).createFile(blob);source.setTrashed(true);return{blob,url:file.getUrl(),id:file.getId()};
 }
 function niceCoursesMail_(c,email,nome,evento,funcao,blob,codigo){const url=NICE_CERT.PUBLIC_BASE+'/validar/?codigo='+encodeURIComponent(codigo),plain='Olá, '+nome+'.\n\nSeu certificado de '+evento+' está anexo.\nFunção: '+funcao+'\nCódigo: '+codigo+'\nValidação: '+url+'\n\n'+c.cliente+' · Protocolo.me';const opts={attachments:[blob],name:c.cliente+' · Certificados'};Object.assign(opts,niceCertSenderOptions_());GmailApp.sendEmail(email,'Certificado · '+evento,plain,opts);}
+
+/** Conserva a identidade usada por cada documento registrado. */
+function niceCoursesSnapshot_(link,code,course){
+  const folder=niceCertFolderFromUrl_(link.pasta_drive),name=code+'-identidade.json',files=folder.getFilesByName(name);
+  if(files.hasNext())return JSON.parse(files.next().getBlob().getDataAsString());
+  folder.createFile(Utilities.newBlob(JSON.stringify(course),'application/json',name));return course;
+}
+function niceCoursesUpdate_(p){
+  const c=niceCoursesValidate_(JSON.parse(p.dados||'{}'));
+  const inicio=niceCertParseLocalDateTime_(p.emissao_inicio),fim=niceCertParseLocalDateTime_(p.emissao_fim);
+  if(p.emissao_inicio&&!inicio||p.emissao_fim&&!fim||inicio&&fim&&fim<=inicio)throw new Error('Período de emissão inválido.');
+  const lock=LockService.getScriptLock();lock.waitLock(30000);
+  try{
+    const sh=niceCoursesSheet_(),v=sh.getDataRange().getValues(),index=v.findIndex((row,i)=>i>0&&String(row[0])===String(p.id));
+    if(index<1)throw new Error('Evento não encontrado.');
+    const file=DriveApp.getFileById(String(v[index][3])),old=JSON.parse(file.getBlob().getDataAsString());
+    if(Number(p.revisao)!==Number(old.revisao||1))throw new Error('Este evento foi alterado em outra sessão. Atualize a lista e abra a edição novamente.');
+    const link=niceCertCustomGetLinkById_(old.link_id);if(!link)throw new Error('Link do evento não encontrado.');
+    // Congela os modelos já emitidos antes de trocar a identidade do evento.
+    const issues=niceCertIssuesSheet_().getDataRange().getValues(),h=niceCertHeaderMap_(issues[0]);
+    issues.slice(1).filter(row=>String(row[h.CUSTOM_LINK_ID])===old.link_id&&row[h.CODIGO]).forEach(row=>niceCoursesSnapshot_(link,String(row[h.CODIGO]),old));
+    const folder=niceCertFolderFromUrl_(link.pasta_drive);
+    folder.createFile(Utilities.newBlob(JSON.stringify(old),'application/json',old.id+'-revisao-'+Number(old.revisao||1)+'-'+Utilities.getUuid()+'.json'));
+    Object.assign(c,{id:old.id,link_id:old.link_id,url:old.url,cliente_id:old.cliente_id,revisao:Number(old.revisao||1)+1,atualizado_em:new Date().toISOString()});
+    const links=niceCertCustomLinksSheet_(),lv=links.getDataRange().getValues(),lh=niceCertHeaderMap_(lv[0]),li=lv.findIndex((row,i)=>i>0&&Number(row[lh.LINK_ID])===link.id_num);
+    if(li<1)throw new Error('Registro de link não encontrado.');
+    file.setContent(JSON.stringify(c));
+    const fields={ROTULO:c.titulo,INSTITUICAO_EMISSORA:c.emissor,EMISSAO_INICIO:inicio||'',EMISSAO_FIM:fim||'',ATUALIZADO_EM:new Date()};
+    Object.keys(fields).forEach(k=>niceCertSetByMap_(links,li+1,lh,k,fields[k]));
+    niceCertLog_('CURSO_EVENTO_EDITADO',c.id,'','Revisão '+c.revisao+' · '+c.titulo);
+    return{ok:true,course:c,message:'Alterações salvas. Os PDFs já emitidos permanecem preservados; as próximas emissões usam os novos dados.'};
+  }finally{lock.releaseLock();}
+}
