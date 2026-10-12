@@ -89,6 +89,12 @@ function niceCertDashboardPublic_(){
     }
   }
 
+  if(typeof niceCoursesAll_==='function') niceCoursesAll_().forEach(c=>{
+    const link=niceCertCustomGetLinkById_(c.link_id);if(!link)return;
+    const count=certs.filter(x=>x.evento_id===c.link_id&&['ENVIADO','ATIVO','REVOGADO'].includes(x.status)).length;
+    if(link.status==='ABERTO')abertos++;else fechados++;
+    events.push({id:c.link_id,titulo:c.titulo,tipo:'CURSO_EVENTO',data_evento:c.data,campus_unidade:c.cliente,local:c.local,carga_horaria:'Por função',responsavel:c.signatario,instituicao_emissora:c.emissor,emissao_inicio:link.emissao_inicio,emissao_fim:link.emissao_fim,status:link.status==='ABERTO'?'EMISSAO_ABERTA':'EMISSAO_FECHADA',certificados_emitidos:count,url_publica:c.url});
+  });
   return {
     ok: true,
     updated_at: new Date().toISOString(),
@@ -111,6 +117,7 @@ function niceCertDashboardAdmin_(params){
   const key=String(p.admin_key||'').trim();
   niceCertDashboardRequireAdmin_(key);
   const op=String(p.op||'').trim().toLowerCase();
+  if(op.indexOf('courses_')===0) return niceCoursesAdmin_(op,p);
   if(op==='reports') return niceCertReportsAdmin_(p);
   if(op==='auth') return {ok:true,authorized:true};
   if(op==='create_event') return niceCertDashboardCreateEvent_(p);

@@ -5,6 +5,8 @@ function doPost(e){
   let payload;
   try{
     if(action==='cert_issue') payload=niceCertPublicIssue_(p);
+    else if(action==='cert_admin') payload=niceCertDashboardAdmin_(p);
+    else if(action==='cert_custom_issue') payload=niceCertCustomIssue_(p);
     else payload={ok:false,error:'Ação não reconhecida.'};
   }catch(err){
     payload={ok:false,error:String(err&&err.message||'Falha ao processar a solicitação.')};

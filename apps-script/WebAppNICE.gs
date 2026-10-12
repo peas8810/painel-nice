@@ -19,6 +19,7 @@ function doGet(e) {
     else if (action === 'cert_verify') payload = niceCertPublicVerify_(String(p.code || '').toUpperCase());
     else if (action === 'cert_issue') payload = niceCertPublicIssue_(p);
     else if (action === 'cert_event') payload = niceCertPublicEvent_(String(p.event_id || p.id || ''));
+    else if (action === 'course_public') payload = niceCoursesPublic_(p.chave);
     else if (action === 'cert_custom_link') payload = niceCertCustomPublicLink_(String(p.chave || p.token || ''));
     else if (action === 'cert_custom_issue') payload = niceCertCustomIssue_(p);
     else if (action === 'cert_dashboard') payload = niceCertDashboardPublic_();
@@ -159,4 +160,9 @@ function niceApiPublicText_(v) {return String(v==null?'':v).replace(/[<>]/g,'').
 function niceApiNorm_(v) {return String(v==null?'':v).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/\s+/g,' ').trim();}
 function niceApiSafePublicUrl_(v) {const s=String(v||'').trim();if (/^https:\/\/(docs\.google\.com\/forms|forms\.gle)\//i.test(s)) return s;return '';}
 function niceApiOutput_(obj,callback) {const json=JSON.stringify(obj);const cb=String(callback||'').trim();if (cb&&/^[A-Za-z_$][A-Za-z0-9_$.]*$/.test(cb)) {return ContentService.createTextOutput(cb+'('+json+');').setMimeType(ContentService.MimeType.JAVASCRIPT);}return ContentService.createTextOutput(json).setMimeType(ContentService.MimeType.JSON);}
-function niceApiBridgeOutput_(obj, requestId) {const rid = String(requestId || '').replace(/[^A-Za-z0-9_-]/g,'').slice(0,120);const safeJson = JSON.stringify(obj).replace(/</g,'\\u003c').replace(/>/g,'\\u003e').replace(/&/g,'\\u0026');const ridJson = JSON.stringify(rid);const html = '<!doctype html><html><head><meta charset="utf-8"></head><body><script>(function(){var message={source:"NICE_API_BRIDGE",request_id:' + ridJson + ',payload:' + safeJson + '};try{window.parent.postMessage(message,"*");}catch(e){}try{if(window.top!==window.parent){window.top.postMessage(message,"*");}}catch(e){}})();<\\/script></body></html>';return HtmlService.createHtmlOutput(html).setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);}
+function niceApiBridgeOutput_(obj, requestId) {
+  const rid=String(requestId||'').replace(/[^A-Za-z0-9_-]/g,'').slice(0,120);
+  const json=JSON.stringify({source:'NICE_API_BRIDGE',request_id:rid,payload:obj}).replace(/</g,'\\u003c').replace(/>/g,'\\u003e').replace(/&/g,'\\u0026');
+  const html='<!doctype html><html><body><script>var message='+json+';window.parent.postMessage(message,"*");if(window.top!==window.parent)window.top.postMessage(message,"*");</script></body></html>';
+  return HtmlService.createHtmlOutput(html).setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+}

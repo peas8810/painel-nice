@@ -153,6 +153,7 @@ function niceCertCustomIssue_(p){
   if(!link)return{ok:false,error:'Link de emissão customizada inválido.'};
   const janela=niceCertEmissionWindow_({STATUS:link.status,EMISSAO_INICIO:link.emissao_inicio,EMISSAO_FIM:link.emissao_fim});if(!janela.open)return{ok:false,error:janela.message};
 
+  if(typeof niceCoursesAuthorize_==='function') p=niceCoursesAuthorize_(link,p);
   const nome=niceCertDashboardClean_(p.nome||p.name,180);
   const email=String(p.email||'').trim().toLowerCase();
   const funcao=niceCertDashboardClean_(p.funcao||p.papel,120);
@@ -171,11 +172,13 @@ function niceCertCustomIssue_(p){
     if(String(v[i][m.TITULO_EVENTO_CUSTOM]||'')!==evento)continue;
     if(String(v[i][m.FUNCAO_EVENTO]||'')!==funcao)continue;
     const code=String(v[i][m.CODIGO]||'').trim(),status=String(v[i][m.STATUS]||'').toUpperCase();
-    if(code&&status==='ENVIADO'){
+    if(code&&status==='REVOGADO'&&typeof niceCoursesByLink_==='function'&&niceCoursesByLink_(link.id))return{ok:false,error:'Este certificado foi revogado. Consulte o responsável.'};
+    if(code&&['ENVIADO','GERADO'].includes(status)){
       const url=String(v[i][m.PDF_URL]||''),fileId=(String(url).match(/[-\w]{20,}/)||[])[0];
       if(fileId){
         const blob=DriveApp.getFileById(fileId).getBlob().setName(code+'.pdf');
-        niceCertCustomSendMail_(email,nome,evento,funcao,blob,code);
+        niceCertCustomSendMail_(email,nome,evento,funcao,blob,code,link);
+        niceCertSetByMap_(sh,i+1,m,'STATUS','ENVIADO');
         niceCertSetByMap_(sh,i+1,m,'ENVIADO_EM',new Date());
         niceCertSetByMap_(sh,i+1,m,'TENTATIVAS_EMAIL',Number(v[i][m.TENTATIVAS_EMAIL]||0)+1);
         return{ok:true,sent:true,reused:true,code,message:'Este certificado já existia e foi reenviado.'};
@@ -218,15 +221,17 @@ function niceCertCustomIssue_(p){
   const hash=typeof niceCertBookSha256Blob_==='function'?niceCertBookSha256Blob_(pdf.blob):'';
   if(typeof niceCertBookFinalize_==='function')niceCertBookFinalize_(registry,{hash_pdf:hash,pdf_url:pdf.url});
 
-  niceCertCustomSendMail_(email,nome,evento,funcao,pdf.blob,code);
   niceCertCustomAppendIssue_(sh,{
     EVENTO_ID:'',NOME:nome,EMAIL:email,CARGA_HORARIA:carga,CODIGO:code,ASSINATURA_HMAC:signature,
-    STATUS:'ENVIADO',EMITIDO_EM:emittedAt,ENVIADO_EM:new Date(),PDF_URL:pdf.url,TENTATIVAS_EMAIL:1,
+    STATUS:'GERADO',EMITIDO_EM:emittedAt,ENVIADO_EM:'',PDF_URL:pdf.url,TENTATIVAS_EMAIL:0,
     ULTIMO_ERRO:'',TIPO_CERTIFICADO:'CUSTOMIZADO',FUNCAO_EVENTO:funcao,TITULO_EVENTO_CUSTOM:evento,
     CUSTOM_LINK_ID:link.id,LIVRO_ATA:livroDigital,REGISTRO_CERTIFICADO:registroDigital,VIA_EMITIDA:viaEmitida,
     INSTITUICAO_EMISSORA:instituicao,INSTITUICAO_ID:registry.instituicao_id,LIVRO_DIGITAL:livroDigital,
     ANO_LIVRO:registry.ano,REGISTRO_DIGITAL:registroDigital,REGISTRO_ID:registry.registro_id,HASH_PDF:hash
   });
+  const issueRow=sh.getLastRow();
+  try{niceCertCustomSendMail_(email,nome,evento,funcao,pdf.blob,code,link);niceCertSetByMap_(sh,issueRow,m,'STATUS','ENVIADO');niceCertSetByMap_(sh,issueRow,m,'ENVIADO_EM',new Date());niceCertSetByMap_(sh,issueRow,m,'TENTATIVAS_EMAIL',1);}
+  catch(err){niceCertSetByMap_(sh,issueRow,m,'ULTIMO_ERRO',String(err.message||err).slice(0,1000));throw new Error('Certificado registrado, mas o envio falhou. Solicite novamente para reenviar a mesma via.');}
   niceCertLog_('CERTIFICADO_CUSTOMIZADO_EMITIDO',link.id,code,livroDigital+' · Registro '+registroDigital+' · '+funcao+' · '+evento+' · '+email);
   return{ok:true,sent:true,reused:false,code,livro_digital:livroDigital,registro_digital:registroDigital,message:'Certificado customizado gerado, registrado e enviado.'};
 }
@@ -236,6 +241,7 @@ function niceCertCustomCanonicalV2_(o){return[o.codigo,'CUSTOM_V2',o.linkId,o.no
 function niceCertCustomCanonicalV3_(o){return[o.codigo,'CUSTOM_V3',o.linkId,o.nome,o.funcao,o.evento,o.carga,o.instituicao,o.livroAta,o.registro,o.viaEmitida,o.emitido].map(v=>String(v==null?'':v).trim()).join('|')}
 
 function niceCertCustomGeneratePdf_(link,cert){
+  if(typeof niceCoursesByLink_==='function'){const course=niceCoursesByLink_(link.id);if(course)return niceCoursesPdf_(link,cert,course);}
   const folder=niceCertFolderFromUrl_(link.pasta_drive);
   const pres=SlidesApp.create('TMP '+cert.codigo);
   const slide=pres.getSlides()[0];
@@ -294,7 +300,8 @@ function niceCertCustomRegistryBlock_(slide,cert){
 }
 
 
-function niceCertCustomSendMail_(email,nome,evento,funcao,blob,codigo){
+function niceCertCustomSendMail_(email,nome,evento,funcao,blob,codigo,link){
+  if(link&&typeof niceCoursesByLink_==='function'){const c=niceCoursesByLink_(link.id);if(c)return niceCoursesMail_(c,email,nome,evento,funcao,blob,codigo);}
   const validate=NICE_CERT.PUBLIC_BASE+'/validar/?codigo='+encodeURIComponent(codigo),subject='[NICE] Certificado · '+evento;
   const plain='Olá, '+nome+'.\n\nSeu certificado referente ao evento '+evento+' está anexo.\nFunção: '+funcao+'\nCódigo: '+codigo+'\nValidação: '+validate+'\n\nNICE · AlfaUnipac';
   const html='<p>Olá, <strong>'+niceCertHtml_(nome)+'</strong>.</p><p>Seu certificado referente ao evento <strong>'+niceCertHtml_(evento)+'</strong> está anexo.</p><p><strong>Função:</strong> '+niceCertHtml_(funcao)+'<br><strong>Código:</strong> '+niceCertHtml_(codigo)+'<br><strong>Validação:</strong> <a href="'+niceCertHtml_(validate)+'">'+niceCertHtml_(validate)+'</a></p><p>NICE · AlfaUnipac</p>';
