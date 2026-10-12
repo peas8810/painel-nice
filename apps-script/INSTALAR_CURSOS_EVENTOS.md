@@ -33,3 +33,7 @@ A prévia não substitui a conferência do PDF em um evento piloto. Testes locai
 Atualize `CursosEventos.gs` e publique nova versão da implantação existente. O botão **Editar evento / certificado** abre os dados cadastrados, lista de pessoas, identidade visual e período. Salvar mantém o mesmo link público e ID do evento. Há controle de revisão para impedir sobrescrita de edição em outra sessão.
 
 Os PDFs já registrados não são modificados ao salvar. O sistema conserva a identidade anterior por código, inclusive para regeneração administrativa. Próximos certificados usam o evento atualizado. Um teste emitido formalmente continua sendo um registro real. Salvar a edição não reemite nem corrige automaticamente esse documento. Reenvios de um certificado existente mantêm o PDF original; seus registros não são apagados.
+
+## Criação do modelo antes de cadastrar participantes
+
+É permitido criar o evento com lista vazia para aprovação do cliente. O link é exibido imediatamente após salvar. Nenhuma pessoa consegue emitir enquanto não for cadastrada na lista autorizada; use Editar para adicionar os participantes. Atualize `CursosEventos.gs` e publique uma nova versão para habilitar esse fluxo.

@@ -17,7 +17,7 @@ function niceCoursesValidate_(c){
   out.conteudo=niceCoursesText_(c.conteudo||'',6000);
   if(out.documento.replace(/\D/g,'').length===11)throw new Error('Não informe CPF no campo público. Use nome ou CNPJ.');
   const people=Array.isArray(c.pessoas)?c.pessoas:[];
-  if(!people.length||people.length>500)throw new Error('Cadastre de 1 a 500 pessoas autorizadas por evento.');
+  if(people.length>500)throw new Error('Cadastre até 500 pessoas autorizadas por evento.');
   const seen={};out.pessoas=people.map(p=>{const nome=niceCoursesText_(p.nome,180),email=String(p.email||'').trim().toLowerCase(),funcao=String(p.funcao||''),carga=Number(String(p.carga||'').replace(',','.')),tema=niceCoursesText_(p.tema||'',180);
     if(nome.length<3||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)||!NICE_COURSES_ROLES.includes(funcao)||!isFinite(carga)||carga<=0||carga>10000)throw new Error('Pessoa inválida: '+nome+'. Confira e-mail, função e horas.');
     const key=email+'|'+funcao;if(seen[key])throw new Error('E-mail e função duplicados: '+email);seen[key]=true;

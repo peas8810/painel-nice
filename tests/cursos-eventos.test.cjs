@@ -25,3 +25,4 @@ test('edição preserva IDs, cria revisão e mantém snapshots dos certificados 
  assert.equal(out.course.id,'CUR-1');assert.equal(out.course.link_id,'C0001');assert.equal(out.course.cliente_id,'CLIENT-1');assert.equal(out.course.revisao,2);assert.equal(snapshots[0].title,'Curso');assert.equal(JSON.parse(stored.text).titulo,'Curso corrigido');assert.ok(released);
  assert.throws(()=>ctx.niceCoursesUpdate_({id:'CUR-1',revisao:1,dados:JSON.stringify(revised)}),/outra sessão/);
 });
+test('criação sem participantes permite aprovar modelo sem liberar emissão',()=>{const c=ctx.niceCoursesValidate_({...base(),pessoas:[]});assert.equal(c.pessoas.length,0);ctx.niceCoursesByLink_=()=>c;assert.throws(()=>ctx.niceCoursesAuthorize_({id:'C1'},{email:'maria@example.com',funcao:'Participante'}),/autorização/)});
