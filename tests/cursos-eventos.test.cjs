@@ -26,3 +26,19 @@ test('edição preserva IDs, cria revisão e mantém snapshots dos certificados 
  assert.throws(()=>ctx.niceCoursesUpdate_({id:'CUR-1',revisao:1,dados:JSON.stringify(revised)}),/outra sessão/);
 });
 test('criação sem participantes permite aprovar modelo sem liberar emissão',()=>{const c=ctx.niceCoursesValidate_({...base(),pessoas:[]});assert.equal(c.pessoas.length,0);ctx.niceCoursesByLink_=()=>c;assert.throws(()=>ctx.niceCoursesAuthorize_({id:'C1'},{email:'maria@example.com',funcao:'Participante'}),/autorização/)});
+test('limites são inteiros e limite zero bloqueia operação',()=>{assert.equal(ctx.niceCoursesLimit_('',100),100);assert.equal(ctx.niceCoursesLimit_(0,100),0);for(const n of [-1,1.5,'x',100001])assert.throws(()=>ctx.niceCoursesLimit_(n,100),/limite inteiro/)});
+test('cotas somam concluídos e reservas, excluem falhas e outros clientes',()=>{
+ const data=[['CURSO_ID','EMAIL','STATUS','PESO'],['CUR-1','a@b.com','CONCLUIDO',2],['CUR-1','a@b.com','RESERVADO',1],['CUR-1','a@b.com','FALHOU',1],['CUR-2','a@b.com','CONCLUIDO',99]];
+ ctx.niceCoursesQuotaSheet_=()=>({getDataRange:()=>({getValues:()=>data})});const q=ctx.niceCoursesQuota_({id:'CUR-1',limite_total:5,limite_pessoa:3},'a@b.com');assert.equal(q.usados,2);assert.equal(q.reservados,1);assert.equal(q.disponiveis,2);assert.equal(q.pessoa_usados,3);
+});
+test('PDF ignora campo opcional vazio antes de chamar getText',()=>{
+ const source=fs.readFileSync('apps-script/CursosEventos.gs','utf8');assert.match(source,/function text\(t[^\n]+if\(!String\(t\|\|''\)\.trim\(\)\)return null/);
+});
+test('servidor bloqueia total e pessoa antes de emitir e evita reenvio da mesma solicitação',()=>{
+ function fresh(){const x={Utilities:{getUuid:()=> 'req-new-uuid'},LockService:{getScriptLock:()=>({waitLock(){},releaseLock(){}})}};vm.createContext(x);vm.runInContext(fs.readFileSync('apps-script/CursosEventos.gs','utf8'),x);const c={id:'C1',pessoas:[{nome:'Maria Silva',email:'a@b.com',funcao:'Participante',carga:'2 horas'}]};x.niceCoursesLoadClient_=()=>({c,link:{id:'LINK',token:'token'}});x.niceCertEmissionWindow_=()=>({open:true});x.niceCertHeaderMap_=heads=>Object.fromEntries(heads.map((h,i)=>[h,i]));x.niceCoursesPerson_=p=>p;x.niceCoursesBaselineLocked_=()=>{};x.niceCoursesQuotaSheet_=()=>({getDataRange:()=>({getValues:()=>[['SOLICITACAO_ID','CURSO_ID','STATUS','CODIGO']]})});x.niceCertCustomIssue_=()=>{throw new Error('Não deveria emitir');};return x;}
+ const p={chave:'token',email:'a@b.com',funcao:'Participante',solicitacao_id:'request-1'};
+ const total=fresh();total.niceCoursesQuota_=()=>({disponiveis:0,pessoa_usados:0,limite_pessoa:2});assert.throws(()=>total.niceCoursesClientIssue_(p),/limite deste link/);
+ const person=fresh();person.niceCoursesQuota_=()=>({disponiveis:5,pessoa_usados:2,limite_pessoa:2});assert.throws(()=>person.niceCoursesClientIssue_(p),/limite de envios para esta pessoa/);
+ const replay=fresh();replay.niceCoursesQuotaSheet_=()=>({getDataRange:()=>({getValues:()=>[['SOLICITACAO_ID','CURSO_ID','STATUS','CODIGO'],['request-1','C1','CONCLUIDO','CERT-1']]})});const out=replay.niceCoursesClientIssue_(p);assert.equal(out.code,'CERT-1');assert.equal(out.reused,true);
+ const active=fresh();active.niceCoursesQuotaSheet_=()=>({getDataRange:()=>({getValues:()=>[['SOLICITACAO_ID','CURSO_ID','STATUS','CODIGO'],['request-1','C1','RESERVADO','']]})});assert.throws(()=>active.niceCoursesClientIssue_(p),/andamento/);
+});

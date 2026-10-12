@@ -11,6 +11,7 @@ function niceCoursesValidate_(c){
   ['cliente','cliente_id','documento','emissor','titulo','data','modalidade','local','criterios','signatario','cargo','signatario2','cargo2'].forEach(k=>out[k]=niceCoursesText_(c[k]||'',k==='criterios'?700:180));
   if(!out.cliente||!out.emissor||!out.titulo||!out.data||!out.signatario)throw new Error('Preencha cliente, emissor, título, data e signatário.');
   out.cliente_id=out.cliente_id||Utilities.getUuid();
+  out.limite_total=niceCoursesLimit_(c.limite_total,100);out.limite_pessoa=niceCoursesLimit_(c.limite_pessoa,3);out.gestao_cliente=true;
   out.layout=['institucional','moderno','classico'].includes(c.layout)?c.layout:'institucional';
   out.cor=/^#[0-9a-f]{6}$/i.test(c.cor||'')?c.cor:'#17365D';
   out.logo=niceCoursesImage_(c.logo);out.assinatura=niceCoursesImage_(c.assinatura);out.assinatura2=niceCoursesImage_(c.assinatura2);
@@ -37,17 +38,18 @@ function niceCoursesAdmin_(op,p){
       niceCertLog_('CURSO_EVENTO_CRIADO',c.id,'',c.cliente+' · '+c.titulo);return{ok:true,course:c};
     }finally{lock.releaseLock();}
   }
+  if(op==='courses_limits')return niceCoursesSetLimits_(p);
   if(op==='courses_issue'){const c=niceCoursesAll_().find(x=>x.id===p.id);if(!c)throw new Error('Evento não encontrado.');const link=niceCertCustomGetLinkById_(c.link_id);return niceCertCustomIssue_({chave:link.token,email:p.email,funcao:p.funcao});}
   return{ok:false,error:'Operação de cursos não reconhecida.'};
 }
-function niceCoursesPublic_(token){const link=niceCertCustomGetLinkByToken_(token);if(!link)throw new Error('Link inválido.');const c=niceCoursesByLink_(link.id);if(!c)throw new Error('Curso não encontrado.');return{ok:true,course:{titulo:c.titulo,cliente:c.cliente,logo:c.logo,data:c.data,modalidade:c.modalidade,local:c.local,criterios:c.criterios,funcoes:[...new Set(c.pessoas.map(p=>p.funcao))]},link:niceCertCustomPublicLink_(token).link};}
+function niceCoursesPublic_(token){const link=niceCertCustomGetLinkByToken_(token);if(!link)throw new Error('Link inválido.');const c=niceCoursesByLink_(link.id);if(!c)throw new Error('Curso não encontrado.');return{ok:true,course:{titulo:c.titulo,cliente:c.cliente,logo:c.logo,data:c.data,modalidade:c.modalidade,local:c.local,criterios:c.criterios,funcoes:NICE_COURSES_ROLES,limite_total:c.limite_total==null?100:c.limite_total,limite_pessoa:c.limite_pessoa==null?3:c.limite_pessoa},link:niceCertCustomPublicLink_(token).link};}
 function niceCoursesAuthorize_(link,p){const c=niceCoursesByLink_(link.id);if(!c)return p;const email=String(p.email||'').trim().toLowerCase();const person=c.pessoas.find(x=>x.email===email&&x.funcao===p.funcao);if(!person)throw new Error('Não há autorização para este e-mail e função. Consulte o responsável.');return Object.assign({},p,{nome:person.nome,email,funcao:person.funcao,carga:person.carga,evento:c.titulo});}
 function niceCoursesBlob_(data){const parts=data.split(',');return Utilities.newBlob(Utilities.base64Decode(parts[1]),data.includes('image/png')?'image/png':'image/jpeg','imagem');}
 function niceCoursesPdf_(link,cert,c){
   c=niceCoursesSnapshot_(link,cert.codigo,c);
   const pres=SlidesApp.create('TMP '+cert.codigo),slide=pres.getSlides()[0];slide.getPageElements().forEach(x=>x.remove());
   const color=c.cor,font=c.layout==='classico'?'Georgia':'Arial';
-  function text(t,x,y,w,h,size,bold,align){const box=niceCertText_(slide,t,x,y,w,h,size,color,bold,align||'CENTER');box.getText().getTextStyle().setFontFamily(font);return box;}
+  function text(t,x,y,w,h,size,bold,align){if(!String(t||'').trim())return null;const box=niceCertText_(slide,t,x,y,w,h,size,color,bold,align||'CENTER');box.getText().getTextStyle().setFontFamily(font);return box;}
   const border=slide.insertShape(SlidesApp.ShapeType.RECTANGLE,18,18,684,369);border.getFill().setTransparent();border.getBorder().getLineFill().setSolidFill(color);border.getBorder().setWeight(c.layout==='moderno'?5:1.5);
   if(c.logo)slide.insertImage(niceCoursesBlob_(c.logo),45,30,65,45);
   text(c.cliente,120,32,480,25,15,true);text(c.documento?'CNPJ / identificação: '+c.documento:'',120,58,480,15,8,false);
@@ -97,4 +99,44 @@ function niceCoursesUpdate_(p){
     niceCertLog_('CURSO_EVENTO_EDITADO',c.id,'','Revisão '+c.revisao+' · '+c.titulo);
     return{ok:true,course:c,message:'Alterações salvas. Os PDFs já emitidos permanecem preservados; as próximas emissões usam os novos dados.'};
   }finally{lock.releaseLock();}
+}
+
+/** Limites comerciais: somente o administrador altera. */
+function niceCoursesLimit_(v,fallback){if(v==null||v==='')return fallback;const n=Number(v);if(!Number.isInteger(n)||n<0||n>100000)throw new Error('Informe um limite inteiro de 0 a 100000.');return n;}
+function niceCoursesQuotaSheet_(){return niceCertSheet_(niceMaster_(),'CERT_CURSOS_COTAS',['SOLICITACAO_ID','CURSO_ID','EMAIL','STATUS','CODIGO','CRIADO_EM','ATUALIZADO_EM','ERRO','PESO']);}
+function niceCoursesQuota_(c,email){const v=niceCoursesQuotaSheet_().getDataRange().getValues(),h=niceCertHeaderMap_(v[0]),rows=v.slice(1).filter(r=>r[h.CURSO_ID]===c.id&&['RESERVADO','CONCLUIDO'].includes(r[h.STATUS]));const done=rows.filter(r=>r[h.STATUS]==='CONCLUIDO'),weight=r=>Number(r[h.PESO])||1,used=done.reduce((n,r)=>n+weight(r),0),held=rows.filter(r=>r[h.STATUS]==='RESERVADO').reduce((n,r)=>n+weight(r),0);return{limite_total:c.limite_total==null?100:c.limite_total,limite_pessoa:c.limite_pessoa==null?3:c.limite_pessoa,usados:used,reservados:held,disponiveis:Math.max(0,(c.limite_total==null?100:c.limite_total)-used-held),pessoa_usados:email?rows.filter(r=>r[h.EMAIL]===email).reduce((n,r)=>n+weight(r),0):0};}
+function niceCoursesLoadClient_(token){const link=niceCertCustomGetLinkByToken_(token);if(!link)throw new Error('Link de cliente inválido.');const c=niceCoursesByLink_(link.id);if(!c)throw new Error('Evento não encontrado.');return{c,link};}
+function niceCoursesStore_(c){const v=niceCoursesSheet_().getDataRange().getValues(),row=v.find(r=>r[0]===c.id);if(!row)throw new Error('Evento não encontrado.');c.revisao=Number(c.revisao||1)+1;DriveApp.getFileById(String(row[3])).setContent(JSON.stringify(c));}
+function niceCoursesSetLimits_(p){const lock=LockService.getScriptLock();lock.waitLock(30000);try{const c=niceCoursesAll_().find(c=>c.id===p.id);if(!c)throw new Error('Evento não encontrado.');c.limite_total=niceCoursesLimit_(p.limite_total,100);c.limite_pessoa=niceCoursesLimit_(p.limite_pessoa,3);niceCoursesStore_(c);niceCertLog_('LIMITE_CURSO_ALTERADO',c.id,'','Total '+c.limite_total+' · Por pessoa '+c.limite_pessoa);return{ok:true,quota:niceCoursesQuota_(c)};}finally{lock.releaseLock();}}
+function niceCoursesClientData_(token){const {c,link}=niceCoursesLoadClient_(token);const lock=LockService.getScriptLock();lock.waitLock(30000);try{niceCoursesBaselineLocked_(c)}finally{lock.releaseLock();}const issues=niceCertIssuesSheet_().getDataRange().getValues(),h=niceCertHeaderMap_(issues[0]);return{ok:true,course:niceCoursesPublic_(token).course,link:niceCertCustomPublicLink_(token).link,quota:niceCoursesQuota_(c),pessoas:c.pessoas,certificados:issues.slice(1).filter(r=>r[h.CUSTOM_LINK_ID]===link.id).map(r=>({nome:r[h.NOME],email:r[h.EMAIL],funcao:r[h.FUNCAO_EVENTO],codigo:r[h.CODIGO],status:r[h.STATUS],emitido_em:niceApiIso_(r[h.EMITIDO_EM])}))};}
+function niceCoursesPerson_(p,c){const person={nome:p.nome,email:p.email,funcao:p.funcao,carga:String(p.carga||'').replace(/\s*horas?\s*$/i,''),tema:p.tema,aprovado:p.aprovado===true||p.aprovado==='true'};return niceCoursesValidate_(Object.assign({},c,{pessoas:[person]})).pessoas[0];}
+function niceCoursesEnrollLocked_(c,p){const person=niceCoursesPerson_(p,c),i=c.pessoas.findIndex(x=>x.email===person.email&&x.funcao===person.funcao);if(i>=0){const old=c.pessoas[i];if(old.nome!==person.nome||old.carga!==person.carga||old.tema!==person.tema){const issues=niceCertIssuesSheet_().getDataRange().getValues(),h=niceCertHeaderMap_(issues[0]);if(issues.slice(1).some(r=>r[h.CUSTOM_LINK_ID]===c.link_id&&String(r[h.EMAIL]).toLowerCase()===person.email&&r[h.FUNCAO_EVENTO]===person.funcao&&r[h.CODIGO]))throw new Error('Essa pessoa e função já têm certificado registrado. Para corrigir os dados, contate o administrador.');}c.pessoas[i]=person;}else{if(c.pessoas.length>=500)throw new Error('Limite de 500 cadastros por evento.');c.pessoas.push(person);}niceCoursesStore_(c);return person;}
+function niceCoursesClientSave_(p){const lock=LockService.getScriptLock();lock.waitLock(30000);try{const {c,link}=niceCoursesLoadClient_(p.chave);if(!niceCertEmissionWindow_({STATUS:link.status,EMISSAO_INICIO:link.emissao_inicio,EMISSAO_FIM:link.emissao_fim}).open)throw new Error('Este link está fechado para alterações.');const person=niceCoursesEnrollLocked_(c,p);return{ok:true,person,message:'Pessoa cadastrada. O cadastro não consome a franquia.'};}finally{lock.releaseLock();}}
+function niceCoursesClientIssue_(p){
+  const request=String(p.solicitacao_id||Utilities.getUuid());if(!/^[A-Za-z0-9_-]{8,100}$/.test(request))throw new Error('Solicitação inválida.');
+  const lock=LockService.getScriptLock();lock.waitLock(30000);let row,person,link,c;
+  try{
+    ({c,link}=niceCoursesLoadClient_(p.chave||p.token));
+    const window=niceCertEmissionWindow_({STATUS:link.status,EMISSAO_INICIO:link.emissao_inicio,EMISSAO_FIM:link.emissao_fim});if(!window.open)throw new Error(window.message);
+    const sh=niceCoursesQuotaSheet_(),v=sh.getDataRange().getValues(),h=niceCertHeaderMap_(v[0]),index=v.findIndex((r,i)=>i>0&&r[h.SOLICITACAO_ID]===request);
+    if(index>0){if(v[index][h.CURSO_ID]!==c.id)throw new Error('Solicitação inválida.');if(v[index][h.STATUS]==='CONCLUIDO')return{ok:true,code:v[index][h.CODIGO],message:'Esta solicitação já foi concluída.',reused:true};throw new Error(v[index][h.STATUS]==='RESERVADO'?'Emissão em andamento. Aguarde e atualize a lista.':'A tentativa anterior falhou. Confira o histórico e faça uma nova solicitação.');}
+    const existing=c.pessoas.find(x=>x.email===String(p.email||'').trim().toLowerCase()&&x.funcao===p.funcao);
+    person=niceCoursesPerson_(p.nome?p:existing||p,c);
+    niceCoursesBaselineLocked_(c);const quota=niceCoursesQuota_(c,person.email);if(quota.disponiveis<=0)throw new Error('O limite deste link foi atingido. Solicite mais emissões ao administrador.');if(quota.pessoa_usados>=quota.limite_pessoa)throw new Error('O limite de envios para esta pessoa foi atingido. Solicite ajuste ao administrador.');
+    person=niceCoursesEnrollLocked_(c,person);
+    niceCertAppendObject_(sh,{SOLICITACAO_ID:request,CURSO_ID:c.id,EMAIL:person.email,STATUS:'RESERVADO',CRIADO_EM:new Date(),ATUALIZADO_EM:new Date()});row=sh.getLastRow();
+  }finally{lock.releaseLock();}
+  try{const out=niceCertCustomIssue_({chave:link.token,email:person.email,funcao:person.funcao},true);if(!out.ok)throw new Error(out.error||'Falha na emissão.');niceCoursesFinishQuota_(row,'CONCLUIDO',out.code,'');return Object.assign({},out,{quota:niceCoursesQuota_(c),message:out.message+' Um envio utilizado da franquia.'});}
+  catch(err){niceCoursesFinishQuota_(row,'FALHOU','',String(err.message||err));throw err;}
+}
+function niceCoursesFinishQuota_(row,status,code,error){const lock=LockService.getScriptLock();lock.waitLock(30000);try{const sh=niceCoursesQuotaSheet_(),h=niceCertHeaderMap_(sh.getRange(1,1,1,sh.getLastColumn()).getDisplayValues()[0]);niceCertSetByMap_(sh,row,h,'STATUS',status);niceCertSetByMap_(sh,row,h,'CODIGO',code);niceCertSetByMap_(sh,row,h,'ERRO',error);niceCertSetByMap_(sh,row,h,'ATUALIZADO_EM',new Date());}finally{lock.releaseLock();}}
+/** Importa o uso anterior uma única vez, sem reiniciar saldo na atualização. */
+function niceCoursesBaselineLocked_(c){
+  const sh=niceCoursesQuotaSheet_(),v=sh.getDataRange().getValues(),h=niceCertHeaderMap_(v[0]),seen=new Set(v.slice(1).map(r=>String(r[h.SOLICITACAO_ID])));
+  const issues=niceCertIssuesSheet_().getDataRange().getValues(),ih=niceCertHeaderMap_(issues[0]);
+  issues.slice(1).filter(r=>r[ih.CUSTOM_LINK_ID]===c.link_id&&r[ih.CODIGO]&&['ENVIADO','ATIVO','REVOGADO'].includes(r[ih.STATUS])).forEach(r=>{
+    const code=String(r[ih.CODIGO]),id='ANTERIOR_'+code;
+    if(seen.has(id)||v.slice(1).some(q=>q[h.CURSO_ID]===c.id&&q[h.CODIGO]===code))return;
+    niceCertAppendObject_(sh,{SOLICITACAO_ID:id,CURSO_ID:c.id,EMAIL:String(r[ih.EMAIL]||'').toLowerCase(),STATUS:'CONCLUIDO',CODIGO:code,CRIADO_EM:new Date(),ATUALIZADO_EM:new Date(),PESO:Math.max(1,Number(r[ih.TENTATIVAS_EMAIL])||1)});seen.add(id);
+  });
 }

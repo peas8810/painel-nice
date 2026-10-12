@@ -147,12 +147,13 @@ function niceCertCustomPublicLink_(token){
   }};
 }
 
-function niceCertCustomIssue_(p){
+function niceCertCustomIssue_(p,coursePermit){
   niceCertCustomEnsureIssueHeaders_();
   const link=niceCertCustomGetLinkByToken_(p.chave||p.token);
   if(!link)return{ok:false,error:'Link de emissão customizada inválido.'};
   const janela=niceCertEmissionWindow_({STATUS:link.status,EMISSAO_INICIO:link.emissao_inicio,EMISSAO_FIM:link.emissao_fim});if(!janela.open)return{ok:false,error:janela.message};
 
+  if(typeof niceCoursesByLink_==='function'&&niceCoursesByLink_(link.id)&&!coursePermit)return niceCoursesClientIssue_(p);
   if(typeof niceCoursesAuthorize_==='function') p=niceCoursesAuthorize_(link,p);
   const nome=niceCertDashboardClean_(p.nome||p.name,180);
   const email=String(p.email||'').trim().toLowerCase();

@@ -1,0 +1,34 @@
+# Link de gestão do cliente e limites de envio
+
+Atualize estes quatro arquivos no Apps Script:
+
+- `CursosEventos.gs`
+- `CertificadosCustomizados.gs`
+- `WebAppNICE.gs`
+- `CertificadosPublicPost.gs`
+
+Mantenha `CertificadosDashboard.gs` com o encaminhamento de operações `courses_` já instalado. Salve e publique **Nova versão da implantação existente**. O frontend é atualizado pelo GitHub Pages. Recarregue `/certificados/cursos/` com Ctrl + F5.
+
+## Fluxo comercial
+
+1. O administrador cria o evento, configura a identidade e define limite total de envios e limite por pessoa, identificada pelo e-mail. Valores iniciais sugeridos na tela: 100 envios por link e 3 por pessoa; ajuste à contratação.
+2. Entrega o **link de gestão do cliente**, privado, ao contratante. Não entregue a chave administrativa global.
+3. O cliente cadastra nomes, e-mails, funções, horas e tema. Pode salvar cadastros sem emitir. Participante, Palestrante e Organizador estão disponíveis, assim como Concluinte, Coordenador e Monitor.
+4. O cliente emite e envia individualmente e acompanha os certificados e o saldo daquele evento.
+5. Ao atingir qualquer limite, o servidor bloqueia novos envios. Somente o administrador altera os limites no botão **Alterar limites**; o link permanece o mesmo.
+
+Cada envio concluído (incluindo reenvio) consome 1 unidade total e 1 unidade por e-mail. Cadastro não consome unidades. Falhas são registradas sem consumir unidades. Reservas em andamento contam provisoriamente para impedir que solicitações simultâneas ultrapassem o limite. Uma repetição da mesma solicitação concluída retorna o código anterior sem enviar outro e-mail nem consumir novamente.
+
+A aba `CERT_CURSOS_COTAS` guarda o histórico de reservas e envios. Certificados anteriores são importados para a contagem a partir do histórico existente de envios. Alterar um limite não zera o uso. Os limites existentes na tela de edição também são exclusivos do administrador.
+
+O link do cliente permite consultar dados pessoais do seu próprio evento. É uma credencial de acesso e deve ser compartilhado somente com responsáveis. Não é um link público de autoatendimento de participantes.
+
+Cadastros com documentos já emitidos não permitem alterar nome, horas ou tema silenciosamente. Correções desses documentos devem ser tratadas pelo administrador. Editar o modelo continua preservando PDFs já registrados.
+
+A correção de PDF pula caixas de texto opcionais vazias antes da formatação, evitando o erro “The object … has no text”.
+
+## Verificação após implantação
+
+Crie um evento piloto com limite total 2 e limite por e-mail 1. Cadastre sem emitir e confirme saldo intacto. Envie uma vez e confira PDF/e-mail/registro. Tente reenviar ao mesmo e-mail: deve bloquear. Envie para outro e-mail: deve concluir e esgotar o total. Tente um terceiro: deve bloquear. Aumente os limites e confira que o mesmo link libera o saldo adicional.
+
+Não foi realizada emissão real no Google durante o desenvolvimento. Se uma execução Google for interrompida sem retornar, a reserva fica bloqueada para evitar exceder a franquia; confira a aba de cotas e os registros antes de intervir. A versão atual não inclui recuperação automática dessas reservas nem login nominal do cliente.
