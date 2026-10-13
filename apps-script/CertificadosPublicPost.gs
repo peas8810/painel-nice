@@ -5,6 +5,7 @@ function doPost(e){
   let payload;
   try{
     if(action==='cert_issue') payload=niceCertPublicIssue_(p);
+    else if(action==='course_batch') payload=niceBatchDispatch_(p,false);
     else if(action==='course_client_issue') payload=niceCoursesClientIssue_(p);
     else if(action==='course_client_save') payload=niceCoursesClientSave_(p);
     else if(action==='cert_admin') payload=niceCertDashboardAdmin_(p);
