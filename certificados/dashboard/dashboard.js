@@ -191,6 +191,7 @@
     try{
       const p=await adminCall('regenerate_certificate',{code});
       if(!p||!p.ok)throw new Error(p&&p.error||'Não foi possível regenerar o PDF.');
+      if(p.pdf_url){const opened=window.open(p.pdf_url,'_blank','noopener');if(!opened)prompt('PDF atualizado. Abra este novo arquivo:',p.pdf_url);}
       alert('PDF atualizado com sucesso.\n\n'+code+'\n\nA validação digital permanece a mesma.');
       await load();
     }catch(e){alert(e.message||'Falha ao atualizar o PDF.')}

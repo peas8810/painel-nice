@@ -473,6 +473,7 @@ function niceCertPublicVerify_(code){
 function niceCertRegenerateByCode_(code){
   const wanted=String(code||'').trim().toUpperCase();
   if(!wanted)return{ok:false,error:'Código do certificado não informado.'};
+  if(typeof niceCertCustomEnsureIssueHeaders_==='function')niceCertCustomEnsureIssueHeaders_();
   const sh=niceCertIssuesSheet_(),v=sh.getDataRange().getValues();
   if(v.length<2)return{ok:false,error:'Nenhum certificado cadastrado.'};
   const m=niceCertHeaderMap_(v[0]);
@@ -507,6 +508,7 @@ function niceCertRegenerateByCode_(code){
       pdf=niceCertGeneratePdf_(event,{nome,email,carga,codigo:wanted,signature,emitido:emitted,instituicao_emissora:String(v[i][m.INSTITUICAO_EMISSORA]||event.INSTITUICAO_EMISSORA||'').trim(),livro_digital:String(v[i][m.LIVRO_DIGITAL]||'').trim(),registro_digital:String(v[i][m.REGISTRO_DIGITAL]||'').trim()});
     }
     niceCertSetByMap_(sh,i+1,m,'PDF_URL',pdf.url);
+    niceCertSetByMap_(sh,i+1,m,'PDF_MODELO_VERSAO',pdf.modelo_versao||'');
     const hash=typeof niceCertBookSha256Blob_==='function'?niceCertBookSha256Blob_(pdf.blob):'';
     niceCertSetByMap_(sh,i+1,m,'HASH_PDF',hash);
     const reg=typeof niceCertBookFindByCode_==='function'?niceCertBookFindByCode_(wanted):null;

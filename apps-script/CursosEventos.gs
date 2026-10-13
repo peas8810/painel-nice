@@ -73,7 +73,7 @@ function niceCoursesPdf_(link,cert,c){
   niceCoursesValidationPanel_(slide,cert,c.emissor,file.getUrl(),color);
   if(c.conteudo)niceCoursesRenderRich_(pres,c,cert,color);
   pres.saveAndClose();Utilities.sleep(2000);const source=DriveApp.getFileById(pres.getId());const blob=source.getBlob().getAs(MimeType.PDF).setName(cert.codigo+'.pdf');
-  niceCoursesUploadPdf_(file.getId(),blob);file.setSharing(DriveApp.Access.ANYONE_WITH_LINK,DriveApp.Permission.VIEW);source.setTrashed(true);return{blob,url:file.getUrl(),id:file.getId()};
+  niceCoursesUploadPdf_(file.getId(),blob);file.setSharing(DriveApp.Access.ANYONE_WITH_LINK,DriveApp.Permission.VIEW);source.setTrashed(true);return{blob,url:file.getUrl(),id:file.getId(),modelo_versao:'CURSOS_PDF_V3'};
   }catch(err){file.setTrashed(true);throw err;}
 
 }

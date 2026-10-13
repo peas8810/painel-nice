@@ -20,7 +20,7 @@ function instalarCertificadosCustomizados(){
 
 function niceCertCustomEnsureIssueHeaders_(){
   const sh=niceCertIssuesSheet_();
-  ['TIPO_CERTIFICADO','FUNCAO_EVENTO','TITULO_EVENTO_CUSTOM','CUSTOM_LINK_ID','LIVRO_ATA','REGISTRO_CERTIFICADO','VIA_EMITIDA','INSTITUICAO_EMISSORA','INSTITUICAO_ID','LIVRO_DIGITAL','ANO_LIVRO','REGISTRO_DIGITAL','REGISTRO_ID','HASH_PDF'].forEach(h=>{
+  ['PDF_MODELO_VERSAO','TIPO_CERTIFICADO','FUNCAO_EVENTO','TITULO_EVENTO_CUSTOM','CUSTOM_LINK_ID','LIVRO_ATA','REGISTRO_CERTIFICADO','VIA_EMITIDA','INSTITUICAO_EMISSORA','INSTITUICAO_ID','LIVRO_DIGITAL','ANO_LIVRO','REGISTRO_DIGITAL','REGISTRO_ID','HASH_PDF'].forEach(h=>{
     const heads=sh.getRange(1,1,1,sh.getLastColumn()).getDisplayValues()[0];
     if(!heads.includes(h)) sh.getRange(1,sh.getLastColumn()+1).setValue(h);
   });
@@ -175,7 +175,9 @@ function niceCertCustomIssue_(p,coursePermit){
     const code=String(v[i][m.CODIGO]||'').trim(),status=String(v[i][m.STATUS]||'').toUpperCase();
     if(code&&status==='REVOGADO'&&typeof niceCoursesByLink_==='function'&&niceCoursesByLink_(link.id))return{ok:false,error:'Este certificado foi revogado. Consulte o responsável.'};
     if(code&&['ENVIADO','GERADO'].includes(status)){
-      const url=String(v[i][m.PDF_URL]||''),fileId=(String(url).match(/[-\w]{20,}/)||[])[0];
+      let url=String(v[i][m.PDF_URL]||'');
+      if(typeof niceCoursesByLink_==='function'&&niceCoursesByLink_(link.id)&&String(v[i][m.PDF_MODELO_VERSAO]||'')!=='CURSOS_PDF_V3'){const updated=niceCertRegenerateByCode_(code);if(!updated.ok)throw new Error(updated.error||'Não foi possível atualizar o PDF antigo.');url=updated.pdf_url;}
+      const fileId=(String(url).match(/[-\w]{20,}/)||[])[0];
       if(fileId){
         const blob=DriveApp.getFileById(fileId).getBlob().setName(code+'.pdf');
         niceCertCustomSendMail_(email,nome,evento,funcao,blob,code,link);
@@ -226,7 +228,7 @@ function niceCertCustomIssue_(p,coursePermit){
     EVENTO_ID:'',NOME:nome,EMAIL:email,CARGA_HORARIA:carga,CODIGO:code,ASSINATURA_HMAC:signature,
     STATUS:'GERADO',EMITIDO_EM:emittedAt,ENVIADO_EM:'',PDF_URL:pdf.url,TENTATIVAS_EMAIL:0,
     ULTIMO_ERRO:'',TIPO_CERTIFICADO:'CUSTOMIZADO',FUNCAO_EVENTO:funcao,TITULO_EVENTO_CUSTOM:evento,
-    CUSTOM_LINK_ID:link.id,LIVRO_ATA:livroDigital,REGISTRO_CERTIFICADO:registroDigital,VIA_EMITIDA:viaEmitida,
+    PDF_MODELO_VERSAO:pdf.modelo_versao||'',CUSTOM_LINK_ID:link.id,LIVRO_ATA:livroDigital,REGISTRO_CERTIFICADO:registroDigital,VIA_EMITIDA:viaEmitida,
     INSTITUICAO_EMISSORA:instituicao,INSTITUICAO_ID:registry.instituicao_id,LIVRO_DIGITAL:livroDigital,
     ANO_LIVRO:registry.ano,REGISTRO_DIGITAL:registroDigital,REGISTRO_ID:registry.registro_id,HASH_PDF:hash
   });
