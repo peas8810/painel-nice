@@ -15,7 +15,8 @@ function niceCoursesValidate_(c){
   out.layout=['institucional','moderno','classico'].includes(c.layout)?c.layout:'institucional';
   out.cor=/^#[0-9a-f]{6}$/i.test(c.cor||'')?c.cor:'#17365D';
   out.logo=niceCoursesImage_(c.logo);out.assinatura=niceCoursesImage_(c.assinatura);out.assinatura2=niceCoursesImage_(c.assinatura2);
-  out.conteudo=niceCoursesText_(c.conteudo||'',6000);
+  out.conteudo=String(c.conteudo||'').replace(/[<>]/g,'').replace(/\r\n?/g,'\n').replace(/[\t ]+/g,' ').trim().slice(0,6000);
+  out.conteudo_formato=['justificado','topicos'].includes(c.conteudo_formato)?c.conteudo_formato:'justificado';
   if(out.documento.replace(/\D/g,'').length===11)throw new Error('Não informe CPF no campo público. Use nome ou CNPJ.');
   const people=Array.isArray(c.pessoas)?c.pessoas:[];
   if(people.length>500)throw new Error('Cadastre até 500 pessoas autorizadas por evento.');
@@ -46,7 +47,12 @@ function niceCoursesPublic_(token){const link=niceCertCustomGetLinkByToken_(toke
 function niceCoursesAuthorize_(link,p){const c=niceCoursesByLink_(link.id);if(!c)return p;const email=String(p.email||'').trim().toLowerCase();const person=c.pessoas.find(x=>x.email===email&&x.funcao===p.funcao);if(!person)throw new Error('Não há autorização para este e-mail e função. Consulte o responsável.');return Object.assign({},p,{nome:person.nome,email,funcao:person.funcao,carga:person.carga,evento:c.titulo});}
 function niceCoursesBlob_(data){const parts=data.split(',');return Utilities.newBlob(Utilities.base64Decode(parts[1]),data.includes('image/png')?'image/png':'image/jpeg','imagem');}
 function niceCoursesPdf_(link,cert,c){
-  c=niceCoursesSnapshot_(link,cert.codigo,c);
+  const presentationFormat=c.conteudo_formato;
+  c=Object.assign({},niceCoursesSnapshot_(link,cert.codigo,c));
+  if(presentationFormat)c.conteudo_formato=presentationFormat;
+  const folder=niceCertFolderFromUrl_(link.pasta_drive);
+  const file=folder.createFile(Utilities.newBlob('%PDF-1.4\n%Documento em geração','application/pdf',cert.codigo+'.pdf'));
+  try{
   const pres=SlidesApp.create('TMP '+cert.codigo),slide=pres.getSlides()[0];slide.getPageElements().forEach(x=>x.remove());
   const color=c.cor,font=c.layout==='classico'?'Georgia':'Arial';
   function text(t,x,y,w,h,size,bold,align){if(!String(t||'').trim())return null;const box=niceCertText_(slide,t,x,y,w,h,size,color,bold,align||'CENTER');box.getText().getTextStyle().setFontFamily(font);return box;}
@@ -62,9 +68,12 @@ function niceCoursesPdf_(link,cert,c){
   text(c.signatario+'\n'+c.cargo,110,273,250,28,9,false);
   if(c.signatario2){if(c.assinatura2)slide.insertImage(niceCoursesBlob_(c.assinatura2),445,243,120,28);text(c.signatario2+'\n'+c.cargo2,385,273,250,28,9,false);}
   text(cert.livro_digital+' · Registro '+cert.registro_digital+' · '+cert.via_emitida,60,305,600,12,8,false);
-  niceCertClassicValidation_(slide,cert.codigo,cert.signature,cert.emitido,c.emissor);
-  if(c.conteudo){const lines=c.conteudo.split('\n');let chunks=[],current='';for(const line of lines){if((current+line).length>1800){chunks.push(current);current='';}current+=line+'\n';}if(current)chunks.push(current);chunks.forEach((chunk,i)=>{const back=pres.appendSlide(SlidesApp.PredefinedLayout.BLANK);niceCertText_(back,'CONTEÚDO PROGRAMÁTICO · '+(i+1),45,30,630,30,17,color,true,'CENTER');niceCertText_(back,chunk,45,85,630,260,10,'#333333',false,'START');niceCertText_(back,cert.codigo+' · '+cert.livro_digital+' · Registro '+cert.registro_digital,45,365,630,18,8,color,false,'CENTER');});}
-  pres.saveAndClose();Utilities.sleep(2000);const source=DriveApp.getFileById(pres.getId());const blob=source.getBlob().getAs(MimeType.PDF).setName(cert.codigo+'.pdf');const file=niceCertFolderFromUrl_(link.pasta_drive).createFile(blob);source.setTrashed(true);return{blob,url:file.getUrl(),id:file.getId()};
+  niceCoursesValidationPanel_(slide,cert,c.emissor,file.getUrl(),color);
+  if(c.conteudo){niceCoursesContentPages_(c.conteudo,c.conteudo_formato).forEach((chunk,i)=>{const back=pres.appendSlide(SlidesApp.PredefinedLayout.BLANK);niceCertText_(back,'CONTEÚDO PROGRAMÁTICO · '+(i+1),45,30,630,30,17,color,true,'CENTER');const box=niceCertText_(back,chunk,45,85,630,260,11,'#333333',false,'START');box.getText().getParagraphStyle().setParagraphAlignment(c.conteudo_formato==='topicos'?SlidesApp.ParagraphAlignment.START:SlidesApp.ParagraphAlignment.JUSTIFIED);niceCertText_(back,cert.codigo+' · '+cert.livro_digital+' · Registro '+cert.registro_digital,45,365,630,18,8,color,false,'CENTER');});}
+  pres.saveAndClose();Utilities.sleep(2000);const source=DriveApp.getFileById(pres.getId());const blob=source.getBlob().getAs(MimeType.PDF).setName(cert.codigo+'.pdf');
+  niceCoursesUploadPdf_(file.getId(),blob);file.setSharing(DriveApp.Access.ANYONE_WITH_LINK,DriveApp.Permission.VIEW);source.setTrashed(true);return{blob,url:file.getUrl(),id:file.getId()};
+  }catch(err){file.setTrashed(true);throw err;}
+
 }
 function niceCoursesMail_(c,email,nome,evento,funcao,blob,codigo){const url=NICE_CERT.PUBLIC_BASE+'/validar/?codigo='+encodeURIComponent(codigo),plain='Olá, '+nome+'.\n\nSeu certificado de '+evento+' está anexo.\nFunção: '+funcao+'\nCódigo: '+codigo+'\nValidação: '+url+'\n\n'+c.cliente+' · Protocolo.me';const opts={attachments:[blob],name:c.cliente+' · Certificados'};Object.assign(opts,niceCertSenderOptions_());GmailApp.sendEmail(email,'Certificado · '+evento,plain,opts);}
 
@@ -139,4 +148,26 @@ function niceCoursesBaselineLocked_(c){
     if(seen.has(id)||v.slice(1).some(q=>q[h.CURSO_ID]===c.id&&q[h.CODIGO]===code))return;
     niceCertAppendObject_(sh,{SOLICITACAO_ID:id,CURSO_ID:c.id,EMAIL:String(r[ih.EMAIL]||'').toLowerCase(),STATUS:'CONCLUIDO',CODIGO:code,CRIADO_EM:new Date(),ATUALIZADO_EM:new Date(),PESO:Math.max(1,Number(r[ih.TENTATIVAS_EMAIL])||1)});seen.add(id);
   });
+}
+
+/** Reserva o ID antes de gerar, para o QR apontar ao próprio PDF. */
+function niceCoursesUploadPdf_(id,blob){
+  const response=UrlFetchApp.fetch('https://www.googleapis.com/upload/drive/v3/files/'+encodeURIComponent(id)+'?uploadType=media',{method:'patch',contentType:'application/pdf',headers:{Authorization:'Bearer '+ScriptApp.getOAuthToken()},payload:blob.getBytes(),muteHttpExceptions:true});
+  if(response.getResponseCode()<200||response.getResponseCode()>=300)throw new Error('Não foi possível salvar o PDF digital no Drive (HTTP '+response.getResponseCode()+').');
+}
+function niceCoursesValidationPanel_(slide,cert,issuer,pdfUrl,color){
+  const qr=(url,x,label)=>{const blob=UrlFetchApp.fetch('https://quickchart.io/qr?size=360&margin=1&ecLevel=M&text='+encodeURIComponent(url)).getBlob();slide.insertImage(blob,x,323,52,52);niceCertText_(slide,label,x-7,377,66,10,6,color,true,'CENTER');};
+  qr(NICE_CERT.PUBLIC_BASE+'/validar/?codigo='+encodeURIComponent(cert.codigo),45,'VALIDAR');qr(pdfUrl,119,'ABRIR PDF');
+  niceCertText_(slide,'Código: '+cert.codigo,187,324,282,14,8,color,true,'START');
+  const access=niceCertText_(slide,'Abrir certificado digital no Drive',187,343,282,14,9,color,true,'START');access.getText().getTextStyle().setLinkUrl(pdfUrl);
+  niceCertText_(slide,'HMAC-SHA256: '+String(cert.signature||'').slice(0,22)+'…',187,363,282,12,7,color,false,'START');
+  niceCertText_(slide,'INSTITUIÇÃO EMISSORA',480,325,192,13,8,color,true,'CENTER');niceCertText_(slide,issuer,480,342,192,28,9,color,false,'CENTER');
+}
+function niceCoursesContentPages_(content,format){
+  let lines=String(content||'').replace(/\r\n?/g,'\n').split('\n').map(x=>x.trim()).filter(Boolean);
+  if(format==='topicos'&&lines.length===1)lines=lines[0].split(/\s+[-–]\s+/).filter(Boolean);
+  if(format==='topicos')lines=lines.map(x=>'• '+x.replace(/^[•*-]\s*/,''));
+  const pages=[];let page=[],height=0;
+  lines.forEach(line=>{const words=line.split(/\s+/);let part='';const pieces=[];for(const word of words){if(part.length+word.length+1>1500){pieces.push(part);part='';}part+=(part?' ':'')+word;}if(part)pieces.push(part);pieces.forEach(piece=>{const used=Math.ceil(piece.length/100)+(format==='topicos'?1:0);if(height+used>18&&page.length){pages.push(page.join('\n'));page=[];height=0;}page.push(piece);height+=used;});});
+  if(page.length)pages.push(page.join('\n'));return pages;
 }

@@ -32,3 +32,11 @@ A correção de PDF pula caixas de texto opcionais vazias antes da formatação,
 Crie um evento piloto com limite total 2 e limite por e-mail 1. Cadastre sem emitir e confirme saldo intacto. Envie uma vez e confira PDF/e-mail/registro. Tente reenviar ao mesmo e-mail: deve bloquear. Envie para outro e-mail: deve concluir e esgotar o total. Tente um terceiro: deve bloquear. Aumente os limites e confira que o mesmo link libera o saldo adicional.
 
 Não foi realizada emissão real no Google durante o desenvolvimento. Se uma execução Google for interrompida sem retornar, a reserva fica bloqueada para evitar exceder a franquia; confira a aba de cotas e os registros antes de intervir. A versão atual não inclui recuperação automática dessas reservas nem login nominal do cliente.
+
+## Dois QR Codes e formatação do conteúdo programático
+
+Atualize `CursosEventos.gs` e publique uma nova versão. O novo PDF contém QR de validação e QR para abrir o próprio arquivo PDF no Drive, além de um link clicável. O ID do arquivo é reservado antes de gerar o PDF, e seu conteúdo final é gravado via Drive API. O arquivo é disponibilizado como **qualquer pessoa com o link — leitor**, necessário para que o QR funcione para o destinatário. Se a conta impedir esse compartilhamento, a emissão retorna erro.
+
+No cadastro/edição do evento, escolha **Texto justificado** ou **Tópicos — um por linha**. As quebras de linha são preservadas. Em tópicos, um texto em linha única pode ser dividido pelos separadores “ - ” ou “ – ”. Palavras como “hands-on” são preservadas. A formatação também se aplica à regeneração de um PDF, preservando os dados textuais originais do registro. PDFs já enviados não são alterados automaticamente.
+
+Confira após implantar: ler ambos os QR Codes, abrir o Drive em sessão sem login, verificar o arquivo final e o hash, conferir uma página com tópicos e outra com parágrafos justificados. A publicação local não executa Slides/Drive da conta Google.
