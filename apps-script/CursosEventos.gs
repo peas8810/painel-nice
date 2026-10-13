@@ -16,6 +16,7 @@ function niceCoursesValidate_(c){
   out.cor=/^#[0-9a-f]{6}$/i.test(c.cor||'')?c.cor:'#17365D';
   out.logo=niceCoursesImage_(c.logo);out.assinatura=niceCoursesImage_(c.assinatura);out.assinatura2=niceCoursesImage_(c.assinatura2);
   out.conteudo=String(c.conteudo||'').replace(/[<>]/g,'').replace(/\r\n?/g,'\n').replace(/[\t ]+/g,' ').trim().slice(0,6000);
+  out.conteudo_fonte=Number(c.conteudo_fonte||11);if(!Number.isFinite(out.conteudo_fonte)||out.conteudo_fonte<8||out.conteudo_fonte>18)throw new Error('Fonte do conteúdo deve estar entre 8 e 18 pontos.');
   out.conteudo_formato=['justificado','topicos'].includes(c.conteudo_formato)?c.conteudo_formato:'justificado';
   out.conteudo_rico=niceCoursesRichValidate_(c.conteudo_rico,out.conteudo);
   if(out.documento.replace(/\D/g,'').length===11)throw new Error('Não informe CPF no campo público. Use nome ou CNPJ.');
@@ -48,9 +49,10 @@ function niceCoursesPublic_(token){const link=niceCertCustomGetLinkByToken_(toke
 function niceCoursesAuthorize_(link,p){const c=niceCoursesByLink_(link.id);if(!c)return p;const email=String(p.email||'').trim().toLowerCase();const person=c.pessoas.find(x=>x.email===email&&x.funcao===p.funcao);if(!person)throw new Error('Não há autorização para este e-mail e função. Consulte o responsável.');return Object.assign({},p,{nome:person.nome,email,funcao:person.funcao,carga:person.carga,evento:c.titulo});}
 function niceCoursesBlob_(data){const parts=data.split(',');return Utilities.newBlob(Utilities.base64Decode(parts[1]),data.includes('image/png')?'image/png':'image/jpeg','imagem');}
 function niceCoursesPdf_(link,cert,c){
-  const presentationFormat=c.conteudo_formato,presentationRich=c.conteudo_rico,presentationText=c.conteudo;
+  const presentationFormat=c.conteudo_formato,presentationRich=c.conteudo_rico,presentationText=c.conteudo,presentationFont=c.conteudo_fonte;
   c=Object.assign({},niceCoursesSnapshot_(link,cert.codigo,c));
   if(presentationFormat)c.conteudo_formato=presentationFormat;
+  if(presentationFont)c.conteudo_fonte=presentationFont;
   if(String(presentationText||'').replace(/\s+/g,' ').trim()===String(c.conteudo||'').replace(/\s+/g,' ').trim())c.conteudo_rico=presentationRich;
   const folder=niceCertFolderFromUrl_(link.pasta_drive);
   const file=folder.createFile(Utilities.newBlob('%PDF-1.4\n%Documento em geração','application/pdf',cert.codigo+'.pdf'));
@@ -71,9 +73,9 @@ function niceCoursesPdf_(link,cert,c){
   if(c.signatario2){if(c.assinatura2)slide.insertImage(niceCoursesBlob_(c.assinatura2),445,243,120,28);text(c.signatario2+'\n'+c.cargo2,385,273,250,28,9,false);}
   text(cert.livro_digital+' · Registro '+cert.registro_digital+' · '+cert.via_emitida,60,305,600,12,8,false);
   niceCoursesValidationPanel_(slide,cert,c.emissor,file.getUrl(),color);
-  if(c.conteudo)niceCoursesRenderRich_(pres,c,cert,color);
+  if(c.conteudo)niceCoursesRenderRich_(pres,c,cert,color,file.getUrl());
   pres.saveAndClose();Utilities.sleep(2000);const source=DriveApp.getFileById(pres.getId());const blob=source.getBlob().getAs(MimeType.PDF).setName(cert.codigo+'.pdf');
-  niceCoursesUploadPdf_(file.getId(),blob);file.setSharing(DriveApp.Access.ANYONE_WITH_LINK,DriveApp.Permission.VIEW);source.setTrashed(true);return{blob,url:file.getUrl(),id:file.getId(),modelo_versao:'CURSOS_PDF_V3'};
+  niceCoursesUploadPdf_(file.getId(),blob);file.setSharing(DriveApp.Access.ANYONE_WITH_LINK,DriveApp.Permission.VIEW);source.setTrashed(true);return{blob,url:file.getUrl(),id:file.getId(),modelo_versao:'CURSOS_PDF_V4'};
   }catch(err){file.setTrashed(true);throw err;}
 
 }
@@ -158,10 +160,12 @@ function niceCoursesUploadPdf_(id,blob){
   if(response.getResponseCode()<200||response.getResponseCode()>=300)throw new Error('Não foi possível salvar o PDF digital no Drive (HTTP '+response.getResponseCode()+').');
 }
 function niceCoursesValidationPanel_(slide,cert,issuer,pdfUrl,color){
+  const card=slide.insertShape(SlidesApp.ShapeType.RECTANGLE,40,319,640,68);card.getFill().setSolidFill('#F5F7FA');card.getBorder().getLineFill().setSolidFill('#D9E1E8');card.getBorder().setWeight(0.8);
   const qr=(url,x,label)=>{const blob=UrlFetchApp.fetch('https://quickchart.io/qr?size=360&margin=1&ecLevel=M&text='+encodeURIComponent(url)).getBlob();slide.insertImage(blob,x,323,52,52);niceCertText_(slide,label,x-7,377,66,10,6,color,true,'CENTER');};
   qr(NICE_CERT.PUBLIC_BASE+'/validar/?codigo='+encodeURIComponent(cert.codigo),45,'VALIDAR');qr(pdfUrl,119,'ABRIR PDF');
   niceCertText_(slide,'Código: '+cert.codigo,187,324,282,14,8,color,true,'START');
   const access=niceCertText_(slide,'Abrir certificado digital no Drive',187,343,282,14,9,color,true,'START');access.getText().getTextStyle().setLinkUrl(pdfUrl);
+  niceCertText_(slide,cert.livro_digital+' · Registro '+cert.registro_digital,187,377,282,9,6,color,false,'START');
   niceCertText_(slide,'HMAC-SHA256: '+String(cert.signature||'').slice(0,22)+'…',187,363,282,12,7,color,false,'START');
   niceCertText_(slide,'INSTITUIÇÃO EMISSORA',480,325,192,13,8,color,true,'CENTER');niceCertText_(slide,issuer,480,342,192,28,9,color,false,'CENTER');
 }
@@ -182,13 +186,14 @@ function niceCoursesRichValidate_(input,plain){
   if(out.map(p=>p.texto).join('\n').replace(/\s+/g,' ').trim()!==String(plain||'').replace(/\s+/g,' ').trim())throw new Error('O conteúdo formatado não corresponde ao texto. Revise o editor.');return out;
 }
 function niceCoursesRichBlocks_(c){
+  const font=Number(c.conteudo_fonte)||11,characters=Math.floor(1050/font),lineHeight=font*1.4,maxChunk=characters*Math.floor(210/lineHeight);
   let paragraphs=c.conteudo_rico&&c.conteudo_rico.length?c.conteudo_rico:String(c.conteudo||'').split('\n').filter(x=>x.trim()).map(texto=>({texto,runs:[{texto}]}));
   if(c.conteudo_formato==='topicos'&&paragraphs.length===1&&!c.conteudo_rico?.length)paragraphs=paragraphs[0].texto.split(/\s+[-–]\s+/).map(texto=>({texto,runs:[{texto}]}));
   const blocks=[];paragraphs.forEach(p=>{let text=p.texto,runs=p.runs?.length?p.runs:[{texto:text}];if(c.conteudo_formato==='topicos'&&!/^\s*(?:[•*-]|\d+\.)\s/.test(text)){text='• '+text;runs=[{texto:'• '},...runs];}
-    let start=0;while(start<text.length){let end=Math.min(start+1000,text.length);if(end<text.length){const space=text.lastIndexOf(' ',end);if(space>start)end=space;}const sub=text.slice(start,end);let offset=0;const sliced=[];runs.forEach(r=>{const lo=Math.max(start,offset),hi=Math.min(end,offset+r.texto.length);if(hi>lo)sliced.push(Object.assign({},r,{texto:r.texto.slice(lo-offset,hi-offset)}));offset+=r.texto.length;});blocks.push({texto:sub,runs:sliced,alinhamento:p.alinhamento|| (c.conteudo_formato==='topicos'?'esquerda':'justificado'),height:Math.ceil(sub.length/100)*14+8});start=end;while(text[start]===' ')start++;}
+    let start=0;while(start<text.length){let end=Math.min(start+maxChunk,text.length);if(end<text.length){const space=text.lastIndexOf(' ',end);if(space>start)end=space;}const sub=text.slice(start,end);let offset=0;const sliced=[];runs.forEach(r=>{const lo=Math.max(start,offset),hi=Math.min(end,offset+r.texto.length);if(hi>lo)sliced.push(Object.assign({},r,{texto:r.texto.slice(lo-offset,hi-offset)}));offset+=r.texto.length;});blocks.push({texto:sub,runs:sliced,alinhamento:p.alinhamento|| (c.conteudo_formato==='topicos'?'esquerda':'justificado'),height:Math.ceil(sub.length/characters)*lineHeight+8});start=end;while(text[start]===' ')start++;}
   });return blocks;
 }
-function niceCoursesRenderRich_(pres,c,cert,color){let slide,y;
-  function page(){slide=pres.appendSlide(SlidesApp.PredefinedLayout.BLANK);niceCertText_(slide,'CONTEÚDO PROGRAMÁTICO',45,30,630,30,17,color,true,'CENTER');niceCertText_(slide,cert.codigo+' · '+cert.livro_digital+' · Registro '+cert.registro_digital,45,365,630,18,8,color,false,'CENTER');y=80;}
-  niceCoursesRichBlocks_(c).forEach(p=>{if(!slide||y+p.height>345)page();const box=niceCertText_(slide,p.texto,45,y,630,p.height,11,'#333333',false,'START'),range=box.getText();const align={justificado:SlidesApp.ParagraphAlignment.JUSTIFIED,esquerda:SlidesApp.ParagraphAlignment.START,centro:SlidesApp.ParagraphAlignment.CENTER,direita:SlidesApp.ParagraphAlignment.END};range.getParagraphStyle().setParagraphAlignment(align[p.alinhamento]);let offset=0;p.runs.forEach(r=>{if(r.texto.length)range.getRange(offset,offset+r.texto.length).getTextStyle().setBold(!!r.negrito).setItalic(!!r.italico).setUnderline(!!r.sublinhado);offset+=r.texto.length;});y+=p.height;});
+function niceCoursesRenderRich_(pres,c,cert,color,pdfUrl){let slide,y;const font=Number(c.conteudo_fonte)||11;
+  function page(){slide=pres.appendSlide(SlidesApp.PredefinedLayout.BLANK);niceCertText_(slide,'CONTEÚDO PROGRAMÁTICO',45,30,630,30,17,color,true,'CENTER');niceCoursesValidationPanel_(slide,cert,cert.instituicao_emissora||c.emissor,pdfUrl,color);y=80;}
+  niceCoursesRichBlocks_(c).forEach(p=>{if(!slide||y+p.height>303)page();const box=niceCertText_(slide,p.texto,45,y,630,p.height,font,'#333333',false,'START'),range=box.getText();const align={justificado:SlidesApp.ParagraphAlignment.JUSTIFIED,esquerda:SlidesApp.ParagraphAlignment.START,centro:SlidesApp.ParagraphAlignment.CENTER,direita:SlidesApp.ParagraphAlignment.END};range.getParagraphStyle().setParagraphAlignment(align[p.alinhamento]);let offset=0;p.runs.forEach(r=>{if(r.texto.length)range.getRange(offset,offset+r.texto.length).getTextStyle().setBold(!!r.negrito).setItalic(!!r.italico).setUnderline(!!r.sublinhado);offset+=r.texto.length;});y+=p.height;});
 }
