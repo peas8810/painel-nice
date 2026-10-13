@@ -390,8 +390,8 @@ function niceCertSendMail_(email,nome,event,pdf,codigo){const validate=NICE_CERT
 function niceCertSenderOptions_(){const effective=String(Session.getEffectiveUser().getEmail()||'').toLowerCase();if(effective===NICE_CERT.SENDER.toLowerCase())return{};try{const aliases=GmailApp.getAliases().map(x=>String(x).toLowerCase());if(aliases.includes(NICE_CERT.SENDER.toLowerCase()))return{from:NICE_CERT.SENDER}}catch(_){}throw new Error('O sistema de certificados deve ser executado por '+NICE_CERT.SENDER+' ou por uma conta que possua esse endereço como alias do Gmail.')}
 function niceCertPublicVerify_(code){
   const wanted=String(code||'').trim().toUpperCase();
-  if(/^CERT-NICE-CUS-[A-Z0-9]{10}$/.test(wanted)&&typeof niceCertCustomVerify_==='function')return niceCertCustomVerify_(wanted);
-  if(!/^CERT-NICE-\d{5}-[A-Z0-9]{10}$/.test(wanted))return{ok:true,valid:false,error:'Formato de código inválido.'};
+  if(/^CERT-(?:NICE|UJN)-CUS-[A-Z0-9]{10}$/.test(wanted)&&typeof niceCertCustomVerify_==='function')return niceCertCustomVerify_(wanted);
+  if(!/^CERT-(?:NICE|UJN)-\d{5}-[A-Z0-9]{10}$/.test(wanted))return{ok:true,valid:false,error:'Formato de código inválido.'};
 
   const sh=niceCertIssuesSheet_(),v=sh.getDataRange().getValues();
   if(v.length<2)return{ok:true,valid:false,error:'Certificado não encontrado.'};
@@ -486,7 +486,7 @@ function niceCertRegenerateByCode_(code){
     const carga=String(v[i][m.CARGA_HORARIA]||'').trim();
     const tipo=String(v[i][m.TIPO_CERTIFICADO]||'').trim().toUpperCase();
     let pdf;
-    if(tipo==='CUSTOMIZADO'||/^CERT-NICE-CUS-/.test(wanted)){
+    if(tipo==='CUSTOMIZADO'||/^CERT-(?:NICE|UJN)-CUS-/.test(wanted)){
       if(typeof niceCertCustomGetLinkById_!=='function')return{ok:false,error:'Módulo de certificados customizados indisponível.'};
       const linkId=String(v[i][m.CUSTOM_LINK_ID]||'').trim();
       const link=niceCertCustomGetLinkById_(linkId);
@@ -557,7 +557,7 @@ function niceCertGithubPut_(path,content,message){const token=PropertiesService.
 function niceCertGithubGetJson_(path){const token=PropertiesService.getScriptProperties().getProperty(NICE_CERT.TOKEN_PROPERTY),url='https://api.github.com/repos/'+NICE_CERT.OWNER+'/'+NICE_CERT.REPO+'/contents/'+path,res=UrlFetchApp.fetch(url,{muteHttpExceptions:true,headers:{'Authorization':'Bearer '+token,'Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28'}});if(res.getResponseCode()!==200)return null;const o=JSON.parse(res.getContentText()),txt=Utilities.newBlob(Utilities.base64Decode(String(o.content||'').replace(/\s/g,''))).getDataAsString();return JSON.parse(txt)}
 function niceCertProtocolData_(id){const out={};if(!id)return out;try{const f=niceFind_(String(id).trim().toUpperCase());if(!f)return out;const sh=f.sheet,m=niceMap_(sh);out.titulo=niceAt_(sh,f.row,m.TITULO_ACAO);out.tipo=niceAt_(sh,f.row,m.TIPO_ACAO);out.unidade=niceAt_(sh,f.row,m.UNIDADE);out.responsavel=niceAt_(sh,f.row,m.RESPONSAVEL);out.dateObj=niceDate_(niceAt_(sh,f.row,m.DATA_INICIO));out.data=out.dateObj?Utilities.formatDate(out.dateObj,Session.getScriptTimeZone()||'America/Sao_Paulo','dd/MM/yyyy'):''}catch(_){}return out}
 function niceCertNextEventId_(){const lock=LockService.getScriptLock();lock.waitLock(30000);try{const sh=niceCertEventsSheet_(),v=sh.getLastRow()>1?sh.getRange(2,1,sh.getLastRow()-1,1).getValues().flat():[],max=Math.max(0,...v.map(Number).filter(Number.isFinite)),p=PropertiesService.getScriptProperties(),saved=Number(p.getProperty(NICE_CERT.EVENT_SEQ_PROPERTY)||0),next=Math.max(max,saved)+1;p.setProperty(NICE_CERT.EVENT_SEQ_PROPERTY,String(next));return next}finally{lock.releaseLock()}}
-function niceCertNewCode_(eventId){return'CERT-NICE-'+String(eventId).padStart(5,'0')+'-'+Utilities.getUuid().replace(/-/g,'').slice(0,10).toUpperCase()}
+function niceCertNewCode_(eventId){return'CERT-UJN-'+String(eventId).padStart(5,'0')+'-'+Utilities.getUuid().replace(/-/g,'').slice(0,10).toUpperCase()}
 function niceCertCanonical_(o){return[o.codigo,o.eventId,o.nome,o.titulo,o.data,o.carga,o.emitido].map(v=>String(v==null?'':v).trim()).join('|')}
 function niceCertCanonicalV2_(o){return[o.codigo,'BOOK_V2',o.eventId,o.nome,o.titulo,o.data,o.carga,o.instituicao,o.livro,o.registro,o.emitido].map(v=>String(v==null?'':v).trim()).join('|')}
 function niceCertSign_(text){const secret=PropertiesService.getScriptProperties().getProperty(NICE_CERT.SIGNING_SECRET_PROPERTY);if(!secret)throw new Error('CERT_SIGNING_SECRET não configurado. Execute instalarSistemaCertificados().');return Utilities.base64EncodeWebSafe(Utilities.computeHmacSha256Signature(text,secret)).replace(/=+$/,'')}
