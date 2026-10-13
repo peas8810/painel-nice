@@ -189,7 +189,7 @@ function niceCertCustomIssue_(p,coursePermit){
     }
   }
 
-  const code='CERT-NICE-CUS-'+Utilities.getUuid().replace(/-/g,'').slice(0,10).toUpperCase();
+  const code='CERT-UJN-CUS-'+Utilities.getUuid().replace(/-/g,'').slice(0,10).toUpperCase();
   const emittedAt=new Date();
   const instituicao=String(link.instituicao_emissora||'').trim();
   if(!instituicao)return{ok:false,error:'Instituição emissora não informada no link.'};
@@ -312,7 +312,7 @@ function niceCertCustomSendMail_(email,nome,evento,funcao,blob,codigo,link){
 }
 
 function niceCertCustomVerify_(code){
-  const wanted=String(code||'').trim().toUpperCase();if(!/^CERT-NICE-CUS-[A-Z0-9]{10}$/.test(wanted))return{ok:true,valid:false,error:'Formato de código inválido.'};
+  const wanted=String(code||'').trim().toUpperCase();if(!/^CERT-(?:NICE|UJN)-CUS-[A-Z0-9]{10}$/.test(wanted))return{ok:true,valid:false,error:'Formato de código inválido.'};
   niceCertCustomEnsureIssueHeaders_();
   const sh=niceCertIssuesSheet_(),v=sh.getDataRange().getValues(),m=niceCertHeaderMap_(v[0]);
   for(let i=1;i<v.length;i++){
