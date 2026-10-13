@@ -11,6 +11,9 @@ function niceCoursesValidate_(c){
   ['cliente','cliente_id','documento','emissor','titulo','data','modalidade','local','criterios','signatario','cargo','signatario2','cargo2'].forEach(k=>out[k]=niceCoursesText_(c[k]||'',k==='criterios'?700:180));
   if(!out.cliente||!out.emissor||!out.titulo||!out.data||!out.signatario)throw new Error('Preencha cliente, emissor, título, data e signatário.');
   out.cliente_id=out.cliente_id||Utilities.getUuid();
+  out.posicao_assinatura=['esquerda','centro','direita'].includes(c.posicao_assinatura)?c.posicao_assinatura:(out.signatario2?'esquerda':'centro');
+  out.posicao_assinatura2=['esquerda','centro','direita'].includes(c.posicao_assinatura2)?c.posicao_assinatura2:'direita';
+  if(out.signatario2&&out.posicao_assinatura===out.posicao_assinatura2)throw new Error('Escolha posições diferentes para os dois signatários.');
   out.limite_total=niceCoursesLimit_(c.limite_total,100);out.limite_pessoa=niceCoursesLimit_(c.limite_pessoa,3);out.gestao_cliente=true;
   out.layout=['institucional','moderno','classico'].includes(c.layout)?c.layout:'institucional';
   out.cor=/^#[0-9a-f]{6}$/i.test(c.cor||'')?c.cor:'#17365D';
@@ -49,10 +52,12 @@ function niceCoursesPublic_(token){const link=niceCertCustomGetLinkByToken_(toke
 function niceCoursesAuthorize_(link,p){const c=niceCoursesByLink_(link.id);if(!c)return p;const email=String(p.email||'').trim().toLowerCase();const person=c.pessoas.find(x=>x.email===email&&x.funcao===p.funcao);if(!person)throw new Error('Não há autorização para este e-mail e função. Consulte o responsável.');return Object.assign({},p,{nome:person.nome,email,funcao:person.funcao,carga:person.carga,evento:c.titulo});}
 function niceCoursesBlob_(data){const parts=data.split(',');return Utilities.newBlob(Utilities.base64Decode(parts[1]),data.includes('image/png')?'image/png':'image/jpeg','imagem');}
 function niceCoursesPdf_(link,cert,c){
-  const presentationFormat=c.conteudo_formato,presentationRich=c.conteudo_rico,presentationText=c.conteudo,presentationFont=c.conteudo_fonte;
+  const presentationFormat=c.conteudo_formato,presentationRich=c.conteudo_rico,presentationText=c.conteudo,presentationFont=c.conteudo_fonte,presentationPosition=c.posicao_assinatura,presentationPosition2=c.posicao_assinatura2;
   c=Object.assign({},niceCoursesSnapshot_(link,cert.codigo,c));
   if(presentationFormat)c.conteudo_formato=presentationFormat;
   if(presentationFont)c.conteudo_fonte=presentationFont;
+  if(presentationPosition)c.posicao_assinatura=presentationPosition;
+  if(presentationPosition2)c.posicao_assinatura2=presentationPosition2;
   if(String(presentationText||'').replace(/\s+/g,' ').trim()===String(c.conteudo||'').replace(/\s+/g,' ').trim())c.conteudo_rico=presentationRich;
   const folder=niceCertFolderFromUrl_(link.pasta_drive);
   const file=folder.createFile(Utilities.newBlob('%PDF-1.4\n%Documento em geração','application/pdf',cert.codigo+'.pdf'));
@@ -68,14 +73,12 @@ function niceCoursesPdf_(link,cert,c){
   const person=c.pessoas.find(p=>p.email===cert.email&&p.funcao===cert.funcao)||{};
   const verbs={Participante:'participou de',Concluinte:'concluiu',Palestrante:'atuou como palestrante em',Organizador:'atuou na organização de',Coordenador:'atuou na coordenação de',Monitor:'atuou como monitor em'};
   text('Certificamos que '+(verbs[cert.funcao]||'participou de')+' “'+cert.evento+'”, realizado em '+c.data+', na modalidade '+c.modalidade+(c.local?' — '+c.local:'')+', com carga horária de '+cert.carga+'.'+(person.tema?' Tema: '+person.tema+'.':''),65,174,590,65,11,false);
-  if(c.assinatura)slide.insertImage(niceCoursesBlob_(c.assinatura),170,243,120,28);
-  text(c.signatario+'\n'+c.cargo,110,273,250,28,9,false);
-  if(c.signatario2){if(c.assinatura2)slide.insertImage(niceCoursesBlob_(c.assinatura2),445,243,120,28);text(c.signatario2+'\n'+c.cargo2,385,273,250,28,9,false);}
+  niceCoursesSignatories_(c).forEach(person=>{if(person.assinatura)slide.insertImage(niceCoursesBlob_(person.assinatura),person.x+30,243,120,28);text(person.nome+'\n'+person.cargo,person.x,273,180,28,9,false);});
   text(cert.livro_digital+' · Registro '+cert.registro_digital+' · '+cert.via_emitida,60,305,600,12,8,false);
   niceCoursesValidationPanel_(slide,cert,c.emissor,file.getUrl(),color);
   if(c.conteudo)niceCoursesRenderRich_(pres,c,cert,color,file.getUrl());
   pres.saveAndClose();Utilities.sleep(2000);const source=DriveApp.getFileById(pres.getId());const blob=source.getBlob().getAs(MimeType.PDF).setName(cert.codigo+'.pdf');
-  niceCoursesUploadPdf_(file.getId(),blob);file.setSharing(DriveApp.Access.ANYONE_WITH_LINK,DriveApp.Permission.VIEW);source.setTrashed(true);return{blob,url:file.getUrl(),id:file.getId(),modelo_versao:'CURSOS_PDF_V4'};
+  niceCoursesUploadPdf_(file.getId(),blob);file.setSharing(DriveApp.Access.ANYONE_WITH_LINK,DriveApp.Permission.VIEW);source.setTrashed(true);return{blob,url:file.getUrl(),id:file.getId(),modelo_versao:'CURSOS_PDF_V5'};
   }catch(err){file.setTrashed(true);throw err;}
 
 }
@@ -197,3 +200,5 @@ function niceCoursesRenderRich_(pres,c,cert,color,pdfUrl){let slide,y;const font
   function page(){slide=pres.appendSlide(SlidesApp.PredefinedLayout.BLANK);niceCertText_(slide,'CONTEÚDO PROGRAMÁTICO',45,30,630,30,17,color,true,'CENTER');niceCoursesValidationPanel_(slide,cert,cert.instituicao_emissora||c.emissor,pdfUrl,color);y=80;}
   niceCoursesRichBlocks_(c).forEach(p=>{if(!slide||y+p.height>303)page();const box=niceCertText_(slide,p.texto,45,y,630,p.height,font,'#333333',false,'START'),range=box.getText();const align={justificado:SlidesApp.ParagraphAlignment.JUSTIFIED,esquerda:SlidesApp.ParagraphAlignment.START,centro:SlidesApp.ParagraphAlignment.CENTER,direita:SlidesApp.ParagraphAlignment.END};range.getParagraphStyle().setParagraphAlignment(align[p.alinhamento]);let offset=0;p.runs.forEach(r=>{if(r.texto.length)range.getRange(offset,offset+r.texto.length).getTextStyle().setBold(!!r.negrito).setItalic(!!r.italico).setUnderline(!!r.sublinhado);offset+=r.texto.length;});y+=p.height;});
 }
+
+function niceCoursesSignatories_(c){const pos={esquerda:45,centro:270,direita:495};const people=[{nome:c.signatario,cargo:c.cargo,assinatura:c.assinatura,posicao:c.posicao_assinatura|| (c.signatario2?'esquerda':'centro')}];if(c.signatario2)people.push({nome:c.signatario2,cargo:c.cargo2,assinatura:c.assinatura2,posicao:c.posicao_assinatura2||'direita'});return people.map(p=>Object.assign({},p,{x:pos[p.posicao]}));}
