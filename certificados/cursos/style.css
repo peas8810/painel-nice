@@ -9,3 +9,5 @@ header nav{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:22px}header nav a{
 .preview-front,.preview-back{padding:20px}.preview-back{border-top:2px dashed #bdcbdc;margin-top:28px;padding-top:28px}.preview-content{color:#333;line-height:1.4;text-align:left;overflow-wrap:anywhere}.preview-content p{margin:0 0 8px}.preview-validation{display:flex;align-items:center;gap:14px;text-align:left;background:#f5f7fa;border:1px solid #d9e1e8;padding:12px;margin-top:24px;font-size:10px;color:#17365d}.qr-demo{border:2px dashed #17365d;width:60px;min-width:60px;height:60px;display:grid;place-content:center;text-align:center;font-size:9px}@media(max-width:600px){.preview-validation{flex-wrap:wrap}}
 
 .preview-signatures{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:24px;font-size:11px}.preview-signatures img{display:block;max-height:40px;max-width:120px;margin:0 auto 7px}.signature-space{height:45px}
+
+.preview-powered{display:flex;justify-content:flex-end;align-items:center;gap:8px;font-size:8px;color:#526b7c;margin-top:5px}.business-qr-demo{border:1px dashed #526b7c;padding:5px;font-size:6px}
