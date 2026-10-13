@@ -78,7 +78,7 @@ function niceCoursesPdf_(link,cert,c){
   niceCoursesValidationPanel_(slide,cert,c.emissor,file.getUrl(),color);
   if(c.conteudo)niceCoursesRenderRich_(pres,c,cert,color,file.getUrl());
   pres.saveAndClose();Utilities.sleep(2000);const source=DriveApp.getFileById(pres.getId());const blob=source.getBlob().getAs(MimeType.PDF).setName(cert.codigo+'.pdf');
-  niceCoursesUploadPdf_(file.getId(),blob);file.setSharing(DriveApp.Access.ANYONE_WITH_LINK,DriveApp.Permission.VIEW);source.setTrashed(true);return{blob,url:file.getUrl(),id:file.getId(),modelo_versao:'CURSOS_PDF_V5'};
+  niceCoursesUploadPdf_(file.getId(),blob);file.setSharing(DriveApp.Access.ANYONE_WITH_LINK,DriveApp.Permission.VIEW);source.setTrashed(true);return{blob,url:file.getUrl(),id:file.getId(),modelo_versao:'CURSOS_PDF_V6'};
   }catch(err){file.setTrashed(true);throw err;}
 
 }
@@ -163,6 +163,7 @@ function niceCoursesUploadPdf_(id,blob){
   if(response.getResponseCode()<200||response.getResponseCode()>=300)throw new Error('Não foi possível salvar o PDF digital no Drive (HTTP '+response.getResponseCode()+').');
 }
 function niceCoursesValidationPanel_(slide,cert,issuer,pdfUrl,color){
+  niceCoursesPoweredBy_(slide);
   const card=slide.insertShape(SlidesApp.ShapeType.RECTANGLE,40,319,640,68);card.getFill().setSolidFill('#F5F7FA');card.getBorder().getLineFill().setSolidFill('#D9E1E8');card.getBorder().setWeight(0.8);
   const qr=(url,x,label)=>{const blob=UrlFetchApp.fetch('https://quickchart.io/qr?size=360&margin=1&ecLevel=M&text='+encodeURIComponent(url)).getBlob();slide.insertImage(blob,x,323,52,52);niceCertText_(slide,label,x-7,377,66,10,6,color,true,'CENTER');};
   qr(NICE_CERT.PUBLIC_BASE+'/validar/?codigo='+encodeURIComponent(cert.codigo),45,'VALIDAR');qr(pdfUrl,119,'ABRIR PDF');
@@ -202,3 +203,9 @@ function niceCoursesRenderRich_(pres,c,cert,color,pdfUrl){let slide,y;const font
 }
 
 function niceCoursesSignatories_(c){const pos={esquerda:45,centro:270,direita:495};const people=[{nome:c.signatario,cargo:c.cargo,assinatura:c.assinatura,posicao:c.posicao_assinatura|| (c.signatario2?'esquerda':'centro')}];if(c.signatario2)people.push({nome:c.signatario2,cargo:c.cargo2,assinatura:c.assinatura2,posicao:c.posicao_assinatura2||'direita'});return people.map(p=>Object.assign({},p,{x:pos[p.posicao]}));}
+
+function niceCoursesPoweredBy_(slide){
+  const url='https://protocolo.me/negocios/';
+  niceCertText_(slide,'Powered By: PEAS - Technology®',470,391,210,11,6,'#526B7C',true,'END');
+  const qr=UrlFetchApp.fetch('https://quickchart.io/qr?size=240&margin=1&ecLevel=M&text='+encodeURIComponent(url)).getBlob();slide.insertImage(qr,686,379,24,24);
+}
