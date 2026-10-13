@@ -4,3 +4,4 @@ header nav{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:22px}header nav a{
 
 /* O link entregue ao cliente abre somente a área do evento. */
 .client-link header,.client-link #admin{display:none}.client-link main{max-width:1000px;padding-top:12px}.client-link #public{margin-top:12px}
+.content-editor{grid-column:1/-1;background:#fff;border:1px solid #bdcbdc;border-radius:8px;padding:12px}.editor-toolbar{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px}.editor-toolbar button{font-size:13px;padding:7px;margin:0}#contentEditable{min-height:320px;max-height:600px;overflow:auto;border:1px solid #dce3ec;padding:20px;color:#222;line-height:1.55;outline-color:#17365d}#contentEditable p{margin:0 0 10px}.content-editor.expanded{position:fixed;inset:16px;z-index:1000;overflow:auto;box-shadow:0 0 0 100vmax #0008}.expanded #contentEditable{max-height:none;height:calc(100vh - 170px)}

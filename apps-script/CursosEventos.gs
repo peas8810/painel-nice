@@ -17,6 +17,7 @@ function niceCoursesValidate_(c){
   out.logo=niceCoursesImage_(c.logo);out.assinatura=niceCoursesImage_(c.assinatura);out.assinatura2=niceCoursesImage_(c.assinatura2);
   out.conteudo=String(c.conteudo||'').replace(/[<>]/g,'').replace(/\r\n?/g,'\n').replace(/[\t ]+/g,' ').trim().slice(0,6000);
   out.conteudo_formato=['justificado','topicos'].includes(c.conteudo_formato)?c.conteudo_formato:'justificado';
+  out.conteudo_rico=niceCoursesRichValidate_(c.conteudo_rico,out.conteudo);
   if(out.documento.replace(/\D/g,'').length===11)throw new Error('Não informe CPF no campo público. Use nome ou CNPJ.');
   const people=Array.isArray(c.pessoas)?c.pessoas:[];
   if(people.length>500)throw new Error('Cadastre até 500 pessoas autorizadas por evento.');
@@ -47,9 +48,10 @@ function niceCoursesPublic_(token){const link=niceCertCustomGetLinkByToken_(toke
 function niceCoursesAuthorize_(link,p){const c=niceCoursesByLink_(link.id);if(!c)return p;const email=String(p.email||'').trim().toLowerCase();const person=c.pessoas.find(x=>x.email===email&&x.funcao===p.funcao);if(!person)throw new Error('Não há autorização para este e-mail e função. Consulte o responsável.');return Object.assign({},p,{nome:person.nome,email,funcao:person.funcao,carga:person.carga,evento:c.titulo});}
 function niceCoursesBlob_(data){const parts=data.split(',');return Utilities.newBlob(Utilities.base64Decode(parts[1]),data.includes('image/png')?'image/png':'image/jpeg','imagem');}
 function niceCoursesPdf_(link,cert,c){
-  const presentationFormat=c.conteudo_formato;
+  const presentationFormat=c.conteudo_formato,presentationRich=c.conteudo_rico,presentationText=c.conteudo;
   c=Object.assign({},niceCoursesSnapshot_(link,cert.codigo,c));
   if(presentationFormat)c.conteudo_formato=presentationFormat;
+  if(String(presentationText||'').replace(/\s+/g,' ').trim()===String(c.conteudo||'').replace(/\s+/g,' ').trim())c.conteudo_rico=presentationRich;
   const folder=niceCertFolderFromUrl_(link.pasta_drive);
   const file=folder.createFile(Utilities.newBlob('%PDF-1.4\n%Documento em geração','application/pdf',cert.codigo+'.pdf'));
   try{
@@ -69,7 +71,7 @@ function niceCoursesPdf_(link,cert,c){
   if(c.signatario2){if(c.assinatura2)slide.insertImage(niceCoursesBlob_(c.assinatura2),445,243,120,28);text(c.signatario2+'\n'+c.cargo2,385,273,250,28,9,false);}
   text(cert.livro_digital+' · Registro '+cert.registro_digital+' · '+cert.via_emitida,60,305,600,12,8,false);
   niceCoursesValidationPanel_(slide,cert,c.emissor,file.getUrl(),color);
-  if(c.conteudo){niceCoursesContentPages_(c.conteudo,c.conteudo_formato).forEach((chunk,i)=>{const back=pres.appendSlide(SlidesApp.PredefinedLayout.BLANK);niceCertText_(back,'CONTEÚDO PROGRAMÁTICO · '+(i+1),45,30,630,30,17,color,true,'CENTER');const box=niceCertText_(back,chunk,45,85,630,260,11,'#333333',false,'START');box.getText().getParagraphStyle().setParagraphAlignment(c.conteudo_formato==='topicos'?SlidesApp.ParagraphAlignment.START:SlidesApp.ParagraphAlignment.JUSTIFIED);niceCertText_(back,cert.codigo+' · '+cert.livro_digital+' · Registro '+cert.registro_digital,45,365,630,18,8,color,false,'CENTER');});}
+  if(c.conteudo)niceCoursesRenderRich_(pres,c,cert,color);
   pres.saveAndClose();Utilities.sleep(2000);const source=DriveApp.getFileById(pres.getId());const blob=source.getBlob().getAs(MimeType.PDF).setName(cert.codigo+'.pdf');
   niceCoursesUploadPdf_(file.getId(),blob);file.setSharing(DriveApp.Access.ANYONE_WITH_LINK,DriveApp.Permission.VIEW);source.setTrashed(true);return{blob,url:file.getUrl(),id:file.getId()};
   }catch(err){file.setTrashed(true);throw err;}
@@ -170,4 +172,23 @@ function niceCoursesContentPages_(content,format){
   const pages=[];let page=[],height=0;
   lines.forEach(line=>{const words=line.split(/\s+/);let part='';const pieces=[];for(const word of words){if(part.length+word.length+1>1500){pieces.push(part);part='';}part+=(part?' ':'')+word;}if(part)pieces.push(part);pieces.forEach(piece=>{const used=Math.ceil(piece.length/100)+(format==='topicos'?1:0);if(height+used>18&&page.length){pages.push(page.join('\n'));page=[];height=0;}page.push(piece);height+=used;});});
   if(page.length)pages.push(page.join('\n'));return pages;
+}
+
+function niceCoursesRichValidate_(input,plain){
+  if(!Array.isArray(input)||!input.length)return[];if(input.length>300)throw new Error('Conteúdo excede 300 parágrafos.');
+  let total=0;const clean=s=>String(s||'').replace(/[<>]/g,'').replace(/\r/g,'');
+  const out=input.map(p=>{const text=clean(p.texto),runs=Array.isArray(p.runs)?p.runs.slice(0,500).map(r=>({texto:clean(r.texto),negrito:r.negrito===true,italico:r.italico===true,sublinhado:r.sublinhado===true})):[];total+=text.length;return{texto:text,alinhamento:['justificado','esquerda','centro','direita'].includes(p.alinhamento)?p.alinhamento:'',runs:runs.map(r=>r.texto).join('')===text?runs:[{texto:text}]};});
+  if(total>6000)throw new Error('Conteúdo excede 6000 caracteres.');
+  if(out.map(p=>p.texto).join('\n').replace(/\s+/g,' ').trim()!==String(plain||'').replace(/\s+/g,' ').trim())throw new Error('O conteúdo formatado não corresponde ao texto. Revise o editor.');return out;
+}
+function niceCoursesRichBlocks_(c){
+  let paragraphs=c.conteudo_rico&&c.conteudo_rico.length?c.conteudo_rico:String(c.conteudo||'').split('\n').filter(x=>x.trim()).map(texto=>({texto,runs:[{texto}]}));
+  if(c.conteudo_formato==='topicos'&&paragraphs.length===1&&!c.conteudo_rico?.length)paragraphs=paragraphs[0].texto.split(/\s+[-–]\s+/).map(texto=>({texto,runs:[{texto}]}));
+  const blocks=[];paragraphs.forEach(p=>{let text=p.texto,runs=p.runs?.length?p.runs:[{texto:text}];if(c.conteudo_formato==='topicos'&&!/^\s*(?:[•*-]|\d+\.)\s/.test(text)){text='• '+text;runs=[{texto:'• '},...runs];}
+    let start=0;while(start<text.length){let end=Math.min(start+1000,text.length);if(end<text.length){const space=text.lastIndexOf(' ',end);if(space>start)end=space;}const sub=text.slice(start,end);let offset=0;const sliced=[];runs.forEach(r=>{const lo=Math.max(start,offset),hi=Math.min(end,offset+r.texto.length);if(hi>lo)sliced.push(Object.assign({},r,{texto:r.texto.slice(lo-offset,hi-offset)}));offset+=r.texto.length;});blocks.push({texto:sub,runs:sliced,alinhamento:p.alinhamento|| (c.conteudo_formato==='topicos'?'esquerda':'justificado'),height:Math.ceil(sub.length/100)*14+8});start=end;while(text[start]===' ')start++;}
+  });return blocks;
+}
+function niceCoursesRenderRich_(pres,c,cert,color){let slide,y;
+  function page(){slide=pres.appendSlide(SlidesApp.PredefinedLayout.BLANK);niceCertText_(slide,'CONTEÚDO PROGRAMÁTICO',45,30,630,30,17,color,true,'CENTER');niceCertText_(slide,cert.codigo+' · '+cert.livro_digital+' · Registro '+cert.registro_digital,45,365,630,18,8,color,false,'CENTER');y=80;}
+  niceCoursesRichBlocks_(c).forEach(p=>{if(!slide||y+p.height>345)page();const box=niceCertText_(slide,p.texto,45,y,630,p.height,11,'#333333',false,'START'),range=box.getText();const align={justificado:SlidesApp.ParagraphAlignment.JUSTIFIED,esquerda:SlidesApp.ParagraphAlignment.START,centro:SlidesApp.ParagraphAlignment.CENTER,direita:SlidesApp.ParagraphAlignment.END};range.getParagraphStyle().setParagraphAlignment(align[p.alinhamento]);let offset=0;p.runs.forEach(r=>{if(r.texto.length)range.getRange(offset,offset+r.texto.length).getTextStyle().setBold(!!r.negrito).setItalic(!!r.italico).setUnderline(!!r.sublinhado);offset+=r.texto.length;});y+=p.height;});
 }

@@ -40,7 +40,7 @@ function doGet(e) {
 
 function niceApiHealth_() {
   const sh = niceApiSheet_();
-  return {ok:true,service:'NICE Protocolos e Certificados',version:'2.8',capabilities:typeof niceCoursesAdmin_==='function'?['courses_events']:[],rows:Math.max(0,sh.getLastRow()-1),updated_at:new Date().toISOString(),transport:'bridge'};
+  return {ok:true,service:'NICE Protocolos e Certificados',version:'2.8',capabilities:typeof niceCoursesAdmin_==='function'?['courses_events','certificate_pdf_v2','course_rich_text']:[],rows:Math.max(0,sh.getLastRow()-1),updated_at:new Date().toISOString(),transport:'bridge'};
 }
 
 function niceApiStats_() {

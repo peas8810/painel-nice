@@ -40,3 +40,9 @@ Atualize `CursosEventos.gs` e publique uma nova versão. O novo PDF contém QR d
 No cadastro/edição do evento, escolha **Texto justificado** ou **Tópicos — um por linha**. As quebras de linha são preservadas. Em tópicos, um texto em linha única pode ser dividido pelos separadores “ - ” ou “ – ”. Palavras como “hands-on” são preservadas. A formatação também se aplica à regeneração de um PDF, preservando os dados textuais originais do registro. PDFs já enviados não são alterados automaticamente.
 
 Confira após implantar: ler ambos os QR Codes, abrir o Drive em sessão sem login, verificar o arquivo final e o hash, conferir uma página com tópicos e outra com parágrafos justificados. A publicação local não executa Slides/Drive da conta Google.
+
+## Editor de texto completo
+
+O campo de conteúdo programático agora tem editor ampliado com negrito, itálico, sublinhado, listas numeradas e de tópicos, alinhamentos e tela cheia. Formatação e texto são armazenados em estrutura validada e aplicados por parágrafo no PDF.
+
+Atualize `CursosEventos.gs` e `WebAppNICE.gs`, publique nova versão e recarregue a página. Para atualizar um PDF antigo, autentique no Dashboard de Certificados e use **Atualizar PDF** no código desejado; reenviar sozinho recupera o PDF que já estava armazenado. A regeneração mantém os dados originais e pode aplicar a formatação atual quando o conteúdo textual coincide, além dos dois QR Codes. Se o texto for alterado de fato, esse conteúdo é usado em novas emissões, preservando os registros antigos.
