@@ -12,7 +12,7 @@ $('fields').innerHTML=fields.map(([k,l])=>`<label>${l}${['conteudo','criterios']
 function values(){return Object.fromEntries(new FormData($('create')))}
 function preview(){const c=values(),font=Number(c.conteudo_fonte)||11,rich=window.courseEditor?.read()||[];
  $('preview').style.borderColor=c.cor;$('preview').style.fontFamily=c.layout==='classico'?'Georgia':'system-ui';
- const validation='<div class="preview-validation"><div class="qr-demo">QR<br>VALIDAR</div><div class="qr-demo">QR<br>ABRIR PDF</div><div><strong>Validação e acesso digital</strong><br>Livro Digital · Registro · Código · HMAC<br>Emissor: '+esc(c.emissor)+'</div></div>';
+ const validation='<div class="preview-validation"><div class="qr-demo">QR<br>VALIDAR</div><div class="qr-demo">QR<br>ABRIR PDF</div><div><strong>Validação e acesso digital</strong><br>Livro Digital · Registro · Código · HMAC<br>Emissor: '+esc(c.emissor)+'</div></div><div class="preview-powered">Powered By: <strong>PEAS - Technology®</strong><span class="business-qr-demo">QR</span></div>';
  const people=[{nome:c.signatario,cargo:c.cargo,assinatura:images.assinatura,posicao:c.posicao_assinatura||'centro'}];if(c.signatario2)people.push({nome:c.signatario2,cargo:c.cargo2,assinatura:images.assinatura2,posicao:c.posicao_assinatura2||'direita'});
  const signatures='<div class="preview-signatures">'+people.map(p=>'<div style="grid-column:'+({esquerda:1,centro:2,direita:3}[p.posicao])+'">'+(p.assinatura?'<img alt="Assinatura" src="'+p.assinatura+'">':'<div class="signature-space"></div>')+'<strong>'+esc(p.nome)+'</strong><br>'+esc(p.cargo)+'</div>').join('')+'</div>';
  const para=rich.length?rich:String(c.conteudo||'').split('\n').filter(Boolean).map(texto=>({texto}));
