@@ -19,6 +19,7 @@ function doGet(e) {
     else if (action === 'cert_verify') payload = niceCertPublicVerify_(String(p.code || '').toUpperCase());
     else if (action === 'cert_issue') payload = niceCertPublicIssue_(p);
     else if (action === 'cert_event') payload = niceCertPublicEvent_(String(p.event_id || p.id || ''));
+    else if (action === 'course_batch_status') payload=niceBatchDispatch_(Object.assign({},p,{operacao:'status'}),false);
     else if (action === 'course_client') payload = niceCoursesClientData_(p.chave);
     else if (action === 'course_public') payload = niceCoursesPublic_(p.chave);
     else if (action === 'cert_custom_link') payload = niceCertCustomPublicLink_(String(p.chave || p.token || ''));
