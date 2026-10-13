@@ -176,7 +176,7 @@ function niceCertCustomIssue_(p,coursePermit){
     if(code&&status==='REVOGADO'&&typeof niceCoursesByLink_==='function'&&niceCoursesByLink_(link.id))return{ok:false,error:'Este certificado foi revogado. Consulte o responsável.'};
     if(code&&['ENVIADO','GERADO'].includes(status)){
       let url=String(v[i][m.PDF_URL]||'');
-      if(typeof niceCoursesByLink_==='function'&&niceCoursesByLink_(link.id)&&String(v[i][m.PDF_MODELO_VERSAO]||'')!=='CURSOS_PDF_V6'){const updated=niceCertRegenerateByCode_(code);if(!updated.ok)throw new Error(updated.error||'Não foi possível atualizar o PDF antigo.');url=updated.pdf_url;}
+      if(typeof niceCoursesByLink_==='function'&&niceCoursesByLink_(link.id)&&String(v[i][m.PDF_MODELO_VERSAO]||'')!=='CURSOS_PDF_V7'){const updated=niceCertRegenerateByCode_(code);if(!updated.ok)throw new Error(updated.error||'Não foi possível atualizar o PDF antigo.');url=updated.pdf_url;}
       const fileId=(String(url).match(/[-\w]{20,}/)||[])[0];
       if(fileId){
         const blob=DriveApp.getFileById(fileId).getBlob().setName(code+'.pdf');
