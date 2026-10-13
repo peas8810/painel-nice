@@ -33,6 +33,7 @@ function niceCoursesValidate_(c){
     return{nome,email,funcao,carga:String(carga)+' horas',tema,aprovado:p.aprovado===true};});return out;
 }
 function niceCoursesAdmin_(op,p){
+  if(op==='courses_batch')return niceBatchDispatch_(p,true);
   if(op==='courses_list'){const links=niceCertCustomAdminList_().links;return{ok:true,courses:niceCoursesAll_().map(c=>Object.assign({},c,{link:links.find(l=>l.id===c.link_id)}))};}
   if(op==='courses_update')return niceCoursesUpdate_(p);
   if(op==='courses_create'){
