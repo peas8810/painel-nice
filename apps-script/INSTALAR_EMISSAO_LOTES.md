@@ -9,6 +9,12 @@ A emissão individual continua no mesmo fluxo. A nova opção abre uma página s
 3. Execute **instalarEmissaoLotes** uma vez e autorize os serviços solicitados. Ela cria a aba `CERT_LOTES`, acrescenta campos de lote à base de emissões e instala um gatilho de processamento a cada minuto. Não exclui os dados existentes.
 4. Publique uma **Nova versão da implantação existente** e recarregue a página de Cursos e Eventos.
 
+## Correção de lotes parados ou sem entrega (14/10/2026)
+
+Atualize `CertificadosLotes.gs`, execute `instalarEmissaoLotes` e publique uma nova versão da implantação existente. A página de lote agora mostra se o gatilho está instalado, a última execução e a última falha operacional. Se faltar autorização, consulte **Execuções** no Apps Script e execute o instalador com a conta proprietária.
+
+O processamento recupera lotes concluídos cuja entrega ainda está pendente. Após uma entrega parcial, retomar as falhas prepara uma nova entrega com os arquivos recuperados. PDFs concluídos não são gerados novamente. Entregas `ENVIANDO` continuam bloqueadas para evitar duplicação quando o resultado é incerto. CSV também aceita separador `;` (Excel).
+
 ## Uso
 
 - Na lista administrativa do evento, clique **Emissão em lote**. O cliente também encontra esse acesso no próprio link do evento.
