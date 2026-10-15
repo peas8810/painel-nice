@@ -17,6 +17,12 @@ O processamento recupera lotes concluídos cuja entrega ainda está pendente. Ap
 
 ## Uso
 
+### Histórico persistente (15/10/2026)
+
+Atualize `CertificadosLotes.gs` e publique uma nova versão da implantação existente. A página agora lista **Lotes registrados neste evento** diretamente dos arquivos salvos, sem depender da sessão do navegador. O lote mais recente é aberto automaticamente quando não houver seleção anterior. A lista mostra destinatário, quantidade de PDFs, situação da entrega e erros; use **Ver progresso / entrega** para abrir um lote e **Retomar pendentes / falhas** quando necessário. A consulta e a abertura do histórico não emitem nem enviam documentos. São carregados dez lotes por página, somente do evento autorizado.
+
+Novos envios confirmados também registram a data e hora em `enviado_em`. Lotes antigos podem mostrar `ENVIADO` sem horário, pois essa informação não era gravada. `ATIVO` na linha individual significa certificado válido; a confirmação do e-mail coletivo fica no lote.
+
 - Na lista administrativa do evento, clique **Emissão em lote**. O cliente também encontra esse acesso no próprio link do evento.
 - Informe o e-mail único de entrega e cadastre as pessoas na tabela ou importe CSV UTF-8 com cabeçalho `nome,funcao,carga,tema,email,aprovado`.
 - Campos obrigatórios: nome, função e horas numéricas. Tema e e-mail individual são opcionais. Para concluintes, `aprovado` precisa ser `sim`, `true` ou `1`.
