@@ -27,7 +27,7 @@ function doGet(e) {
     else if (action === 'cert_dashboard') payload = niceCertDashboardPublic_();
     else if (action === 'cert_person_search') payload = niceCertPublicSearchPerson_(String(p.name||''),String(p.email||''));
     else if (action === 'doc_live') payload = niceDocLive_();
-    else if (action === 'cert_admin') payload = niceCertDashboardAdmin_(p);
+    else if (action === 'cert_admin') {if(String(p.op||'').toLowerCase().indexOf('courses_billing_')===0)throw new Error('As operações de cobrança exigem POST.');payload = niceCertDashboardAdmin_(p);}
     else payload = {ok:false,error:'Ação não reconhecida.'};
 
     if (transport === 'bridge') return niceApiBridgeOutput_(payload, p.request_id);
