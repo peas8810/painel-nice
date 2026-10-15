@@ -11,3 +11,4 @@ header nav{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:22px}header nav a{
 .preview-signatures{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:24px;font-size:11px}.preview-signatures img{display:block;max-height:40px;max-width:120px;margin:0 auto 7px}.signature-space{height:45px}
 
 .preview-powered{display:flex;justify-content:flex-end;align-items:center;gap:8px;font-size:8px;color:#526b7c;margin-top:5px}.business-qr-demo{border:1px dashed #526b7c;padding:5px;font-size:6px}
+.billing-panel{background:#f6f9fd;border:1px solid #dce3ec;padding:20px;margin-top:16px}.billing-message{white-space:pre-wrap;overflow-wrap:anywhere;font:14px/1.6 system-ui;background:white;border:1px solid #dce3ec;padding:18px}.billing-panel [data-billing-address],.billing-panel [data-billing-status]{white-space:pre-wrap}.billing-panel [data-billing-preview]{border-top:1px solid #bdcbdc;margin-top:16px;padding-top:12px}
