@@ -7,16 +7,18 @@ Adição administrativa: mantém os fluxos de certificados, lotes, registros, si
 1. Adicione o arquivo **CursosCobrancas.gs** ao projeto Apps Script existente.
 2. Atualize **CursosEventos.gs** e **WebAppNICE.gs** com as versões do repositório. Os demais arquivos do projeto continuam necessários.
 3. Execute **instalarCobrancasCursos** uma vez, com a conta proprietária, e autorize os serviços solicitados. O instalador verifica o remetente e cria a aba `CERT_CURSOS_COBRANCAS`; não envia mensagens nem altera as abas de certificados.
-4. Publique uma **nova versão da implantação existente**, mantendo a URL usada pelo site. A implantação deve executar como `peas8810@gmail.com`, ou como uma conta que tenha esse endereço configurado e autorizado em **Gmail → Configurações → Contas → Enviar e-mail como**.
+4. Publique uma **nova versão da implantação existente**, mantendo a URL usada pelo site. A implantação deve continuar executando como **`nice@unipacto.com.br`**, a conta onde o sistema está instalado. O remetente será esse endereço e o campo **Responder para** será `peas8810@gmail.com`. Não é necessário mudar a conta executora para o Gmail da PEAS. Se futuramente outra conta executar a implantação, `nice@unipacto.com.br` precisa ser um alias autorizado nela.
 5. Recarregue **Cursos e Eventos** com Ctrl + F5 e acesse a administração.
 
 O site passa a carregar `cobranca.js` automaticamente. Não é necessário instalar outro serviço ou mudar a chave administrativa. As operações de cobrança usam POST e exigem a mesma autenticação administrativa do painel.
+
+Prévias antigas que tenham `peas8810@gmail.com` como remetente precisam ser preparadas novamente; o histórico de cobranças já enviadas é preservado.
 
 ## Uso
 
 No cartão do curso, clique **Enviar e-mail de cobrança**. Preencha um destinatário, descrição, valor em reais e instruções de pagamento. O vencimento, nome, link HTTPS e mensagem complementar podem ser ajustados. As opções de pagamento são Pix, transferência bancária, link de pagamento, boleto e outro. Dados bancários, chave Pix e links são informados pelo administrador; o sistema não gera boleto nem cria uma cobrança em uma operadora de pagamento.
 
-Clique **Revisar e-mail de cobrança**: o sistema salva um rascunho e mostra remetente, destinatário, assunto e texto completo. Depois de conferir o endereço e os dados de pagamento, clique **Enviar e-mail de cobrança** e confirme o valor e o destinatário. O envio usa o rascunho salvo, e não campos alterados depois da revisão.
+Clique **Revisar e-mail de cobrança**: o sistema salva um rascunho e mostra remetente, endereço de resposta, destinatário, assunto e texto completo. Depois de conferir o endereço e os dados de pagamento, clique **Enviar e-mail de cobrança** e confirme o valor e o destinatário. O envio usa o rascunho salvo, e não campos alterados depois da revisão.
 
 O histórico de cada curso mostra as 20 últimas cobranças, destinatário, valor, situação e horário do envio confirmado. **Ver cobrança** permite recuperar uma prévia. Repetir a mesma solicitação de envio de uma cobrança já `ENVIADO` não dispara outra mensagem. Para uma nova cobrança ou lembrete deliberado, revise uma nova mensagem no formulário.
 
