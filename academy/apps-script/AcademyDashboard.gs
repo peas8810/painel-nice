@@ -94,3 +94,47 @@ function academyDashboardAbrir() {
     .setTitle('Protocolo Academy · Dashboard');
   return html;
 }
+
+/** Dados agregados para gráficos, calculados em ambiente autenticado. */
+function academyDashboardEstatisticas(filtro) {
+  academyDashboardAutorizado_();
+  const ss=SpreadsheetApp.openById(ACADEMY.SPREADSHEET_ID);
+  const sols=academyDashboardLer_(ss,'SOLICITACOES');
+  const pays=academyDashboardLer_(ss,'PAGAMENTOS');
+  const evidence=academyDashboardLer_(ss,'EVIDENCIAS');
+  const validation=academyDashboardLer_(ss,'VALIDACOES');
+  const certs=academyDashboardLer_(ss,'CERTIFICADOS');
+  const dateOnly=x=>{if(!x)return '';const d=x instanceof Date?x:new Date(x);return isNaN(d.getTime())?'':Utilities.formatDate(d,Session.getScriptTimeZone(),'yyyy-MM-dd')};
+  const from=String(filtro?.inicio||''), to=String(filtro?.fim||'');
+  if(from&&!/^\\d{4}-\\d{2}-\\d{2}$/.test(from))throw new Error('Data inicial inválida');
+  if(to&&!/^\\d{4}-\\d{2}-\\d{2}$/.test(to))throw new Error('Data final inválida');
+  const eligible=s=>{const day=dateOnly(s.criado_em);return (!from||day>=from)&&(!to||day<=to)};
+  const filtered=sols.filter(eligible), ids=new Set(filtered.map(s=>String(s.solicitacao_id)));
+  const validLast=new Map(); validation.forEach(v=>{const k=String(v.solicitacao_id);const prev=validLast.get(k);if(!prev||dateOnly(v.decidido_em)>=dateOnly(prev.decidido_em))validLast.set(k,v)});
+  const byDay={},byMonth={},byStatus={},byPayment={},activities={},hourRanges={'0–5':0,'6–10':0,'11–20':0,'21–40':0,'41+':0};
+  filtered.forEach(s=>{
+    const day=dateOnly(s.criado_em)||'Sem data', month=day.slice(0,7);
+    byDay[day]=(byDay[day]||0)+1;byMonth[month]=(byMonth[month]||0)+1;
+    const status=String(validLast.get(String(s.solicitacao_id))?.resultado||s.status||'SEM_STATUS').toUpperCase();
+    byStatus[status]=(byStatus[status]||0)+1;
+    const title=String(s.tipo||'Outras atividades').trim()||'Outras atividades';activities[title]=(activities[title]||0)+1;
+    const hours=Number(s.horas_declaradas)||0,band=hours<=5?'0–5':hours<=10?'6–10':hours<=20?'11–20':hours<=40?'21–40':'41+';hourRanges[band]++;
+  });
+  let confirmedValue=0,pendingValue=0,paid=0;
+  const paymentPerRequest=new Map();
+  pays.filter(p=>ids.has(String(p.solicitacao_id))).forEach(p=>{
+    const status=String(p.status||'').toUpperCase(),value=Number(p.valor_brl)||0,k=String(p.solicitacao_id);
+    if(!paymentPerRequest.has(k))paymentPerRequest.set(k,[]);
+    paymentPerRequest.get(k).push(p);
+    if(status==='PAID_CONFIRMED'){confirmedValue+=value;paid++;}else if(['PREFERENCE_CREATED','PENDING','IN_PROCESS'].includes(status)){pendingValue+=value;}
+    byPayment[status]=(byPayment[status]||0)+1;
+  });
+  const series=(obj)=>Object.keys(obj).sort().map(x=>({rotulo:x,valor:obj[x]}));
+  const sortedActivities=Object.entries(activities).sort((a,b)=>b[1]-a[1]).slice(0,10).map(([rotulo,valor])=>({rotulo,valor}));
+  return {periodo:{inicio:from,fim:to},totais:{solicitacoes:filtered.length,evidencias:evidence.filter(e=>ids.has(String(e.solicitacao_id))).length,
+    validacoes:validation.filter(v=>ids.has(String(v.solicitacao_id))).length,certificados:certs.filter(c=>ids.has(String(c.solicitacao_id))&&String(c.status)==='ATIVO').length,
+    pagamentosConfirmados:paid,valorConfirmado:confirmedValue,valorPendente:pendingValue,
+    taxaDeferimento:filtered.length?Math.round(100*filtered.filter(s=>['APROVADO','DEFERIDO'].includes(String(validLast.get(String(s.solicitacao_id))?.resultado||s.status||'').toUpperCase())).length/filtered.length):0},
+    diario:series(byDay),mensal:series(byMonth),status:series(byStatus),
+    pagamentos:series(byPayment),atividades:sortedActivities,horas:series(hourRanges)};
+}
