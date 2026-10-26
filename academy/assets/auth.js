@@ -15,6 +15,26 @@
   recovery.innerHTML='<span class="step">ACESSO</span><h2>Entrar na sua conta</h2><form id="academy-login"><label>E-mail<input type="email" id="login-email" required autocomplete="email"></label><label>Senha<input type="password" id="login-password" required autocomplete="current-password"></label><button type="submit" class="primary">Entrar</button></form><button type="button" class="primary" id="academy-reset">Recuperar senha</button><button type="button" class="primary" id="academy-logout">Sair</button><p id="login-status" role="status"></p>';
   signUp.closest('.portal-grid').after(recovery);
   const login=$('academy-login');
+  const resetForm=document.createElement('form');
+  resetForm.id='academy-new-password';
+  resetForm.hidden=true;
+  resetForm.innerHTML='<label>Nova senha<input type="password" id="academy-new-pass" minlength="12" required autocomplete="new-password"></label><button type="submit" class="primary">Atualizar senha</button>';
+  recovery.append(resetForm);
+  resetForm.addEventListener('submit',async e=>{
+    e.preventDefault();
+    if(!resetForm.reportValidity())return;
+    const newPass=$('academy-new-pass').value;
+    const {error}=await db.auth.updateUser({password:newPass});
+    $('academy-new-pass').value='';
+    status('login-status',error?'Não foi possível atualizar a senha: '+error.message:'Senha atualizada. Você já pode acessar sua conta.');
+    if(!error)resetForm.hidden=true;
+  });
+  db.auth.onAuthStateChange(event=>{
+    if(event==='PASSWORD_RECOVERY') {
+      resetForm.hidden=false;
+      status('login-status','Defina uma nova senha com pelo menos 12 caracteres.');
+    }
+  });
   async function showMyRequests(){
     const {data:{user}}=await db.auth.getUser();
     if(!user){status('tracking','Entre na sua conta e confirme o e-mail para consultar suas solicitações.');return;}
