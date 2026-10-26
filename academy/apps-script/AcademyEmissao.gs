@@ -105,7 +105,6 @@ function academyEmissaoPdf_(d, code, verifyUrl, reportUrl, signature) {
       '\nCarga horária verificada: '+d.horasVerificadas+
       '\nAssinatura de registro (HMAC): '+signature.slice(0,36)+'…',35,100,width-70,200,13,blue,false);
     academyEmissaoTextBox_(s2,'A UJN registra a análise independente das evidências. O aproveitamento para horas complementares depende da instituição destinatária. Este arquivo é demonstração, não uma certificação do MEC nem da instituição onde ocorreu a atividade.',35,height-110,width-70,85,10,gray,false);
-    SlidesApp.flush();
     return DriveApp.getFileById(p.getId()).getAs(MimeType.PDF)
       .setName('ACADEMY-DEMO-'+code+'.pdf');
   } finally {
