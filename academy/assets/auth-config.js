@@ -1,7 +1,6 @@
-// Configure somente a URL HTTPS do projeto Supabase e sua chave PUBLICÁVEL.
-// NÃO use service_role, secret keys ou chaves Mercado Pago no navegador.
-// Enquanto estes campos estiverem vazios, o cadastro permanecerá desativado.
+// Protocolo Academy — conexão pública Supabase (RLS obrigatória).
+// Apenas publishable key. Nunca incluir service_role, secret keys ou credenciais de pagamentos.
 window.ACADEMY_AUTH_CONFIG = Object.freeze({
-  url: "",
-  publishableKey: ""
+  url: "https://jufnkfyvqgkrxsbctqqk.supabase.co",
+  publishableKey: "sb_publishable_Gw7GOqQKaGan1a-RnvHDhw_ePj9JLYY"
 });
