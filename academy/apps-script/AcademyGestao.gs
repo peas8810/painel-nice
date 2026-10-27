@@ -8,8 +8,9 @@ function academyGestaoTipos(){
  academyGestaoAuth_();
  const defaults=['Grupo de estudos','Projeto colaborativo','Ação comunitária','Oficina independente','Capacitação interna','Outra'];
  const sh=academyGestaoSheet_('CONFIGURACOES');const rows=sh.getDataRange().getDisplayValues();
+ const hidden=new Set(rows.slice(1).filter(r=>r[0]==='TIPO_ATIVIDADE'&&r[2]==='INATIVO').map(r=>String(r[1]).toLowerCase()));
  const saved=rows.slice(1).filter(r=>r[0]==='TIPO_ATIVIDADE'&&r[2]!=='INATIVO').map(r=>r[1]).filter(Boolean);
- return [...new Set([...defaults,...saved])].sort((a,b)=>a.localeCompare(b,'pt-BR'));
+ return [...new Set([...defaults,...saved].filter(x=>!hidden.has(String(x).toLowerCase())))].sort((a,b)=>a.localeCompare(b,'pt-BR'));
 }
 function academyGestaoTipoAdicionar(nome){
  academyGestaoAuth_();nome=String(nome||'').trim().replace(/\s+/g,' ');
@@ -18,6 +19,19 @@ function academyGestaoTipoAdicionar(nome){
  const con=academyGestaoConfigSupabase_();
  if(con)academyGestaoSupabase_('academy_activity_types','post',{name:nome,active:true});
  academyGestaoSheet_('CONFIGURACOES').appendRow(['TIPO_ATIVIDADE',nome,'ATIVO',new Date(),academyGestaoAuth_()]);
+ return academyGestaoTipos();
+}
+function academyGestaoTipoRenomear(anterior,novo){
+ academyGestaoAuth_();
+ anterior=String(anterior||'').trim();novo=String(novo||'').trim().replace(/\s+/g,' ');
+ if(!academyGestaoTipos().includes(anterior))throw new Error('Tipo anterior não encontrado');
+ if(novo.length<3||novo.length>80||/^[=+@-]/.test(novo))throw new Error('Novo nome inválido');
+ if(academyGestaoTipos().some(x=>x.toLowerCase()===novo.toLowerCase()))throw new Error('Novo nome já existe');
+ const con=academyGestaoConfigSupabase_();
+ if(con)academyGestaoSupabase_('academy_activity_types?name=eq.'+encodeURIComponent(anterior),'patch',{name:novo});
+ const sh=academyGestaoSheet_('CONFIGURACOES');
+ sh.appendRow(['TIPO_ATIVIDADE',anterior,'INATIVO',new Date(),academyGestaoAuth_()]);
+ sh.appendRow(['TIPO_ATIVIDADE',novo,'ATIVO',new Date(),academyGestaoAuth_()]);
  return academyGestaoTipos();
 }
 function academyGestaoConfigSupabase_(){
