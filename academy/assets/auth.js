@@ -9,6 +9,16 @@ $('show-login').onclick=()=>authTab('login');$('show-register').onclick=()=>auth
 if(!cfg.url||!cfg.publishableKey||!window.supabase?.createClient){display('loading-view',false);display('visitor-view',true);message('login-status','Serviço de login indisponível. Tente novamente mais tarde.');return}
 const db=window.supabase.createClient(cfg.url,cfg.publishableKey);
 let currentUser=null, currentRevision=0;
+async function loadActivityTypes(){
+ const input=$('activity-type');
+ const fallback=['Grupo de estudos','Projeto colaborativo','Ação comunitária','Oficina independente','Capacitação interna','Outra'];
+ const {data,error}=await db.from('academy_activity_types').select('name').eq('active',true).order('name');
+ const types=!error&&data?.length?data.map(x=>x.name):fallback;
+ const selection=input.value;input.replaceChildren();
+ for(const name of types){const opt=document.createElement('option');opt.value=name;opt.textContent=name;input.appendChild(opt)}
+ if(types.includes(selection))input.value=selection;
+}
+
 async function listRequests(){
  const revision=++currentRevision;
  if(!currentUser)return;
@@ -25,7 +35,7 @@ async function refresh(){
  const {data,error}=await db.auth.getUser();
  const user=error?null:data.user;currentUser=user||null;
  display('loading-view',false);display('visitor-view',!user);display('student-view',!!user);
- if(user){$('student-email').textContent='Conectado como '+user.email;await listRequests()}
+ if(user){$('student-email').textContent='Conectado como '+user.email;await Promise.all([listRequests(),loadActivityTypes()])}
  else{currentRevision++;$('tracking').replaceChildren();$('student-email').textContent=''}
 }
 $('register').addEventListener('submit',async e=>{e.preventDefault();const form=e.currentTarget;if(!form.reportValidity())return;const full_name=$('name').value.trim(),email=$('email').value.trim(),password=$('password').value;
