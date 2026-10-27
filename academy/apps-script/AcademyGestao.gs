@@ -142,3 +142,28 @@ function academyGestaoAutorizarEmissao(origem,id){
   return {sucesso:true,referencia:reference,mensagem:'Autorização registrada na auditoria. A emissão definitiva continua desativada.'};
  }finally{lock.releaseLock()}
 }
+
+/** Revisão individual dos arquivos já vinculados ao protocolo.
+ * Somente um administrador autenticado pode alterar o estado.
+ */
+function academyGestaoValidarEvidencia(solicitacaoId,evidenciaId,resultado,observacao){
+ const admin=academyGestaoAuth_();
+ solicitacaoId=String(solicitacaoId||'').trim();evidenciaId=String(evidenciaId||'').trim();
+ resultado=String(resultado||'').trim().toUpperCase();observacao=String(observacao||'').trim();
+ if(!['VALIDADO','REPROVADO','PENDENTE_ANALISE'].includes(resultado))throw new Error('Resultado documental inválido.');
+ if(observacao.length<15||observacao.length>1000)throw new Error('Descreva a análise da evidência (15 a 1000 caracteres).');
+ const lock=LockService.getScriptLock();lock.waitLock(30000);
+ try{
+  const sh=academyGestaoSheet_('EVIDENCIAS'),rows=sh.getDataRange().getValues();
+  const idx=rows.findIndex((r,i)=>i>0&&String(r[0])===evidenciaId&&String(r[1])===solicitacaoId);
+  if(idx<0)throw new Error('Evidência não vinculada ao protocolo.');
+  const name=String(rows[idx][4]||'');
+  if(resultado==='VALIDADO'&&/TESTE|FICTICI|HOMOLOGACAO/i.test(name))throw new Error('Documento identificado como teste não pode ser validado.');
+  const file=DriveApp.getFileById(String(rows[idx][3]));
+  if(!file||file.isTrashed())throw new Error('Documento original indisponível.');
+  sh.getRange(idx+1,8).setValue(resultado);
+  sh.getRange(idx+1,9).setValue(observacao);
+  academyGestaoSheet_('AUDITORIA').appendRow(['AUD-'+Utilities.getUuid(),'EVIDENCIAS',evidenciaId,'REVISAO_EVIDENCIA',admin,new Date(),JSON.stringify({solicitacaoId,resultado,observacao})]);
+  return {sucesso:true,resultado,mensagem:'Evidência atualizada. A emissão permanece condicionada à análise do protocolo e confirmação do pagamento.'};
+ }finally{lock.releaseLock()}
+}
