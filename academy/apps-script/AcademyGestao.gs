@@ -111,3 +111,31 @@ function academyGestaoDecidir(d){
  const result=academyRevisarSolicitacao({solicitacaoId:id,resultado,justificativa,horasVerificadas:Number(d.horasVerificadas)||0});
  return result;
 }
+
+/** Autoriza a etapa seguinte, mas NÃO emite PDF nem altera CERTIFICADOS.
+ * O módulo de emissão definitiva permanece desligado até homologação.
+ */
+function academyGestaoAutorizarEmissao(origem,id){
+ const admin=academyGestaoAuth_();
+ if(origem!=='SHEETS')throw new Error('Protocolos do Supabase não podem ser liberados sem integração documental.');
+ id=String(id||'').trim();if(!id)throw new Error('Protocolo ausente.');
+ const lock=LockService.getScriptLock();lock.waitLock(30000);
+ try{
+  const detail=academyGestaoDetalhe('SHEETS',id);
+  if(detail.status!=='APROVADO')throw new Error('A análise documental não está aprovada.');
+  if(!detail.evidencias.length||detail.evidencias.every(x=>/TESTE|NAO_VALIDADO/i.test(x.estado)))
+   throw new Error('Não há evidência apta à liberação.');
+  if(typeof academyEmissaoChecar_!=='function')throw new Error('Módulo central de checagem ausente.');
+  const gate=academyEmissaoChecar_(id);
+  if(!gate.apto||!gate.documentacaoAprovada||!gate.pagamentoConfirmado)
+   throw new Error('Falta aprovação válida ou pagamento efetivamente confirmado.');
+  const certificados=academyGestaoRows_('CERTIFICADOS').filter(x=>String(x[1])===id&&String(x[4])!=='DEMO');
+  if(certificados.length)throw new Error('Já existe registro de certificação não demonstrativa.');
+  const audit=academyGestaoSheet_('AUDITORIA');
+  if(academyGestaoRows_('AUDITORIA').some(x=>String(x[2])===id&&String(x[3])==='AUTORIZACAO_EMISSAO'))
+   throw new Error('Emissão já autorizada para este protocolo.');
+  const reference='AUT-'+Utilities.getUuid();
+  audit.appendRow(['AUD-'+Utilities.getUuid(),'SOLICITACOES',id,'AUTORIZACAO_EMISSAO',admin,new Date(),JSON.stringify({referencia:reference,emissaoAutomatica:false})]);
+  return {sucesso:true,referencia:reference,mensagem:'Autorização registrada na auditoria. A emissão definitiva continua desativada.'};
+ }finally{lock.releaseLock()}
+}
