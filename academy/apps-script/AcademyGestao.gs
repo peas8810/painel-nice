@@ -129,6 +129,8 @@ function academyGestaoAutorizarEmissao(origem,id){
   if(detail.evidencias.some(x=>/TESTE|FICTICIO|NAO_VALIDADO/i.test(String(x.estado||'')+' '+String(x.nome||''))))
    throw new Error('O protocolo contém evidência de teste ou não validada.');
   if(typeof academyEmissaoChecar_!=='function')throw new Error('Módulo central de checagem ausente.');
+  if(!academyGestaoRows_('AUDITORIA').some(x=>String(x[2])===id&&String(x[3])==='PAGAMENTO_LIBERADO'))
+   throw new Error('A etapa de liberação para pagamento ainda não foi registrada.');
   const gate=academyEmissaoChecar_(id);
   if(!gate.apto||!gate.documentacaoAprovada||!gate.pagamentoConfirmado)
    throw new Error('Falta aprovação válida ou pagamento efetivamente confirmado.');
