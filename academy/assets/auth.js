@@ -53,7 +53,6 @@
     status('registration-status','Solicitando cadastro…');
     const {error}=await db.auth.signUp({email,password,options:{emailRedirectTo:location.origin+'/academy/portal/',data:{full_name:name}}});
     status('registration-status',error?'Não foi possível cadastrar: '+error.message:'Confira seu e-mail para confirmar a conta. Depois, entre para cadastrar sua atividade.');
-    password='';
     $('password').value='';
   });
   login.addEventListener('submit',async e=>{
@@ -73,7 +72,6 @@
     e.preventDefault();if(!request.reportValidity())return;
     const {data:{user},error:authErr}=await db.auth.getUser();
     if(authErr||!user){status('request-status','Faça login e confirme seu e-mail antes de enviar solicitações.');return;}
-    if(!$('terms').checked){status('request-status','É necessário aceitar a declaração do serviço.');return;}
     if($('proof').files.length){status('request-status','O envio de comprovantes ainda não foi ativado. Não foi enviada a solicitação.');return;}
     const data={activity:$('activity').value.trim(),activity_type:$('activity-type').value,
       start_date:$('start').value,end_date:$('end').value,
