@@ -123,8 +123,11 @@ function academyGestaoAutorizarEmissao(origem,id){
  try{
   const detail=academyGestaoDetalhe('SHEETS',id);
   if(detail.status!=='APROVADO')throw new Error('A análise documental não está aprovada.');
-  if(!detail.evidencias.length||detail.evidencias.every(x=>/TESTE|NAO_VALIDADO/i.test(x.estado)))
-   throw new Error('Não há evidência apta à liberação.');
+  const estadosValidos=new Set(['APROVADO','APROVADA','VALIDADO','VALIDADA']);
+  if(!detail.evidencias.length || !detail.evidencias.some(x=>estadosValidos.has(String(x.estado||'').trim().toUpperCase())))
+   throw new Error('Nenhuma evidência com status explicitamente VALIDADO/APROVADO. Revise e valide os documentos antes de autorizar.');
+  if(detail.evidencias.some(x=>/TESTE|FICTICIO|NAO_VALIDADO/i.test(String(x.estado||'')+' '+String(x.nome||''))))
+   throw new Error('O protocolo contém evidência de teste ou não validada.');
   if(typeof academyEmissaoChecar_!=='function')throw new Error('Módulo central de checagem ausente.');
   const gate=academyEmissaoChecar_(id);
   if(!gate.apto||!gate.documentacaoAprovada||!gate.pagamentoConfirmado)
