@@ -8,13 +8,15 @@ function academyGestaoTipos(){
  academyGestaoAuth_();
  const defaults=['Grupo de estudos','Projeto colaborativo','Ação comunitária','Oficina independente','Capacitação interna','Outra'];
  const sh=academyGestaoSheet_('CONFIGURACOES');const rows=sh.getDataRange().getDisplayValues();
- const saved=rows.slice(1).filter(r=>r[0]==='TIPO_ATIVIDADE').map(r=>r[1]).filter(Boolean);
+ const saved=rows.slice(1).filter(r=>r[0]==='TIPO_ATIVIDADE'&&r[2]!=='INATIVO').map(r=>r[1]).filter(Boolean);
  return [...new Set([...defaults,...saved])].sort((a,b)=>a.localeCompare(b,'pt-BR'));
 }
 function academyGestaoTipoAdicionar(nome){
  academyGestaoAuth_();nome=String(nome||'').trim().replace(/\s+/g,' ');
  if(nome.length<3||nome.length>80||/^[=+@-]/.test(nome))throw new Error('Nome inválido (3–80 caracteres).');
  if(academyGestaoTipos().some(x=>x.toLowerCase()===nome.toLowerCase()))throw new Error('Tipo já cadastrado.');
+ const con=academyGestaoConfigSupabase_();
+ if(con)academyGestaoSupabase_('academy_activity_types','post',{name:nome,active:true});
  academyGestaoSheet_('CONFIGURACOES').appendRow(['TIPO_ATIVIDADE',nome,'ATIVO',new Date(),academyGestaoAuth_()]);
  return academyGestaoTipos();
 }
@@ -90,6 +92,8 @@ function academyGestaoDecidir(d){
   academyGestaoSheet_('AUDITORIA').appendRow(['AUD-'+Utilities.getUuid(),'SUPABASE',id,'PARECER_ADMINISTRATIVO',academyGestaoAuth_(),new Date(),JSON.stringify({resultado,justificativa})]);
   return {sucesso:true,resultado};
  }
+ const detail=academyGestaoDetalhe('SHEETS',id);
+ if(resultado==='APROVADO'&&!detail.evidencias.length)throw new Error('Não é possível aprovar sem evidências.');
  const result=academyRevisarSolicitacao({solicitacaoId:id,resultado,justificativa,horasVerificadas:Number(d.horasVerificadas)||0});
  return result;
 }
