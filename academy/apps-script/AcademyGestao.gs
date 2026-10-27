@@ -167,3 +167,30 @@ function academyGestaoValidarEvidencia(solicitacaoId,evidenciaId,resultado,obser
   return {sucesso:true,resultado,mensagem:'Evidência atualizada. A emissão permanece condicionada à análise do protocolo e confirmação do pagamento.'};
  }finally{lock.releaseLock()}
 }
+
+/** Etapa 3: registra a LIBERAÇÃO PARA COBRANÇA, depois da aprovação.
+ * NÃO cobra, NÃO envia email de pagamento e NÃO emite certificado.
+ * A cobrança + convite dependem da implantação segura do checkout.
+ */
+function academyGestaoLiberarPagamento(origem,id){
+ const admin=academyGestaoAuth_();
+ if(origem!=='SHEETS')throw new Error('Solicitações do portal Supabase ainda não têm evidências sincronizadas; liberação bloqueada.');
+ id=String(id||'').trim();if(!id)throw new Error('Informe o protocolo.');
+ const lock=LockService.getScriptLock();lock.waitLock(30000);
+ try{
+  const d=academyGestaoDetalhe('SHEETS',id);
+  if(d.status!=='APROVADO')throw new Error('O protocolo deve estar aprovado pela administração.');
+  if(!d.evidencias.length)throw new Error('O protocolo não possui evidências.');
+  const permitidos=new Set(['VALIDADO','VALIDADA','APROVADO','APROVADA']);
+  if(!d.evidencias.every(x=>permitidos.has(String(x.estado||'').trim().toUpperCase())))
+   throw new Error('Todos os comprovantes precisam estar individualmente validados para liberar o pagamento.');
+  if(d.evidencias.some(x=>/TESTE|FICTICI|HOMOLOGACAO/i.test(String(x.nome||''))))
+   throw new Error('Protocolos de homologação não podem ser liberados para cobrança.');
+  const rows=academyGestaoRows_('AUDITORIA');
+  const prior=rows.find(x=>String(x[2])===id&&String(x[3])==='PAGAMENTO_LIBERADO');
+  if(prior)return {sucesso:true,jaLiberado:true,mensagem:'Este protocolo já foi liberado para preparação da cobrança. Nenhum e-mail foi enviado.',referencia:String(prior[0])};
+  const ref='AUD-'+Utilities.getUuid();
+  academyGestaoSheet_('AUDITORIA').appendRow([ref,'SOLICITACOES',id,'PAGAMENTO_LIBERADO',admin,new Date(),JSON.stringify({aguardaCheckout:true,emailEnviado:false,emissaoIniciada:false})]);
+  return {sucesso:true,referencia:ref,mensagem:'Análise concluída e protocolo liberado para a etapa financeira. O e-mail será enviado somente quando o checkout estiver integrado e validado. Nenhuma cobrança ou emissão foi iniciada.'};
+ }finally{lock.releaseLock()}
+}
