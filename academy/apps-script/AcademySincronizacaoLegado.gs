@@ -44,3 +44,38 @@ function academySincronizarProtocolosLegados(){
     return {sincronizados:items.length,mensagem:'Espelho administrativo atualizado no Supabase. Registros de origem permanecem na planilha privada.'};
   }finally{lock.releaseLock()}
 }
+
+/** Migração complementar de índices históricos.
+ * Executa apenas no backend privado, sem publicar arquivos de evidência no site.
+ * Nunca converte status antigos em pagamento confirmado ou certificado emitido.
+ */
+function academyMigrarIndicesHistoricos(){
+ academyGestaoAuth_();
+ const cfg=academyGestaoConfigSupabase_();
+ if(!cfg)throw new Error('Conexão Supabase privada ausente.');
+ const evidence=academyGestaoRows_('EVIDENCIAS').map(r=>({
+   source_id:String(r[0]),legacy_request_id:String(r[1]),
+   file_name:String(r[4]||''),review_status:String(r[7]||''),
+   source_file_id:String(r[3]||'')
+ })).filter(x=>x.source_id&&x.legacy_request_id);
+ const payments=academyGestaoRows_('PAGAMENTOS').map(r=>({
+   source_id:String(r[0]),legacy_request_id:String(r[1]),provider:'Mercado Pago',
+   external_reference:String(r[5]||r[4]||''),
+   status:String(r[6]||'NAO_INICIADO'),amount:Number(r[3])||0,
+   verified_at:null
+ })).filter(x=>x.source_id&&x.legacy_request_id);
+ const send=(table,items)=>{
+  for(let i=0;i<items.length;i+=40){
+   const response=UrlFetchApp.fetch(cfg.url+'/rest/v1/'+table+'?on_conflict=source_id',{
+    method:'post',muteHttpExceptions:true,contentType:'application/json',
+    headers:{apikey:cfg.key,Authorization:'Bearer '+cfg.key,Prefer:'resolution=merge-duplicates,return=minimal'},
+    payload:JSON.stringify(items.slice(i,i+40))
+   });
+   if(response.getResponseCode()<200||response.getResponseCode()>=300)
+    throw new Error('Importação de '+table+' falhou (HTTP '+response.getResponseCode()+'). '+response.getContentText().slice(0,180));
+  }
+ };
+ send('academy_legacy_evidence_index',evidence);
+ send('academy_legacy_payments_index',payments);
+ return {evidenciasIndexadas:evidence.length,pagamentosIndexados:payments.length,nota:'Metadados privados importados. Comprovantes originais continuam no Drive; pagamentos não foram reclassificados como confirmados.'};
+}
