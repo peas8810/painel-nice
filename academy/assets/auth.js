@@ -27,6 +27,8 @@ async function listRequests(){
  if(revision!==currentRevision||!currentUser)return;
  tracking.replaceChildren();
  if(error){tracking.textContent='Não foi possível carregar as solicitações: '+error.message;return}
+ const select=$('evidence-request');select.replaceChildren();(data||[]).filter(x=>!['REPROVADO','APROVADO'].includes(x.status)).forEach(x=>{const o=document.createElement('option');o.value=x.id;o.textContent=x.activity+' · '+x.id.slice(0,8);select.append(o)});
+ await listEvidence();
  if(!data?.length){tracking.textContent='Você ainda não tem solicitações. Preencha o formulário ao lado para começar.';return}
  const descriptions={ENVIADA:'Solicitação recebida',EM_ANALISE:'Em análise documental',PENDENTE_DOCUMENTOS:'Aguardando documentos',APROVADO:'Análise aprovada',REPROVADO:'Não aprovada',INCONCLUSIVO:'Análise inconclusiva'};
  for(const item of data){const card=document.createElement('article');card.className='request-item';const heading=document.createElement('strong');heading.textContent=item.activity;const state=document.createElement('span');state.className='request-status';state.textContent=descriptions[item.status]||item.status;const detail=document.createElement('small');detail.textContent=String(item.hours_declared)+' horas declaradas · Solicitação '+item.id;card.append(heading,state,detail);tracking.appendChild(card)}
@@ -61,6 +63,13 @@ $('academy-new-password').addEventListener('submit',async e=>{e.preventDefault()
  message('login-status',error?'Erro: '+error.message:'Senha alterada. Entre com seus dados.');if(!error)display('academy-new-password',false);
 });
 $('academy-logout').onclick=async()=>{await db.auth.signOut();await refresh()};
+async function listEvidence(){if(!currentUser)return;const el=$('evidence-list');el.replaceChildren();const {data,error}=await db.from('academy_evidence').select('file_name,review_status,request_id,created_at').order('created_at',{ascending:false}).limit(100);if(error){el.textContent='Não foi possível carregar comprovantes: '+error.message;return}(data||[]).forEach(x=>{const p=document.createElement('p');p.className='notice';p.textContent=x.file_name+' — '+x.review_status+' — '+x.request_id.slice(0,8);el.append(p)})}
+$('evidence-upload').addEventListener('submit',async e=>{e.preventDefault();if(!e.target.reportValidity())return;const {data:{user}}=await db.auth.getUser();if(!user){message('evidence-status','Faça login novamente.');return}const file=$('evidence-file').files[0],requestId=$('evidence-request').value;if(!file||!requestId)return;if(file.size>10485760||!['application/pdf','image/jpeg','image/png'].includes(file.type)){message('evidence-status','Arquivo inválido. Use PDF/JPG/PNG até 10 MB.');return}
+ const ext=file.type==='application/pdf'?'pdf':file.type==='image/png'?'png':'jpg';const path=user.id+'/'+requestId+'/'+crypto.randomUUID()+'.'+ext;
+ message('evidence-status','Enviando comprovante…');const {error:up}=await db.storage.from('academy-evidencias').upload(path,file,{contentType:file.type,upsert:false});if(up){message('evidence-status','Falha no envio: '+up.message);return}
+ const {error:insert}=await db.from('academy_evidence').insert({request_id:requestId,file_path:path,file_name:file.name});if(insert){await db.storage.from('academy-evidencias').remove([path]);message('evidence-status','Falha no registro: '+insert.message);return}
+ $('evidence-file').value='';message('evidence-status','Documento enviado com sucesso. Aguarde a avaliação individual.');await listEvidence();
+});
 $('request').addEventListener('submit',async e=>{e.preventDefault();if(!e.currentTarget.reportValidity())return;
  const {data:auth,error:authError}=await db.auth.getUser();if(authError||!auth.user){message('request-status','Sessão encerrada. Entre novamente.');await refresh();return}
  const item={activity:$('activity').value.trim(),activity_type:$('activity-type').value,start_date:$('start').value,end_date:$('end').value,hours_declared:Number($('hours').value),description:$('description').value.trim()};
