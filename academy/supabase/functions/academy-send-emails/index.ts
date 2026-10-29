@@ -11,7 +11,7 @@ Deno.serve(async(req)=>{
  try{
   const rows=await db("/rest/v1/rpc/academy_claim_email_outbox","POST",{});
   if(!rows.length)return out(200,{processed:0});
-  const job=rows[0];let subject="",html="";
+  job=rows[0];let subject="",html="";
   if(job.kind==="PAYMENT_INVITATION"){
    const rows=await db("/rest/v1/academy_payment_releases?select=checkout_url,payment_status&request_id=eq."+job.request_id);
    const p=rows[0],link=p&&safeCheckout(p.checkout_url);
@@ -24,10 +24,10 @@ Deno.serve(async(req)=>{
    subject="Protocolo Academy — certificado disponível";
    html='<p>Seu certificado está disponível no <a href="https://www.protocolo.me/academy/portal/">portal do aluno</a>.</p>';
   }else throw Error("Unknown message kind");
-  const r=await fetch("https://api.resend.com/emails",{method:"POST",headers:{"authorization":"Bearer "+API,"content-type":"application/json"},body:JSON.stringify({from:FROM,to:[job.recipient],subject,html})});
+  const r=await fetch("https://api.resend.com/emails",{method:"POST",headers:{"authorization":"Bearer "+API,"content-type":"application/json","Idempotency-Key":"academy-email-"+job.id},body:JSON.stringify({from:FROM,to:[job.recipient],subject,html})});
   const result=await r.json();
   if(!r.ok||!result.id)throw Error("Email provider rejected request");
   await db("/rest/v1/academy_email_outbox?id=eq."+job.id,"PATCH",{status:"ENVIADO",delivered_at:new Date().toISOString(),provider_message_id:result.id,last_error:null});
   return out(200,{processed:1,sent:true});
- }catch(e){return out(502,{error:"Delivery failed; retained for retry"})}
+ }catch(e){if(job){try{await db("/rest/v1/academy_email_outbox?id=eq."+job.id,"PATCH",{status:"FALHOU",last_error:String(e?.message||e).slice(0,180)})}catch{}}return out(502,{error:"Delivery failed; retained for retry"})}
 });
