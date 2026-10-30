@@ -67,11 +67,27 @@ async function deleteRequest(item){
  message('evidence-status',error?'Exclusão não realizada: '+error.message:'Protocolo cancelado com sucesso.');
  if(!error)await listRequests()
 }
+async function loadNotificationPreferences(){
+ if(!currentUser)return;
+ const {data,error}=await db.from('academy_notification_preferences').select('email_enabled,whatsapp_phone,whatsapp_opt_in').eq('user_id',currentUser.id).maybeSingle();
+ if(error){message('notify-preferences-status','Preferências indisponíveis: '+error.message);return}
+ $('notify-email').checked=data?.email_enabled??true;
+ $('notify-whatsapp-phone').value=data?.whatsapp_phone||'';
+ $('notify-whatsapp-consent').checked=!!data?.whatsapp_opt_in;
+}
+$('notification-preferences').addEventListener('submit',async e=>{
+ e.preventDefault();const {data:{user}}=await db.auth.getUser();if(!user)return;
+ const consent=$('notify-whatsapp-consent').checked,phone=$('notify-whatsapp-phone').value.trim();
+ if(consent&&!/^\+[1-9][0-9]{7,14}$/.test(phone)){message('notify-preferences-status','Informe o número com DDI, por exemplo +5531999999999.');return}
+ const payload={user_id:user.id,email_enabled:$('notify-email').checked,whatsapp_phone:phone||null,whatsapp_opt_in:consent,whatsapp_opt_in_at:consent?new Date().toISOString():null,updated_at:new Date().toISOString()};
+ const {error}=await db.from('academy_notification_preferences').upsert(payload,{onConflict:'user_id'});
+ message('notify-preferences-status',error?'Não foi possível salvar: '+error.message:'Preferências salvas. O WhatsApp depende de ativação da API oficial.');
+});
 async function refresh(){
  const {data,error}=await db.auth.getUser();
  const user=error?null:data.user;currentUser=user||null;
  display('loading-view',false);display('visitor-view',!user);display('student-view',!!user);
- if(!user)resetEdit();if(user){$('student-email').textContent='Conectado como '+user.email;await Promise.all([listRequests(),loadActivityTypes()])}
+ if(!user)resetEdit();if(user){$('student-email').textContent='Conectado como '+user.email;await Promise.all([listRequests(),loadActivityTypes(),loadNotificationPreferences()])}
  else{currentRevision++;$('tracking').replaceChildren();$('student-email').textContent=''}
 }
 $('register').addEventListener('submit',async e=>{e.preventDefault();const form=e.currentTarget;if(!form.reportValidity())return;const full_name=$('name').value.trim(),email=$('email').value.trim(),password=$('password').value;
