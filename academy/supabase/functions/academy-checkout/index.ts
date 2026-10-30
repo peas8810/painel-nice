@@ -22,7 +22,7 @@ Deno.serve(async(req)=>{
   if(!bearer.startsWith("Bearer "))return reply({error:"Login required"},401,origin);
   const uid=await api("/auth/v1/user",{token:bearer.slice(7),apikey:ANON});
   if(!uid?.id)return reply({error:"Invalid session"},401,origin);
-  const admin=await api("/rest/v1/academy_admin_members?select=user_id&enabled=eq.true&user_id=eq."+encodeURIComponent(uid.id));
+  const admin=await api("/rest/v1/academy_admin_members?select=user_id&enabled=eq.true&role=eq.SUPER_ADMIN&user_id=eq."+encodeURIComponent(uid.id));
   if(!admin?.length)return reply({error:"Access denied"},403,origin);
   const body=await req.json(),id=String(body?.request_id||"");
   if(!/^[0-9a-f-]{36}$/.test(id))return reply({error:"Invalid request"},400,origin);
