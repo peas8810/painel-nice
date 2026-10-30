@@ -16,7 +16,7 @@ async function authorized(req){
  if(!token)return false;
  const user=await fetch(URL+"/auth/v1/user",{headers:{"apikey":ANON,"authorization":"Bearer "+token}});
  if(!user.ok)return false;
- const u=await user.json();const roles=await api("/rest/v1/academy_admin_members?select=user_id&user_id=eq."+encodeURIComponent(u.id)+"&enabled=eq.true");
+ const u=await user.json();const roles=await api("/rest/v1/academy_admin_members?select=user_id&user_id=eq."+encodeURIComponent(u.id)+"&enabled=eq.true&role=eq.SUPER_ADMIN");
  return roles.length>0;
 }
 async function hmac(message){const key=await crypto.subtle.importKey("raw",new TextEncoder().encode(SECRET),{name:"HMAC",hash:"SHA-256"},false,["sign"]);return Array.from(new Uint8Array(await crypto.subtle.sign("HMAC",key,new TextEncoder().encode(message))),x=>x.toString(16).padStart(2,"0")).join("")}
