@@ -121,11 +121,38 @@ $('academy-new-password').addEventListener('submit',async e=>{e.preventDefault()
 });
 $('academy-logout').onclick=async()=>{await db.auth.signOut();await refresh()};
 async function listEvidence(){if(!currentUser)return;const el=$('evidence-list');el.replaceChildren();const {data,error}=await db.from('academy_evidence').select('file_name,review_status,request_id,created_at').order('created_at',{ascending:false}).limit(100);if(error){el.textContent='Não foi possível carregar comprovantes: '+error.message;return}(data||[]).forEach(x=>{const p=document.createElement('p');p.className='notice';p.textContent=x.file_name+' — '+x.review_status+' — '+x.request_id.slice(0,8);el.append(p)})}
-$('evidence-upload').addEventListener('submit',async e=>{e.preventDefault();if(!e.target.reportValidity())return;const {data:{user}}=await db.auth.getUser();if(!user){message('evidence-status','Faça login novamente.');return}const file=$('evidence-file').files[0],requestId=$('evidence-request').value;if(!file||!requestId)return;const ownership=await db.from('academy_requests').select('id').eq('id',requestId).eq('user_id',user.id).maybeSingle();if(ownership.error||!ownership.data){message('evidence-status','Este protocolo pertence a outra conta ou não está disponível. Atualize a página e entre com o estudante que criou o pedido.');await listRequests();return}if(file.size>10485760||!['application/pdf','image/jpeg','image/png'].includes(file.type)){message('evidence-status','Arquivo inválido. Use PDF/JPG/PNG até 10 MB.');return}
- const ext=file.type==='application/pdf'?'pdf':file.type==='image/png'?'png':'jpg';const path=user.id+'/'+requestId+'/'+crypto.randomUUID()+'.'+ext;
- message('evidence-status','Enviando comprovante…');const submitButton=e.currentTarget.querySelector('button[type=submit]');if(submitButton)submitButton.disabled=true;const {error:up}=await db.storage.from('academy-evidencias').upload(path,file,{contentType:file.type,upsert:false});if(up){if(submitButton)submitButton.disabled=false;message('evidence-status','Não foi possível enviar o arquivo. Verifique se o protocolo pertence a esta conta: '+up.message);return}
- const {error:insert}=await db.from('academy_evidence').insert({request_id:requestId,file_path:path,file_name:file.name});if(insert){await db.storage.from('academy-evidencias').remove([path]);if(submitButton)submitButton.disabled=false;message('evidence-status',insert.code==='42501'?'O documento não pôde ser associado a este protocolo. Confira se você está conectado com a mesma conta que criou a solicitação.':'Falha no registro: '+insert.message);return}
- if(submitButton)submitButton.disabled=false;$('evidence-file').value='';message('evidence-status','Documento enviado com sucesso. Aguarde a avaliação individual.');await listEvidence();
+async function uploadEvidenceFile(file,requestId){
+ const {data:{user}}=await db.auth.getUser();
+ if(!user){message('evidence-status','Faça login novamente.');return false}
+ if(!file||!requestId){message('evidence-status','Selecione um protocolo e um arquivo.');return false}
+ const ownership=await db.from('academy_requests').select('id,status').eq('id',requestId).eq('user_id',user.id).maybeSingle();
+ if(ownership.error||!ownership.data){message('evidence-status','Protocolo não encontrado nesta conta.');await listRequests();return false}
+ if(!['ENVIADA','EM_ANALISE','PENDENTE_DOCUMENTOS','INCONCLUSIVO'].includes(ownership.data.status)){message('evidence-status','Este protocolo não aceita novos comprovantes.');return false}
+ const allowed={'application/pdf':'pdf','image/jpeg':'jpg','image/png':'png'};
+ if(file.size>10485760||file.size===0||!allowed[file.type]){message('evidence-status','Arquivo inválido. Use PDF, JPG ou PNG de até 10 MB.');return false}
+ const path=user.id+'/'+requestId+'/'+crypto.randomUUID()+'.'+allowed[file.type];
+ const submit=$('evidence-upload').querySelector('button[type=submit]'),drive=$('drive-picker-button');
+ if(submit)submit.disabled=true;if(drive)drive.disabled=true;
+ try{
+  message('evidence-status','Enviando e vinculando comprovante…');
+  const {error:up}=await db.storage.from('academy-evidencias').upload(path,file,{contentType:file.type,upsert:false});
+  if(up){message('evidence-status','Falha no upload: '+up.message);return false}
+  const {error:insert}=await db.from('academy_evidence').insert({request_id:requestId,file_path:path,file_name:file.name.slice(0,240)});
+  if(insert){
+   await db.storage.from('academy-evidencias').remove([path]);
+   message('evidence-status','Falha ao associar o arquivo ao protocolo: '+insert.message);return false
+  }
+  $('evidence-file').value='';
+  message('evidence-status','Documento enviado e vinculado com sucesso. Aguarde a análise.');
+  await listEvidence();
+  return true
+ }catch(e){message('evidence-status','Erro no envio: '+String(e.message||e));return false}
+ finally{if(submit)submit.disabled=false;if(drive)drive.disabled=false}
+}
+window.academyUploadEvidence=uploadEvidenceFile;
+$('evidence-upload').addEventListener('submit',async e=>{
+ e.preventDefault();if(!e.target.reportValidity())return;
+ await uploadEvidenceFile($('evidence-file').files[0],$('evidence-request').value);
 });
 $('request').addEventListener('submit',async e=>{e.preventDefault();if(!e.currentTarget.reportValidity())return;
  const {data:auth,error:authError}=await db.auth.getUser();if(authError||!auth.user){message('request-status','Sessão encerrada. Entre novamente.');await refresh();return}
