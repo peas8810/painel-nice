@@ -39,9 +39,9 @@ Deno.serve(async(req)=>{
     back_urls:{success:"https://www.protocolo.me/academy/portal/",pending:"https://www.protocolo.me/academy/portal/",failure:"https://www.protocolo.me/academy/portal/"}};
   const response=await fetch("https://api.mercadopago.com/checkout/preferences",{method:"POST",headers:{"authorization":"Bearer "+MP,"content-type":"application/json","X-Idempotency-Key":id},body:JSON.stringify(mpBody)});
   const preference=await response.json();
-  if(!response.ok||!preference.id||!/^https:\/\//.test(preference.init_point||""))return reply({error:"Checkout provider could not create a valid preference"},502,origin);
-  await api("/rest/v1/academy_payment_releases?request_id=eq."+encodeURIComponent(id),{method:"PATCH",body:{checkout_url:preference.init_point,mp_preference_id:String(preference.id),payment_status:"AGUARDANDO_PAGAMENTO"}});
+  if(!response.ok||!preference.id||!/^https:\/\//.test(preference.sandbox_init_point||""))return reply({error:"Sandbox checkout not available; live charge blocked"},502,origin);
+  await api("/rest/v1/academy_payment_releases?request_id=eq."+encodeURIComponent(id),{method:"PATCH",body:{checkout_url:preference.sandbox_init_point,mp_preference_id:String(preference.id),payment_status:"AGUARDANDO_PAGAMENTO"}});
   await api("/rest/v1/academy_email_outbox?on_conflict=request_id,kind",{method:"POST",body:{request_id:id,kind:"PAYMENT_INVITATION",recipient:recipient.email,status:"PENDENTE"}}).catch(()=>null);
-  return reply({checkout_url:preference.init_point,email_status:"PENDENTE",message:"Checkout created; email invitation queued for delivery"},200,origin);
+  return reply({checkout_url:preference.sandbox_init_point,email_status:"PENDENTE",message:"Checkout created; email invitation queued for delivery"},200,origin);
  }catch(e){return reply({error:"Checkout could not be started",detail:String(e?.message||e).slice(0,100)},500,origin)}
 });
