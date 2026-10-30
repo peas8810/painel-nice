@@ -53,6 +53,7 @@ Deno.serve(async req=>{
   const navy=rgb(.07,.17,.25),teal=rgb(.02,.43,.45);
   page.drawRectangle({x:0,y:0,width:842,height:595,color:rgb(.975,.986,.987)});
   page.drawRectangle({x:25,y:25,width:792,height:545,borderColor:teal,borderWidth:2});
+  page.drawText("HOMOLOGACAO - SEM VALOR COMERCIAL",{x:140,y:40,size:17,font:bold,color:rgb(.72,.18,.17)});
   const line=(text,x,y,size=14,strong=false,color=navy)=>page.drawText(fit(text,120),{x,y,size,font:strong?bold:regular,color});
   line("EDITORA UJN | PROTOCOLO ACADEMY",55,532,13,true,teal);
   line("CERTIFICADO DE ATIVIDADE DOCUMENTADA",55,473,23,true);
