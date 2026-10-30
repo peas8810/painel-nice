@@ -60,3 +60,9 @@ html{scroll-padding-top:16px}
  .warning{font-size:12px}
 }
 @media(max-width:380px){.mobile-quick-nav a{font-size:11px}.portal-card{padding:16px}.portal-wrap{padding-inline:10px}}
+
+.google-login{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;min-height:52px;padding:12px 16px;background:#fff;border:1px solid #b7c8d4;border-radius:12px;color:#17314c;font:700 15px system-ui,sans-serif;cursor:pointer}
+.google-login:hover{background:#f5fafb;border-color:#759aa8}.google-login:disabled{opacity:.65;cursor:wait}
+.google-g{font-size:22px;font-weight:900;color:#4285f4;letter-spacing:-.08em}
+.auth-divider{display:flex;align-items:center;gap:12px;margin:18px 0 8px;color:#607889;font-size:12px}
+.auth-divider:before,.auth-divider:after{content:"";height:1px;background:#dce7ee;flex:1}
