@@ -80,7 +80,12 @@ async function access(){
  if(error||!user){show('login-box',true);show('dashboard',false);show('denied',false);return}
  const {data:allowed,error:permissionError}=await db.rpc('academy_is_admin');
  if(permissionError||allowed!==true){show('login-box',false);show('dashboard',false);show('denied',true);return}
- show('login-box',false);show('denied',false);show('dashboard',true);$('admin-name').textContent='Conectado como '+user.email;await Promise.all([loadRecords(),loadLegacy(),loadCategories(),reloadFinance(),reloadCertificates()]);renderModuleSummaries()
+ show('login-box',false);show('denied',false);show('dashboard',true);
+ const {data:roles}=await db.from('academy_admin_members').select('role').eq('user_id',user.id).limit(1);
+ const role=roles?.[0]?.role||'ADMIN';
+ $('admin-name').textContent=(role==='SUPER_ADMIN'?'Administrador geral':role==='TESTER'?'Acesso de testes':'Administrador')+' · '+user.email;
+ if(role!=='SUPER_ADMIN'){['release-payment','start-checkout','send-invites','issue-certificate','import-files','process-emails'].forEach(id=>{const button=$(id);if(button){button.disabled=true;button.title='Apenas administrador geral pode executar esta ação'}})}
+await Promise.all([loadRecords(),loadLegacy(),loadCategories(),reloadFinance(),reloadCertificates()]);renderModuleSummaries()
 }
 $('decision-form').addEventListener('submit',async e=>{e.preventDefault();if(!chosen||!e.currentTarget.reportValidity())return;const decision=$('decision-type').value,reason=$('decision-reason').value.trim();if(reason.length<15)return;if(!confirm('Confirmar '+decision+' para este protocolo?'))return;const button=$('save-decision');button.disabled=true;$('decision-feedback').textContent='Registrando…';const id=chosen.id;const {error}=decision==='APROVADO'?await db.rpc('academy_admin_approve_request',{p_id:id,p_justification:reason,p_hours:Number($('verified-hours').value)}):await db.rpc('academy_admin_review_request',{p_id:id,p_decision:decision,p_justification:reason});button.disabled=false;if(error){$('decision-feedback').textContent='Falha: '+error.message;return}$('decision-feedback').textContent='Decisão registrada. O estudante já poderá consultar a nova situação.';await loadRecords();const updated=records.find(x=>x.id===id);if(updated)await details(updated)});
 $('login').addEventListener('submit',async e=>{e.preventDefault();$('login-feedback').textContent='Autenticando…';const {error}=await db.auth.signInWithPassword({email:$('email').value.trim(),password:$('password').value});$('password').value='';if(error){$('login-feedback').textContent='Acesso não autorizado: '+error.message;return}await access()});
