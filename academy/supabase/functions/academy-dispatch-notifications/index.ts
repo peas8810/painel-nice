@@ -21,11 +21,11 @@ Deno.serve(async req=>{
    const enabled=await db("/rest/v1/rpc/academy_notification_delivery_enabled","POST",{p_user:job.user_id,p_channel:job.channel});
    if(!enabled){await db(statusPath,"PATCH",{status:"CANCELADO",error:"User opted out"});return out(200,{processed:1,cancelled:true})}
    const title=kinds[job.kind];if(!title)throw Error("Unsupported event type");
-   const portal="https://www.protocolo.me/academy/portal/";
+   const portal="https://www.protocolo.me/academy/portal/";\n   let extraLink=portal;\n   if(job.kind==="PAYMENT_RELEASED"){const p=await db("/rest/v1/academy_payment_releases?select=checkout_url,payment_status&request_id=eq."+job.request_id);const link=p[0]?.checkout_url; if(!link||p[0]?.payment_status!=="AGUARDANDO_PAGAMENTO")throw Error("Checkout link not yet ready");const url=new URL(link);if(url.protocol!=="https:"||!url.hostname.endsWith("mercadopago.com.br"))throw Error("Untrusted payment link");extraLink=url.toString()}
    let providerId;
    if(job.channel==="EMAIL"){
     if(!EMAIL_KEY||!FROM)throw Error("Email service not configured");
-    const html='<p>'+esc(title)+' no Protocolo Academy.</p><p>Protocolo: <strong>'+esc(job.request_id)+'</strong></p><p>Acesse o <a href="'+portal+'">Portal do Estudante</a> para consultar os detalhes e as próximas etapas.</p><p>Esta é uma mensagem transacional relacionada ao seu protocolo.</p>';
+    const html='<p>'+esc(title)+' no Protocolo Academy.</p><p>Protocolo: <strong>'+esc(job.request_id)+'</strong></p><p>Acesse o <a href="'+extraLink+'">Portal do Estudante</a> para consultar os detalhes e as próximas etapas.</p><p>Esta é uma mensagem transacional relacionada ao seu protocolo.</p>';
     const r=await fetch("https://api.resend.com/emails",{method:"POST",headers:{"authorization":"Bearer "+EMAIL_KEY,"content-type":"application/json","Idempotency-Key":"academy-notification-"+job.id},body:JSON.stringify({from:FROM,to:[job.recipient],subject:"Academy — "+title,html})});
     const d=await r.json();if(!r.ok||!d.id)throw Error("Email provider rejected request");providerId=String(d.id);
    }else{
