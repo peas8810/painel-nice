@@ -81,8 +81,8 @@ async function access(){
  const {data:allowed,error:permissionError}=await db.rpc('academy_is_admin');
  if(permissionError||allowed!==true){show('login-box',false);show('dashboard',false);show('denied',true);return}
  show('login-box',false);show('denied',false);show('dashboard',true);
- const {data:roles}=await db.from('academy_admin_members').select('role').eq('user_id',user.id).limit(1);
- const role=roles?.[0]?.role||'ADMIN';
+ const {data:currentRole}=await db.rpc('academy_admin_my_role');
+ const role=currentRole||'NONE';
  $('admin-name').textContent=(role==='SUPER_ADMIN'?'Administrador geral':role==='TESTER'?'Acesso de testes':'Administrador')+' · '+user.email;
  if(role!=='SUPER_ADMIN'){['release-payment','start-checkout','send-invites','issue-certificate','import-files','process-emails'].forEach(id=>{const button=$(id);if(button){button.disabled=true;button.title='Apenas administrador geral pode executar esta ação'}})}
 await Promise.all([loadRecords(),loadLegacy(),loadCategories(),reloadFinance(),reloadCertificates()]);renderModuleSummaries()
