@@ -16,3 +16,47 @@
 .request-status{letter-spacing:.01em}
 @media(max-width:620px){.process-steps{grid-template-columns:repeat(2,minmax(0,1fr))}.portal-card{padding:19px}.portal-auth-card{margin:16px auto}.portal-wrap{padding-left:15px;padding-right:15px}}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+
+/* 2026 mobile-first UX: one clear action at a time */
+html{scroll-padding-top:16px}
+.portal-wrap{background:linear-gradient(180deg,#f3faf9 0,#fff 370px);max-width:none}
+.portal-wrap>section{max-width:1190px;margin-inline:auto}
+.portal-heading h1{max-width:660px}
+.portal-dashboard{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+.portal-card{min-width:0;border-radius:20px}
+.portal-card form input:focus,.portal-card form select:focus,.portal-card form textarea:focus{border-color:#0d9e95;box-shadow:0 0 0 3px #10a9a024;outline:none}
+.mobile-quick-nav{display:none}
+.upload-area{border-top:1px solid #dfe9ee;margin-top:22px;padding-top:20px}
+.preference-details summary{cursor:pointer;font-weight:750;color:#123c52;padding:12px 0;list-style-position:inside}
+.preference-details summary::marker{color:#0c827d}
+.preference-details .disclosure-body{padding:4px 0 14px}
+.portal-card input[type=checkbox]{width:20px;height:20px;min-height:20px;accent-color:#087e7b}
+#notification-preferences label:has(input[type=checkbox]){display:flex;align-items:start;gap:12px;font-weight:500}
+.portal-card .primary{min-height:50px;border-radius:12px}
+.request-item{border-radius:15px;padding:18px!important}
+.request-item .actions{display:flex;gap:10px;flex-wrap:wrap}
+.request-item .plain-action{background:#edf6f7;color:#0b5f6c;border-radius:10px;text-decoration:none;padding:10px 14px;font-size:13px}
+@media(max-width:850px){
+ .portal-wrap{padding:22px 16px 94px}
+ .portal-dashboard{display:flex;flex-direction:column;gap:16px}
+ .portal-dashboard>.portal-card{width:100%}
+ .new-request-card{order:0}
+ #my-requests{order:1}
+ .mobile-quick-nav{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;position:sticky;top:0;z-index:10;background:#ffffffed;backdrop-filter:blur(12px);padding:10px 0;border-bottom:1px solid #e3edef;margin-top:20px}
+ .mobile-quick-nav a{display:flex;align-items:center;justify-content:center;text-align:center;background:#eff7f7;color:#0c5662;padding:12px 4px;min-height:48px;border-radius:11px;font-size:12px;font-weight:750;line-height:1.2}
+ .portal-heading h1{font-size:clamp(29px,7vw,42px);line-height:1.1}
+ .portal-heading p{font-size:14px}
+ .portal-card{padding:20px;border-radius:18px;box-shadow:0 5px 20px #102a430d}
+ .portal-card h2{font-size:21px;margin-bottom:15px}
+ .process-steps{grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}
+ .process-steps span{font-size:10px;padding:10px 2px}
+ .two{grid-template-columns:1fr}
+ .portal-card :is(input,textarea,select){font-size:16px;min-height:49px}
+ .portal-card label{font-size:14px}
+ #request-submit,#evidence-upload .primary,#notification-preferences .primary{width:100%;font-size:15px}
+ .request-item .actions{display:grid;grid-template-columns:1fr 1fr}
+ .request-item .actions button{min-height:46px;text-align:center}
+ #student-email{overflow-wrap:anywhere;font-size:13px}
+ .warning{font-size:12px}
+}
+@media(max-width:380px){.mobile-quick-nav a{font-size:11px}.portal-card{padding:16px}.portal-wrap{padding-inline:10px}}
