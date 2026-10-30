@@ -8,7 +8,7 @@ function authTab(tab){display('login-panel',tab==='login');display('register-pan
 $('show-login').onclick=()=>authTab('login');$('show-register').onclick=()=>authTab('register');
 if(!cfg.url||!cfg.publishableKey||!window.supabase?.createClient){display('loading-view',false);display('visitor-view',true);message('login-status','Serviço de login indisponível. Tente novamente mais tarde.');return}
 const db=window.supabase.createClient(cfg.url,cfg.publishableKey);
-let currentUser=null, currentRevision=0;
+let currentUser=null, currentRevision=0, editingRequestId=null;
 async function loadActivityTypes(){
  const input=$('activity-type');
  const fallback=['Grupo de estudos','Projeto colaborativo','Ação comunitária','Oficina independente','Capacitação interna','Outra'];
@@ -36,17 +36,30 @@ async function listRequests(){
  const descriptions={ENVIADA:'Solicitação recebida',EM_ANALISE:'Em análise documental',PENDENTE_DOCUMENTOS:'Aguardando documentos',APROVADO:'Análise aprovada',REPROVADO:'Não aprovada',INCONCLUSIVO:'Análise inconclusiva'};
  for(const item of data){const card=document.createElement('article');card.className='request-item';const heading=document.createElement('strong');heading.textContent=item.activity;const state=document.createElement('span');state.className='request-status';state.textContent=descriptions[item.status]||item.status;const detail=document.createElement('small');detail.textContent=String(item.hours_declared)+' horas declaradas · Solicitação '+item.id;card.append(heading,state,detail);const pay=payById.get(item.id),cert=certById.get(item.id);if(pay){const p=document.createElement('small');p.textContent='Financeiro: '+pay.payment_status;card.append(p);if(pay.checkout_url&&pay.payment_status==='AGUARDANDO_PAGAMENTO'){const link=document.createElement('a');link.href=pay.checkout_url;link.rel='noopener noreferrer';link.target='_blank';link.textContent='Acessar pagamento seguro';card.append(link)}}if(cert){const c=document.createElement('small');c.textContent='Certificado: '+cert.status+(cert.status==='EMITIDO'?' · '+cert.certificate_code:'');card.append(c);if(cert.status==='EMITIDO'&&cert.pdf_path){const button=document.createElement('button');button.type='button';button.className='plain-action';button.textContent='Baixar certificado PDF';button.onclick=async()=>{button.disabled=true;const {data:url,error}=await db.storage.from('academy-certificados').createSignedUrl(cert.pdf_path,60);button.disabled=false;if(error){message('evidence-status','Não foi possível abrir o PDF: '+error.message);return}window.open(url.signedUrl,'_blank','noopener,noreferrer')};card.append(button);const link=document.createElement('a');link.href='../validar/?codigo='+encodeURIComponent(cert.certificate_code);link.textContent='Validar autenticidade';link.target='_blank';link.rel='noopener noreferrer';card.append(link)}}const actions=document.createElement('div');actions.className='actions';if(['ENVIADA','EM_ANALISE','PENDENTE_DOCUMENTOS','INCONCLUSIVO'].includes(item.status)&&!pay&&!cert){const edit=document.createElement('button');edit.type='button';edit.className='plain-action';edit.textContent='Editar protocolo';edit.onclick=()=>editRequest(item);const del=document.createElement('button');del.type='button';del.className='plain-action';del.textContent='Excluir protocolo';del.onclick=()=>deleteRequest(item);actions.append(edit,del)}card.append(actions);tracking.appendChild(card)}
 }
+function resetEdit(){
+ editingRequestId=null;
+ $('request').reset();
+ $('request-title').textContent='Protocolar atividade';
+ $('request-submit').textContent='Registrar protocolo de análise';
+ display('cancel-edit',false);display('edit-notice',false);
+}
+$('cancel-edit').onclick=()=>{resetEdit();message('request-status','Edição cancelada. Nenhuma alteração foi salva.')};
 async function editRequest(item){
- const activity=prompt('Nome da atividade:',item.activity);if(activity===null)return;
- const kind=prompt('Tipo da atividade:',item.activity_type);if(kind===null)return;
- const start=prompt('Data inicial (AAAA-MM-DD):',item.start_date);if(start===null)return;
- const end=prompt('Data final (AAAA-MM-DD):',item.end_date);if(end===null)return;
- const hours=prompt('Horas declaradas:',String(item.hours_declared));if(hours===null)return;
- const description=prompt('Descrição da participação:',item.description||'');if(description===null)return;
- if(!confirm('Salvar alterações neste protocolo? A solicitação voltará à análise.'))return;
- const {data,error}=await db.rpc('academy_student_change_request',{p_id:item.id,p_action:'EDITAR',p_activity:activity,p_activity_type:kind,p_start_date:start,p_end_date:end,p_hours:Number(hours),p_description:description});
- message('evidence-status',error?'Edição não realizada: '+error.message:'Protocolo atualizado e reenviado para análise.');
- if(!error)await listRequests()
+ const {data,error}=await db.from('academy_requests').select('id,user_id,activity,activity_type,start_date,end_date,hours_declared,description,status').eq('id',item.id).eq('user_id',currentUser.id).maybeSingle();
+ if(error||!data){message('evidence-status','Não foi possível carregar este protocolo para edição.');return}
+ if(!['ENVIADA','EM_ANALISE','PENDENTE_DOCUMENTOS','INCONCLUSIVO'].includes(data.status)){message('evidence-status','Este protocolo não permite alterações diretas.');return}
+ editingRequestId=data.id;
+ $('activity').value=data.activity||'';
+ const type=$('activity-type');if(![...type.options].some(o=>o.value===data.activity_type)){const opt=document.createElement('option');opt.value=data.activity_type;opt.textContent=data.activity_type;type.appendChild(opt)}type.value=data.activity_type;
+ $('start').value=data.start_date||'';
+ $('end').value=data.end_date||'';
+ $('hours').value=String(data.hours_declared??'');
+ $('description').value=data.description||'';
+ $('request-title').textContent='Editar protocolo existente';
+ $('request-submit').textContent='Salvar alterações';
+ display('cancel-edit',true);display('edit-notice',true);
+ message('request-status','Editando protocolo '+data.id.slice(0,8)+'. Revise os campos e clique em Salvar alterações.');
+ $('request').scrollIntoView({behavior:'smooth',block:'start'});
 }
 async function deleteRequest(item){
  if(!confirm('Excluir o protocolo "'+item.activity+'"? Ele será cancelado e sairá do seu painel. O histórico de auditoria será preservado.'))return;
@@ -58,7 +71,7 @@ async function refresh(){
  const {data,error}=await db.auth.getUser();
  const user=error?null:data.user;currentUser=user||null;
  display('loading-view',false);display('visitor-view',!user);display('student-view',!!user);
- if(user){$('student-email').textContent='Conectado como '+user.email;await Promise.all([listRequests(),loadActivityTypes()])}
+ if(!user)resetEdit();if(user){$('student-email').textContent='Conectado como '+user.email;await Promise.all([listRequests(),loadActivityTypes()])}
  else{currentRevision++;$('tracking').replaceChildren();$('student-email').textContent=''}
 }
 $('register').addEventListener('submit',async e=>{e.preventDefault();const form=e.currentTarget;if(!form.reportValidity())return;const full_name=$('name').value.trim(),email=$('email').value.trim(),password=$('password').value;
@@ -95,9 +108,15 @@ $('request').addEventListener('submit',async e=>{e.preventDefault();if(!e.curren
  const {data:auth,error:authError}=await db.auth.getUser();if(authError||!auth.user){message('request-status','Sessão encerrada. Entre novamente.');await refresh();return}
  const item={activity:$('activity').value.trim(),activity_type:$('activity-type').value,start_date:$('start').value,end_date:$('end').value,hours_declared:Number($('hours').value),description:$('description').value.trim()};
  if(item.end_date<item.start_date||item.description.length<15){message('request-status','Verifique as datas e a descrição (mínimo de 15 caracteres).');return}
- message('request-status','Registrando atividade…');const {error}=await db.from('academy_requests').insert(item);
- message('request-status',error?'Não foi possível registrar: '+error.message:'Solicitação registrada. Acompanhe o andamento no painel. A análise aguarda evidências.');
- if(!error){$('request').reset();await listRequests()}
+ const isEditing=!!editingRequestId;
+ message('request-status',isEditing?'Salvando alterações…':'Registrando atividade…');
+ const submit=$('request-submit');submit.disabled=true;
+ const {error}=isEditing
+  ? await db.rpc('academy_student_change_request',{p_id:editingRequestId,p_action:'EDITAR',p_activity:item.activity,p_activity_type:item.activity_type,p_start_date:item.start_date,p_end_date:item.end_date,p_hours:item.hours_declared,p_description:item.description})
+  : await db.from('academy_requests').insert(item);
+ submit.disabled=false;
+ const outcome=error?(isEditing?'Não foi possível salvar: ':'Não foi possível registrar: ')+error.message:(isEditing?'Alterações salvas com sucesso. Seu protocolo voltou à análise.':'Solicitação registrada. Acompanhe o andamento no painel. A análise aguarda evidências.');
+ if(!error){resetEdit();await listRequests()}message('request-status',outcome);
 });
 db.auth.onAuthStateChange(event=>{if(event==='PASSWORD_RECOVERY'){display('student-view',false);display('visitor-view',true);authTab('login');display('academy-new-password',true);message('login-status','Defina sua nova senha abaixo.')}else if(event==='SIGNED_IN'||event==='SIGNED_OUT'||event==='TOKEN_REFRESHED')setTimeout(refresh,0)});
 await refresh();
