@@ -9,6 +9,13 @@ $('show-login').onclick=()=>authTab('login');$('show-register').onclick=()=>auth
 if(!cfg.url||!cfg.publishableKey||!window.supabase?.createClient){display('loading-view',false);display('visitor-view',true);message('login-status','Serviço de login indisponível. Tente novamente mais tarde.');return}
 const db=window.supabase.createClient(cfg.url,cfg.publishableKey);
 let currentUser=null, currentRevision=0, editingRequestId=null;
+$('google-login').addEventListener('click',async()=>{
+ const button=$('google-login');
+ button.disabled=true;
+ message('google-login-status','Redirecionando para o Google…');
+ const {error}=await db.auth.signInWithOAuth({provider:'google',options:{redirectTo:location.origin+'/academy/portal/'}});
+ if(error){message('google-login-status','Não foi possível entrar com Google: '+error.message);button.disabled=false}
+});
 async function loadActivityTypes(){
  const input=$('activity-type');
  const fallback=['Grupo de estudos','Projeto colaborativo','Ação comunitária','Oficina independente','Capacitação interna','Outra'];
