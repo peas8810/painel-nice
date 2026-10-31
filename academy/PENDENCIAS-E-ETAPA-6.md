@@ -14,7 +14,7 @@ Atualizado em 31/10/2026.
 - [x] Inspecionar RLS em tabelas Academy: todas as tabelas públicas `academy_*` retornadas pela inspeção estão com RLS habilitado.
 - [x] Inspecionar grants: `academy_requests` e `academy_evidence` permitem SELECT/INSERT apenas a `authenticated`, sujeitos a RLS. `academy_connected_apps` permite somente SELECT ao autenticado. `academy_tenants`, `academy_tenant_members` e `academy_tenant_rules` não apresentaram grants diretos a `anon` ou `authenticated`.
 - [x] Inspecionar HTML e scripts principais: formulários balanceados, sem IDs duplicados nos nove arquivos HTML revisados, e sem erros de parsing nos 11 arquivos JavaScript revisados.
-- [ ] Fazer teste real com estudante A e B: listagens, tentativa de acesso direto por UUID, alteração de protocolo, mensagens, upload de outro titular, certificado e consentimentos.
+- [x] Teste RLS sem usuário cadastrado: em transação reversível com papel `authenticated` e JWT de UUID de teste, consultas a `academy_requests`, `academy_evidence` e `academy_connected_apps` retornaram zero registros visíveis. Não substitui teste entre duas contas reais.\n- [ ] Fazer teste real com estudante A e B: listagens, tentativa de acesso direto por UUID, alteração de protocolo, mensagens, upload de outro titular, certificado e consentimentos.
 - [ ] Fazer teste real com instituições A e B: escopo de todos os RPCs, chaves API, eventos, aprovações e relatórios sem vazamento lateral.
 - [ ] Testar mobile em Safari iPhone, Chrome Android, 320/375/390/768 px, zoom 200%, navegação por teclado, teclado aberto, safe area e VoiceOver/TalkBack.
 - [ ] Rodar navegação, emissão, pagamentos e mensagens após domínio voltar.
