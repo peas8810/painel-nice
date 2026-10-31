@@ -22,10 +22,22 @@ $('wizard-back').onclick=()=>setStep(step-1);
 $('end').addEventListener('input',()=> $('end').setCustomValidity(''));
 $('description').addEventListener('input',()=> $('description').setCustomValidity(''));
 function readForm(d){if(!d||typeof d!=='object')return;for(const id of ids){if(typeof d[id]==='string'&&d[id].length<2500){if(id==='activity-type'&&![...$(id).options].some(o=>o.value===d[id])){const o=document.createElement('option');o.value=d[id];o.textContent=d[id];$(id).append(o)}$(id).value=d[id]}}}
-async function loadDraft(){const {data:{user}}=await db.auth.getUser();if(!user||draftLoadedFor===user.id)return;draftLoadedFor=user.id;const {data:row}=await db.from('academy_request_drafts').select('payload').eq('user_id',user.id).maybeSingle();if(row?.payload&&Object.values(row.payload).some(Boolean)&&!$('activity').value){readForm(row.payload);const n=document.createElement('p');n.className='notice';n.textContent='Rascunho anterior recuperado automaticamente.';$('request-status').after(n)}}
-async function saveDraft(){const {data:{user}}=await db.auth.getUser();if(!user)return;await db.from('academy_request_drafts').upsert({user_id:user.id,payload:data(),updated_at:new Date().toISOString()},{onConflict:'user_id'})}
+const localDraftKey=id=>'academy_student_draft_'+id;
+async function sessionUser(){const {data}=await db.auth.getSession();return data.session?.user||null}
+async function loadDraft(){
+ const user=await sessionUser();if(!user||draftLoadedFor===user.id)return;draftLoadedFor=user.id;
+ let local=null;try{local=JSON.parse(localStorage.getItem(localDraftKey(user.id))||'null')}catch{}
+ const {data:row}=await db.from('academy_request_drafts').select('payload,updated_at').eq('user_id',user.id).maybeSingle();
+ const remote=row?.payload,fields=local?.fields||remote;
+ if(fields&&Object.values(fields).some(Boolean)&&!$('activity').value){readForm(fields);const n=document.createElement('p');n.className='notice';n.textContent='Seu rascunho foi recuperado. Confira os dados antes de enviar.';$('request-status').after(n)}
+}
+async function saveDraft(){
+ const user=await sessionUser();if(!user)return;
+ const fields=data();try{localStorage.setItem(localDraftKey(user.id),JSON.stringify({fields,updated_at:Date.now()}))}catch{}
+ await db.from('academy_request_drafts').upsert({user_id:user.id,payload:fields,updated_at:new Date().toISOString()},{onConflict:'user_id'});
+}
 $('request').addEventListener('input',()=>{clearTimeout(saveTimer);saveTimer=setTimeout(saveDraft,950)});
-window.addEventListener('academy-request-saved',async()=>{clearTimeout(saveTimer);const {data:{user}}=await db.auth.getUser();if(user)await db.from('academy_request_drafts').delete().eq('user_id',user.id);setStep(1)});
+window.addEventListener('academy-request-saved',async()=>{clearTimeout(saveTimer);const {data:{user}}=await db.auth.getUser();if(user){await db.from('academy_request_drafts').delete().eq('user_id',user.id);try{localStorage.removeItem(localDraftKey(user.id))}catch{}}setStep(1)});
 db.auth.onAuthStateChange((event,session)=>{if(session?.user&&event!=='TOKEN_REFRESHED')setTimeout(loadDraft,100)});
 setTimeout(loadDraft,600);
 async function refreshOverview(){
