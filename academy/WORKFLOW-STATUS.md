@@ -22,3 +22,16 @@ Data: 31/10/2026
 - **SLA inteligente:** prazos por etapa e identificação de gargalos, sem fazer promessas automáticas sobre datas.
 - **Modelos reutilizáveis:** fluxos aprovados pela instituição podem ser copiados e versionados, preservando critérios de avaliações anteriores.
 - **Assistência contextual:** IA explica informações faltantes, mas decisões e horas aprovadas são humanas.
+
+## Segunda entrega — execução humana supervisionada
+- [x] RPC `academy_workflow_activate` restringe ativação/desativação ao superadmin.
+- [x] RPC `academy_workflow_start` exige instituição e modelo ativos, protocolo não encerrado e aluno com vínculo `STUDENT` na instituição.
+- [x] RPC `academy_workflow_advance` exige revisor/gestor/owner da instituição ou superadmin, justificativa de pelo menos 10 caracteres, etapa correta e registra decisão em histórico.
+- [x] RPC `academy_workflow_inbox` limita visão aos responsáveis da instituição e ao superadmin.
+- [x] Tela de gestão com ativação de modelo, abertura de fluxo, caixa de análises e registro manual de decisões.
+- [ ] **Ainda não é aprovação acadêmica:** conclusão do workflow não altera `academy_requests.status`, pagamentos, certificados ou horas reconhecidas.
+- [ ] Homologar com contas reais de duas instituições, casos de concorrência e registros históricos.
+- [ ] Testar que o site público está acessível (pendência P0) antes de lançamento.
+
+### Inovação sugerida ao final do marco
+Configuração de SLA por etapa com avisos de atraso e substituição de avaliador, mantendo auditoria e confirmação humana.
