@@ -1,0 +1,10 @@
+(()=>{const cfg=window.ACADEMY_AUTH_CONFIG;if(!cfg||!window.supabase)return;const db=window.supabase.createClient(cfg.url,cfg.publishableKey),$=id=>document.getElementById(id);
+async function api(action,args){const {data,error}=await db.functions.invoke('academy-modules',{body:{action,...args}});if(error||data?.error)throw Error(data?.error||error.message);return data;}
+function form(id,action,args,target){$(id).onsubmit=async e=>{e.preventDefault();const b=e.target.querySelector('button');if(b.disabled)return;b.disabled=true;try{const d=await api(action,args());$(target).textContent=JSON.stringify(d,null,2);}catch(e){$(target).textContent=e.message;}finally{b.disabled=false;}};}
+form('team-form','team_save',()=>({tenant_id:$('team-tenant').value,user_id:$('team-user').value,role:$('team-role').value}),'team-result');
+$('team-list').onclick=async()=>{try{$('team-result').textContent=JSON.stringify(await api('team_list',{tenant_id:$('team-tenant').value}),null,2);}catch(e){$('team-result').textContent=e.message;}};
+$('team-remove').onclick=async()=>{if(!confirm('Remover este vínculo institucional?'))return;try{await api('team_remove',{tenant_id:$('team-tenant').value,user_id:$('team-user').value});$('team-result').textContent='Vínculo removido.';}catch(e){$('team-result').textContent=e.message;}};
+form('regulation-form','regulation_publish',()=>({rule:{tenant_id:$('reg-tenant').value,category:$('reg-category').value,title:$('reg-title').value,version:$('reg-version').value,clause_text:$('reg-text').value,source_url:$('reg-source').value,max_hours:$('reg-hours').value?Number($('reg-hours').value):null,valid_from:$('reg-start').value,valid_until:$('reg-end').value||null}}),'reg-result');
+form('preliminary-form','preliminary',()=>({request_id:$('pre-request').value}),'pre-result');
+$('reg-unpublish').onclick=async()=>{try{await api('regulation_unpublish',{id:$('reg-id').value});$('reg-result').textContent='Regra retirada das consultas.';}catch(e){$('reg-result').textContent=e.message;}};
+})();

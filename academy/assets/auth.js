@@ -147,11 +147,12 @@ async function uploadEvidenceFile(file,requestId){
   message('evidence-status','Enviando e vinculando comprovante…');
   const {error:up}=await db.storage.from('academy-evidencias').upload(path,file,{contentType:file.type,upsert:false});
   if(up){message('evidence-status','Falha no upload: '+up.message);return false}
-  const {error:insert}=await db.from('academy_evidence').insert({request_id:requestId,file_path:path,file_name:file.name.slice(0,240)});
+  const {data:evidenceRow,error:insert}=await db.from('academy_evidence').insert({request_id:requestId,file_path:path,file_name:file.name.slice(0,240)}).select('id').single();
   if(insert){
    await db.storage.from('academy-evidencias').remove([path]);
    message('evidence-status','Falha ao associar o arquivo ao protocolo: '+insert.message);return false
   }
+  if(evidenceRow?.id) await db.functions.invoke('academy-modules',{body:{action:'document_seal',id:evidenceRow.id}}).catch(()=>null);
   $('evidence-file').value='';
   message('evidence-status','Documento enviado e vinculado com sucesso. Aguarde a análise.');
   await listEvidence();

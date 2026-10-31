@@ -24,7 +24,7 @@ jobs:
             node --check "$file"
           done
       - name: Test workflow interface
-        run: node --test academy/tests/*.test.cjs
+        run: node --test academy/tests/*.test.cjs academy/tests/*.test.mjs
       - name: Validate HTML links and duplicate IDs
         shell: bash
         run: |

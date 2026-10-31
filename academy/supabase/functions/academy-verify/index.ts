@@ -1,13 +1,13 @@
-const URL=Deno.env.get("SUPABASE_URL")||"",SR=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")||"",SECRET=Deno.env.get("ACADEMY_SIGNING_SECRET")||"";
+const API_URL=Deno.env.get("SUPABASE_URL")||"",SR=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")||"",SECRET=Deno.env.get("ACADEMY_SIGNING_SECRET")||"";
 function out(status,x){return new Response(JSON.stringify(x),{status,headers:{"content-type":"application/json","access-control-allow-origin":"*","access-control-allow-headers":"content-type,apikey,authorization","access-control-allow-methods":"GET,OPTIONS"}})}
-async function api(path){const r=await fetch(URL+path,{headers:{"apikey":SR,"authorization":"Bearer "+SR}});if(!r.ok)throw Error("Backend unavailable");return await r.json()}
+async function api(path){const r=await fetch(API_URL+path,{headers:{"apikey":SR,"authorization":"Bearer "+SR}});if(!r.ok)throw Error("Backend unavailable");return await r.json()}
 async function digest(text){const k=await crypto.subtle.importKey("raw",new TextEncoder().encode(SECRET),{name:"HMAC",hash:"SHA-256"},false,["sign"]);return new Uint8Array(await crypto.subtle.sign("HMAC",k,new TextEncoder().encode(text)))}
 function unhex(hex){if(!/^[0-9a-f]{64}$/i.test(hex||""))return null;return new Uint8Array(hex.match(/../g).map(x=>parseInt(x,16)))}
 function equal(a,b){if(!b||a.length!==b.length)return false;let s=0;for(let i=0;i<a.length;i++)s|=a[i]^b[i];return s===0}
 Deno.serve(async req=>{
  if(req.method==="OPTIONS")return out(200,{});
  if(req.method!=="GET")return out(405,{error:"Use GET"});
- if(!URL||!SR||SECRET.length<32)return out(503,{error:"Verificação pública ainda não habilitada"});
+ if(!API_URL||!SR||SECRET.length<32)return out(503,{error:"Verificação pública ainda não habilitada"});
  const url=new URL(req.url),code=String(url.searchParams.get("codigo")||"").trim().toUpperCase();
  if(!/^ACA-[A-F0-9]{18}$/.test(code))return out(400,{valid:false,error:"Código inválido"});
  try{
