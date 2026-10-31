@@ -23,6 +23,8 @@ jobs:
             echo "Checking $file"
             node --check "$file"
           done
+      - name: Test workflow interface
+        run: node --test academy/tests/workflow-ui.test.cjs
       - name: Validate HTML links and duplicate IDs
         shell: bash
         run: |

@@ -35,3 +35,14 @@ Data: 31/10/2026
 
 ### Inovação sugerida ao final do marco
 Configuração de SLA por etapa com avisos de atraso e substituição de avaliador, mantendo auditoria e confirmação humana.
+
+## Terceira entrega — decisões com controle de etapa
+- RPC `academy_workflow_decide` recebe a etapa exibida ao avaliador e bloqueia decisões sobre etapas desatualizadas, inclusive envios concorrentes da mesma etapa.
+- Bloqueio de decisões nulas, conclusão antecipada e movimentação de protocolo já encerrado. A transação bloqueia a instância e o protocolo durante a decisão.
+- Endpoint anterior `academy_workflow_advance` exige atualizar a página e não movimenta registros.
+- Interface envia a etapa carregada, impede duplo envio, preserva justificativa em falhas e recarrega a caixa após decisões.
+- Testes SQL em `academy/tests/workflow-decisions.sql`: isolamento entre instituições, estudante sem permissão, decisão nula, conclusão prematura, repetição de etapa, histórico, cancelamento, conclusão, endpoint antigo e acesso anônimo. Fixtures são revertidas por rollback.
+- Dois testes de interface em `academy/tests/workflow-ui.test.cjs`, incluídos no quality gate.
+- Na inspeção de 31/10/2026, havia zero modelos e zero instâncias. A existência das funções não representa uso ou homologação institucional.
+- Pendente: vínculo explícito protocolo/instituição (o vínculo do aluno sozinho é insuficiente quando ele pertence a duas instituições), retomada de devoluções, histórico visível, regras de aprovação acadêmica e homologação com contas reais.
+- Concluir o fluxo interno continua sem alterar aprovação acadêmica, horas, pagamentos ou certificados.
