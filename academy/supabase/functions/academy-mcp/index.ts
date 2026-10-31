@@ -26,7 +26,7 @@ Deno.serve(async req=>{
  if(name==="academy_help")result={message:"Entre em https://www.protocolo.me/academy/portal/, registre a atividade e anexe PDF, JPG ou PNG. O parecer e as horas são definidos pela equipe autorizada."};
  if(name==="academy_my_protocols"){const limit=Math.max(1,Math.min(30,Number(input.params?.arguments?.limit)||10));result=await get("academy_requests?select=id,activity,status,hours_declared,hours_verified,created_at&user_id=eq."+encodeURIComponent(user.id)+"&order=created_at.desc&limit="+limit,token)}
  if(name==="academy_my_certificates"){const own=await get("academy_requests?select=id&user_id=eq."+encodeURIComponent(user.id)+"&limit=500",token);result=own.length?await get("academy_certificates?select=request_id,certificate_code,status,issued_at&request_id=in.("+own.map(x=>x.id).join(",")+")&status=eq.EMITIDO",token):[]}
- if(service)fetch(url+"/rest/v1/academy_ai_access_log",{method:"POST",headers:{apikey:service,authorization:"Bearer "+service,"content-type":"application/json"},body:JSON.stringify({user_id:user.id,tool_name:name,client_name:"academy-mcp",success:true})}).catch(()=>{});
+ if(service)await fetch(url+"/rest/v1/academy_ai_access_log",{method:"POST",headers:{apikey:service,authorization:"Bearer "+service,"content-type":"application/json"},body:JSON.stringify({user_id:user.id,tool_name:name,client_name:"academy-mcp",success:true})}).catch(()=>null);
  return ok(id,{content:[{type:"text",text:JSON.stringify(result)}]})
  }catch{return ok(id,{isError:true,content:[{type:"text",text:"Consulta indisponível com as permissões desta conta."}]})}
 });
