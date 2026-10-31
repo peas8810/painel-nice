@@ -1,0 +1,67 @@
+name: Academy - quality gates
+on:
+  push:
+    paths:
+      - 'academy/**'
+      - '.github/workflows/academy-quality.yml'
+  pull_request:
+    paths:
+      - 'academy/**'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  static-quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate JavaScript syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          find academy -type f -name '*.js' ! -path '*/node_modules/*' -print0 | while IFS= read -r -d '' file; do
+            echo "Checking $file"
+            node --check "$file"
+          done
+      - name: Validate HTML links and duplicate IDs
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          from html.parser import HTMLParser
+          from urllib.parse import urlsplit,unquote
+          root=Path('academy')
+          class Audit(HTMLParser):
+            def __init__(self): super().__init__();self.ids=set();self.duplicate=[];self.refs=[];self.forms=0
+            def handle_starttag(self,t,a):
+              d=dict(a)
+              if t=='form': self.forms+=1
+              if 'id' in d:
+                if d['id'] in self.ids:self.duplicate.append(d['id'])
+                self.ids.add(d['id'])
+              if t in ('script','link') and (d.get('src') or d.get('href')):self.refs.append(d.get('src') or d.get('href'))
+          problems=[]
+          for page in root.rglob('*.html'):
+            a=Audit();a.feed(page.read_text(encoding='utf-8'))
+            if a.duplicate:problems.append(f'{page}: duplicate IDs: {a.duplicate}')
+            for ref in a.refs:
+              if ref.startswith(('http:','https:','data:','#','//')):continue
+              parsed=urlsplit(ref)
+              if parsed.path.startswith('/'): continue
+              target=(page.parent/unquote(parsed.path)).resolve()
+              if not target.exists():problems.append(f'{page}: missing {ref}')
+          if problems:raise SystemExit('\n'.join(problems))
+          print('HTML files and local assets OK')
+          PY
+  availability:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check public Academy pages
+        shell: bash
+        run: |
+          set -euo pipefail
+          for path in academy/ academy/portal/ academy/admin/ academy/gestao/ academy/validar/; do
+            status=$(curl -L --connect-timeout 12 --max-time 25 -sS -o /dev/null -w '%{http_code}' "https://www.protocolo.me/$path") || status="network-failure"
+            echo "$path -> $status"
+            [[ "$status" == 200 ]] || exit 1
+          done
