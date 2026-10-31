@@ -1,0 +1,24 @@
+/* Protocolo Academy Unified Design System v3.0 */
+:root{--acad-navy:#111827;--acad-primary:#0b766d;--acad-bg:#f5f7fa;--acad-border:#e1e7ed;--acad-text:#152435;--acad-muted:#617387;--acad-radius:16px}
+*,*::before,*::after{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--acad-bg);color:var(--acad-text);-webkit-font-smoothing:antialiased}
+:where(button,input,select,textarea,a){font-family:inherit}
+:where(input,select,textarea){max-width:100%}
+:where(button,a,input,textarea,select):focus-visible{outline:3px solid #0b766d80;outline-offset:2px}
+:where(button,[role=button]){touch-action:manipulation}
+:where(.portal-card,.panel,.card,.feature,.benefit,.stat,.review-box){border-radius:var(--acad-radius)}
+:where(.btn,.primary,.navcta){border-radius:12px;min-height:45px;font-weight:750}
+:where(input:not([type=checkbox]):not([type=radio]),select,textarea){border-radius:11px}
+:where(h1,h2,h3){letter-spacing:-.025em;text-wrap:balance}
+:where(p){line-height:1.55}
+:where(.status,.notice,.muted){overflow-wrap:anywhere}
+:where(header .logo,.logo){letter-spacing:-.025em}
+:where(.bar){background:var(--acad-navy)}
+:where(footer){border-top:1px solid var(--acad-border)}
+:where(.portal-wrap,.wrap,.container){max-width:1300px}
+:where(.warning){border-radius:14px}
+:where(.request-item){overflow-wrap:anywhere}
+[hidden]{display:none!important}
+@media(max-width:700px){:where(button,.btn,.primary){min-height:48px}:where(input,select,textarea){font-size:16px}:where(h1){line-height:1.12}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
