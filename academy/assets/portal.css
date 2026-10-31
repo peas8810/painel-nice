@@ -92,3 +92,50 @@ html{scroll-padding-top:16px}
 #help-center details p{color:#557184;font-size:14px}
 #academic-record{max-width:1190px;margin:20px auto}
 @media(max-width:620px){.academy-smart-tools{padding:14px}.academy-smart-tools .primary,#export-academic-record{width:100%}#academic-record{margin:12px 0}}
+
+
+/* Academy Experience 2.0 — unified, task-first, mobile navigation */
+:root{--academy-ink:#111827;--academy-muted:#64748b;--academy-line:#e5e9ee;--academy-bg:#f6f8fa;--academy-accent:#0d766e}
+body{background:var(--academy-bg);color:var(--academy-ink);-webkit-font-smoothing:antialiased}
+#student-view .portal-heading{max-width:none;margin:0 0 18px;padding:28px 30px;background:#111827;border-radius:24px;color:white}
+#student-view .portal-heading .eyebrow{color:#b5eee2;letter-spacing:.13em;font-size:11px;font-weight:800}
+#student-view .portal-heading h1{color:#fff;font-size:clamp(30px,4vw,46px);line-height:1.08;letter-spacing:-.048em;margin:12px 0 8px;max-width:650px}
+#student-view .portal-heading p.dashboard-intro{color:#dce5ed;max-width:540px;margin-bottom:22px}
+#student-email{display:inline-block;color:#c4d2dd;font-size:13px;margin:14px 14px 0 0}
+#academy-logout{font-size:13px}
+.academy-hero-actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.academy-hero-actions a{text-decoration:none;min-height:52px;padding:15px 22px;border-radius:12px;font-size:15px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;gap:15px}
+.academy-hero-main{color:#0d202b!important;background:#fff}.academy-hero-main span{font-size:19px}.academy-hero-secondary{color:#fff!important;background:#334155}
+#student-view .portal-dashboard{align-items:start;gap:18px}
+#student-view .portal-card{box-shadow:0 4px 20px #102a4308;border:1px solid var(--academy-line);border-radius:20px;padding:25px;background:#fff}
+#student-view .portal-card h2{font-size:clamp(21px,2.7vw,27px);letter-spacing:-.035em;color:var(--academy-ink);margin:6px 0 18px}
+#student-view .portal-card .step{color:var(--academy-accent);font-size:11px;letter-spacing:.11em}
+#student-view .portal-card input:not([type=checkbox]),#student-view .portal-card textarea,#student-view .portal-card select{border:1.5px solid #d6dde5;border-radius:12px;background:#fff;color:#172331;font-size:16px;min-height:51px;padding:13px 15px}
+#student-view .portal-card input:focus-visible,#student-view .portal-card textarea:focus-visible,#student-view .portal-card select:focus-visible{border-color:#0c847b;outline:3px solid #0c847b35;outline-offset:1px}
+#student-view .primary,#student-view .google-login{min-height:52px;border-radius:12px;font-weight:750;font-size:15px}
+#student-view .primary{background:#111827;color:#fff}
+#student-view .primary:hover{background:#293749}
+#student-view .academy-overview{background:#edf8f5;border:0;border-radius:15px;padding:18px;margin:18px 0}
+#student-view .academy-overview h3{color:#185a4f;margin:0 0 10px}
+#student-view .academy-smart-tools{background:#f5f7fa;border:1px solid #e8edf1;border-radius:16px;padding:18px;margin-bottom:17px}
+#student-view .academy-smart-tools h3{font-size:17px;letter-spacing:-.02em;margin:0 0 8px}
+#student-view .academy-smart-tools textarea{width:100%;box-sizing:border-box}
+#student-view .academy-smart-tools button{width:100%;margin-top:10px}
+#student-view .request-item{border:1px solid #e7ebf0;border-radius:14px;margin:10px 0;padding:16px;background:#fff;box-shadow:none}
+#student-view .request-item strong{font-size:16px;color:#101b2b}
+#student-view .request-status{border-radius:999px}
+#student-view details.preference-details{background:#fff;border:1px solid #e8edf1;border-radius:13px;margin:10px 0}
+#student-view details.preference-details summary{padding:15px;font-size:14px;font-weight:750;cursor:pointer}
+#student-view .upload-area{border-radius:15px}
+#student-view .process-steps{display:none}
+#student-view .wizard-progress{background:#f5f8fa;padding:14px;border-radius:14px}
+#student-view .wizard-review{background:#f7fafc;border:0}
+#student-view .notice{color:#617284;line-height:1.5}
+#student-view .mobile-quick-nav{display:flex;gap:8px;align-items:center;overflow:visible;margin:14px 0 20px}
+#student-view .mobile-quick-nav a{display:inline-flex;align-items:center;justify-content:center;min-height:46px;padding:11px 18px;border-radius:12px;color:#263747;background:#fff;border:1px solid #e3e9ee;text-decoration:none;font-size:13px;font-weight:750;white-space:nowrap}
+#student-view .mobile-quick-nav a[aria-current=page]{background:#172433;color:white;border-color:#172433}
+#student-view #certificate-wallet,#student-view #student-feedback{width:auto;max-width:none}
+@media(min-width:901px){#student-view .portal-dashboard{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr)}#student-view .new-request-card{grid-column:1;grid-row:1}#student-view #my-requests{grid-column:2;grid-row:1}#student-view #certificate-wallet,#student-view #student-feedback{grid-column:span 1}}
+@media(max-width:900px){.portal-wrap{padding:14px 14px 100px}#student-view .portal-heading{padding:27px 22px;border-radius:18px}#student-view .portal-heading h1{font-size:34px}#student-view .portal-dashboard{display:flex;flex-direction:column}#student-view .new-request-card{order:0}#student-view #my-requests{order:1}#student-view #certificate-wallet{order:2}#student-view #student-feedback{order:3}#student-view .portal-card{padding:20px;border-radius:17px;width:100%;box-sizing:border-box}}
+@media(max-width:650px){#student-view .mobile-quick-nav{position:fixed;left:0;right:0;bottom:0;z-index:60;margin:0;padding:7px max(7px,env(safe-area-inset-right)) calc(7px + env(safe-area-inset-bottom)) max(7px,env(safe-area-inset-left));background:#fff;border-top:1px solid #e7ebef;box-shadow:0 -8px 30px #0b1c2b12;justify-content:space-between;gap:2px}#student-view .mobile-quick-nav a{min-height:58px;min-width:0;flex:1;flex-direction:column;gap:2px;font-size:10px;line-height:1.15;padding:5px 2px;border:0;background:transparent;border-radius:9px;color:#637181;white-space:normal;text-align:center}#student-view .mobile-quick-nav a:before{content:attr(data-icon);font-weight:800;font-size:23px;line-height:26px}#student-view .mobile-quick-nav a[aria-current=page]{color:#0f766e;background:#e9f6f2;border:0}#student-view .portal-heading{margin:0 0 14px}#student-view .portal-heading h1{font-size:32px}#student-view .portal-heading p.dashboard-intro{font-size:14px}#student-view .academy-hero-actions{flex-direction:column;align-items:stretch}#student-view .academy-hero-actions a{width:100%;box-sizing:border-box}#student-view .portal-card{padding:18px}#student-view .two{grid-template-columns:1fr}#student-view #my-requests .request-item .actions{flex-wrap:wrap}#student-view .portal-card button{touch-action:manipulation}#student-view #new-request,#student-view #my-requests,#student-view #certificate-wallet,#student-view #preferences-section{scroll-margin-top:20px}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto!important}*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
