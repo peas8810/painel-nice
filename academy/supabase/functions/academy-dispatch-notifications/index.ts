@@ -2,6 +2,7 @@ const URL=Deno.env.get("SUPABASE_URL")||"",SR=Deno.env.get("SUPABASE_SERVICE_ROL
 const EMAIL_KEY=Deno.env.get("RESEND_API_KEY")||"",FROM=Deno.env.get("ACADEMY_EMAIL_FROM")||"";
 const WA_TOKEN=Deno.env.get("META_WHATSAPP_TOKEN")||"",PHONE_ID=Deno.env.get("META_WHATSAPP_PHONE_NUMBER_ID")||"";
 const TEMPLATE_PREFIX=Deno.env.get("ACADEMY_WHATSAPP_TEMPLATE_PREFIX")||"academy_";
+const CRON_SECRET=Deno.env.get("ACADEMY_DISPATCH_CRON_SECRET")||"";
 const kinds={PROTOCOL_CREATED:"Protocolo registrado",PROTOCOL_UPDATED:"Protocolo atualizado",PROTOCOL_CANCELLED:"Protocolo cancelado",EVIDENCE_RECEIVED:"Comprovante recebido",EVIDENCE_APPROVED:"Comprovante validado",EVIDENCE_REJECTED:"Comprovante requer correção",PROTOCOL_APPROVED:"Protocolo aprovado",PROTOCOL_REJECTED:"Protocolo reprovado",PAYMENT_RELEASED:"Pagamento liberado",PAYMENT_CONFIRMED:"Pagamento confirmado",CERTIFICATE_READY:"Certificado disponível",PROTOCOL_MESSAGE_ADMIN:"Nova mensagem de estudante",PROTOCOL_MESSAGE_STUDENT:"Nova mensagem da administração"};
 const templates={PROTOCOL_CREATED:"protocolo_criado",PROTOCOL_UPDATED:"protocolo_atualizado",PROTOCOL_CANCELLED:"protocolo_cancelado",EVIDENCE_RECEIVED:"documento_recebido",EVIDENCE_APPROVED:"documento_validado",EVIDENCE_REJECTED:"documento_corrigir",PROTOCOL_APPROVED:"protocolo_aprovado",PROTOCOL_REJECTED:"protocolo_reprovado",PAYMENT_RELEASED:"pagamento_disponivel",PAYMENT_CONFIRMED:"pagamento_confirmado",CERTIFICATE_READY:"certificado_disponivel",PROTOCOL_MESSAGE_ADMIN:"mensagem_administrativa",PROTOCOL_MESSAGE_STUDENT:"mensagem_estudante"};
 function out(status,x){return new Response(JSON.stringify(x),{status,headers:{"content-type":"application/json","access-control-allow-origin":"https://www.protocolo.me","access-control-allow-headers":"authorization,apikey,content-type"}})}
@@ -13,7 +14,9 @@ Deno.serve(async req=>{
  if(req.method!=="POST")return out(405,{error:"Method"});
  if(!URL||!SR||!ANON)return out(503,{error:"Backend unavailable"});
  try{
-  if(!(await authorized(req)))return out(403,{error:"Only general administrator can process notifications"});
+  const schedulerKey=req.headers.get("x-academy-cron-secret")||"";
+  const schedulerAllowed=Boolean(CRON_SECRET)&&schedulerKey.length===CRON_SECRET.length&&schedulerKey===CRON_SECRET;
+  if(!schedulerAllowed&&!(await authorized(req)))return out(403,{error:"Admin or authorized scheduler required"});
   const jobs=await db("/rest/v1/rpc/academy_claim_notification","POST",{});
   if(!jobs.length)return out(200,{processed:0});
   const job=jobs[0],statusPath="/rest/v1/academy_notification_outbox?id=eq."+job.id;
@@ -38,7 +41,7 @@ Deno.serve(async req=>{
     const r=await fetch("https://graph.facebook.com/v22.0/"+encodeURIComponent(PHONE_ID)+"/messages",{method:"POST",headers:{"authorization":"Bearer "+WA_TOKEN,"content-type":"application/json"},body:JSON.stringify(body)});
     const d=await r.json();if(!r.ok||!d.messages?.[0]?.id)throw Error("Meta rejected notification (check approved template and phone)");providerId=d.messages[0].id;
    }
-   await db(statusPath,"PATCH",{status:"ENVIADO",delivered_at:new Date().toISOString(),provider_id:providerId,error:null});
+   await db(statusPath,"PATCH",{status:"ENVIADO",provider_id:providerId,error:null});
    return out(200,{processed:1,channel:job.channel,status:"accepted_by_provider"});
   }catch(e){await db(statusPath,"PATCH",{status:"FALHOU",error:String(e?.message||e).slice(0,250)});return out(200,{processed:1,status:"FAILED",message:"Check notification errors in admin"})}
  }catch(e){return out(500,{error:"Notification worker failed"})}
