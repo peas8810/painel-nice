@@ -1,4 +1,4 @@
-const URL=Deno.env.get("SUPABASE_URL")||"",SR=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")||"",ANON=Deno.env.get("SUPABASE_ANON_KEY")||"";
+const API_URL=Deno.env.get("SUPABASE_URL")||"",SR=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")||"",ANON=Deno.env.get("SUPABASE_ANON_KEY")||"";
 const EMAIL_KEY=Deno.env.get("RESEND_API_KEY")||"",FROM=Deno.env.get("ACADEMY_EMAIL_FROM")||"";
 const WA_TOKEN=Deno.env.get("META_WHATSAPP_TOKEN")||"",PHONE_ID=Deno.env.get("META_WHATSAPP_PHONE_NUMBER_ID")||"";
 const TEMPLATE_PREFIX=Deno.env.get("ACADEMY_WHATSAPP_TEMPLATE_PREFIX")||"academy_";
@@ -6,13 +6,13 @@ const CRON_SECRET=Deno.env.get("ACADEMY_DISPATCH_CRON_SECRET")||"";
 const kinds={PROTOCOL_CREATED:"Protocolo registrado",PROTOCOL_UPDATED:"Protocolo atualizado",PROTOCOL_CANCELLED:"Protocolo cancelado",EVIDENCE_RECEIVED:"Comprovante recebido",EVIDENCE_APPROVED:"Comprovante validado",EVIDENCE_REJECTED:"Comprovante requer correção",PROTOCOL_APPROVED:"Protocolo aprovado",PROTOCOL_REJECTED:"Protocolo reprovado",PAYMENT_RELEASED:"Pagamento liberado",PAYMENT_CONFIRMED:"Pagamento confirmado",CERTIFICATE_READY:"Certificado disponível",PROTOCOL_MESSAGE_ADMIN:"Nova mensagem de estudante",PROTOCOL_MESSAGE_STUDENT:"Nova mensagem da administração"};
 const templates={PROTOCOL_CREATED:"protocolo_criado",PROTOCOL_UPDATED:"protocolo_atualizado",PROTOCOL_CANCELLED:"protocolo_cancelado",EVIDENCE_RECEIVED:"documento_recebido",EVIDENCE_APPROVED:"documento_validado",EVIDENCE_REJECTED:"documento_corrigir",PROTOCOL_APPROVED:"protocolo_aprovado",PROTOCOL_REJECTED:"protocolo_reprovado",PAYMENT_RELEASED:"pagamento_disponivel",PAYMENT_CONFIRMED:"pagamento_confirmado",CERTIFICATE_READY:"certificado_disponivel",PROTOCOL_MESSAGE_ADMIN:"mensagem_administrativa",PROTOCOL_MESSAGE_STUDENT:"mensagem_estudante"};
 function out(status,x){return new Response(JSON.stringify(x),{status,headers:{"content-type":"application/json","access-control-allow-origin":"https://www.protocolo.me","access-control-allow-headers":"authorization,apikey,content-type"}})}
-async function db(path,method="GET",body){const r=await fetch(URL+path,{method,headers:{"apikey":SR,"authorization":"Bearer "+SR,"content-type":"application/json","prefer":"return=representation"},body:body===undefined?undefined:JSON.stringify(body)});let text=await r.text();if(!r.ok)throw Error("Backend error "+r.status);return text?JSON.parse(text):[]}
-async function authorized(req){const token=(req.headers.get("authorization")||"").replace(/^Bearer /,"");if(!token)return false;const res=await fetch(URL+"/auth/v1/user",{headers:{"apikey":ANON,"authorization":"Bearer "+token}});if(!res.ok)return false;const u=await res.json();const result=await db("/rest/v1/academy_admin_members?select=user_id&enabled=eq.true&role=eq.SUPER_ADMIN&user_id=eq."+encodeURIComponent(u.id));return result.length>0}
+async function db(path,method="GET",body){const r=await fetch(API_URL+path,{method,headers:{"apikey":SR,"authorization":"Bearer "+SR,"content-type":"application/json","prefer":"return=representation"},body:body===undefined?undefined:JSON.stringify(body)});let text=await r.text();if(!r.ok)throw Error("Backend error "+r.status);return text?JSON.parse(text):[]}
+async function authorized(req){const token=(req.headers.get("authorization")||"").replace(/^Bearer /,"");if(!token)return false;const res=await fetch(API_URL+"/auth/v1/user",{headers:{"apikey":ANON,"authorization":"Bearer "+token}});if(!res.ok)return false;const u=await res.json();const result=await db("/rest/v1/academy_admin_members?select=user_id&enabled=eq.true&role=eq.SUPER_ADMIN&user_id=eq."+encodeURIComponent(u.id));return result.length>0}
 const esc=s=>String(s||"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 Deno.serve(async req=>{
  if(req.method==="OPTIONS")return out(200,{});
  if(req.method!=="POST")return out(405,{error:"Method"});
- if(!URL||!SR||!ANON)return out(503,{error:"Backend unavailable"});
+ if(!API_URL||!SR||!ANON)return out(503,{error:"Backend unavailable"});
  try{
   const schedulerKey=req.headers.get("x-academy-cron-secret")||"";
   const schedulerAllowed=Boolean(CRON_SECRET)&&schedulerKey.length===CRON_SECRET.length&&schedulerKey===CRON_SECRET;

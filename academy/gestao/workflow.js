@@ -14,7 +14,7 @@
     decisionButton.disabled = true;
     try {
       const [models, instances] = await Promise.all([
-        db.rpc('academy_workflow_list'), db.rpc('academy_workflow_inbox')
+        db.rpc('academy_workflow_list'), db.rpc('academy_workflow_snapshot')
       ]);
       if (current !== generation) return;
       const select = $('workflow-active'), list = $('workflow-inbox'), inst = $('workflow-instance');
@@ -34,10 +34,10 @@
         row.className = 'row';
         row.textContent = item.workflow_name + ' · ' + item.step_label + ' · ' + item.state + ' · protocolo ' + item.request_id;
         list.append(row);
-        if (item.state !== 'EM_ANALISE') continue;
+        if (!['EM_ANALISE','DEVOLVIDO'].includes(item.state)) continue;
         const option = document.createElement('option');
         option.value = item.instance_id;
-        option.dataset.step = String(item.step_order);
+        option.dataset.revision = String(item.revision);
         option.textContent = item.workflow_name + ' · Etapa ' + item.step_order + ' · ' + item.request_id;
         inst.append(option);
       }
@@ -68,17 +68,17 @@
     event.preventDefault();
     if (pending || decisionButton.disabled) return;
     const option = $('workflow-instance').selectedOptions[0];
-    const step = Number(option?.dataset.step);
-    if (!option || !Number.isInteger(step) || step < 1) return;
+    const revision = Number(option?.dataset.revision);
+    if (!option || !Number.isInteger(revision) || revision < 0) return;
     // Capture the displayed instance and step before the asynchronous operation.
     const args = {
-      p_instance: option.value, p_expected_step: step,
+      p_instance: option.value, p_revision: revision,
       p_decision: $('workflow-decision').value, p_note: $('workflow-note').value.trim()
     };
     if (!confirm('Registrar esta decisão interna no histórico do fluxo?')) return;
     pending = true; decisionButton.disabled = true;
     try {
-      const { error, data } = await db.rpc('academy_workflow_decide', args);
+      const { error, data } = await db.rpc('academy_workflow_transition', args);
       if (error) throw error;
       $('workflow-decision-status').textContent = 'Etapa atualizada: ' + data;
       $('workflow-note').value = '';

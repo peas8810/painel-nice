@@ -1,3 +1,5 @@
+-- Historical regression for the step-only API, retired by workflow_launch.sql.
+-- Run workflow-launch.sql in this directory for the current revision-based API.
 -- Integration regression tests. Run in one transaction and always roll back.
 begin;
 do $$

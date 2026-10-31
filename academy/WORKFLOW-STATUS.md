@@ -46,3 +46,14 @@ Configuração de SLA por etapa com avisos de atraso e substituição de avaliad
 - Na inspeção de 31/10/2026, havia zero modelos e zero instâncias. A existência das funções não representa uso ou homologação institucional.
 - Pendente: vínculo explícito protocolo/instituição (o vínculo do aluno sozinho é insuficiente quando ele pertence a duas instituições), retomada de devoluções, histórico visível, regras de aprovação acadêmica e homologação com contas reais.
 - Concluir o fluxo interno continua sem alterar aprovação acadêmica, horas, pagamentos ou certificados.
+
+## Quarta entrega — vínculo institucional e decisão acadêmica
+- Vínculo explícito auditado entre protocolo e instituição, verificado ao iniciar o workflow.
+- Retomada de devoluções na mesma etapa com revisão monotônica: comandos anteriores à devolução são recusados.
+- Histórico consultável, devolução atualiza pendência do protocolo e retomada restabelece análise.
+- Decisão acadêmica por SUPER_ADMIN após conclusão, com evidências validadas e limite institucional de horas; aprovação direta bloqueada enquanto workflow estiver aberto.
+- Interface de vínculo, histórico, retomada e decisão final. Usuários institucionais ainda precisam de painel próprio/equipe para lançamento multi-institucional.
+- Testes de banco em workflow-launch.sql passaram com fixtures revertidas; quatro testes de JavaScript passaram.
+- Corrigida colisão da variável URL no dispatcher de notificações; versão 6 implantada.
+- Diagnóstico restrito ao SUPER_ADMIN em academy-launch-readiness, exibindo apenas presença das configurações, sem valores.
+- Não foi homologado pagamento externo, entrega real de mensagens, OAuth ou emissão comercial. A versão financeira e o PDF continuam de sandbox.
