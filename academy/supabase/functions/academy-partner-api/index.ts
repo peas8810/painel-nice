@@ -34,9 +34,9 @@ Deno.serve(async req=>{
    if(!external_id||external_id.length>120||!student_name||student_name.length<2||!student_email||!/^\S+@\S+\.\S+$/.test(student_email)||!activity||activity.length<3||!Number.isFinite(hours)||hours<=0||hours>1000||start_date===undefined||end_date===undefined||(start_date&&end_date&&end_date<start_date))return send(422,{error:'validation_failed',required:['external_id','student_name','student_email','activity','hours']});
    const metadata=p.metadata&&typeof p.metadata==='object'&&!Array.isArray(p.metadata)?p.metadata:{};
    if(JSON.stringify(metadata).length>4000)return send(422,{error:'metadata_too_large'});
-   const rows=await rest('academy_external_requests?on_conflict=tenant_id,external_id','POST',{tenant_id:session.tenant_id,api_key_id:session.key_id,external_id,student_name,student_email,activity,hours,start_date,end_date,metadata});
-   const created=rows?.[0];if(!created)return send(500,{error:'creation_failed'});
-   return send(202,{id:created.id,external_id:created.external_id,status:created.status,created_at:created.created_at,message:'Recebido para análise. Nenhum certificado foi emitido.'});
+   const created=await rest('rpc/academy_api_submit_request','POST',{p_key_id:session.key_id,p_tenant_id:session.tenant_id,p_external_id:external_id,p_student_name:student_name,p_student_email:student_email,p_activity:activity,p_hours:hours,p_start_date:start_date,p_end_date:end_date,p_metadata:metadata});
+   if(!created?.id)return send(500,{error:'creation_failed'});
+   return send(created.created?202:200,{id:created.id,external_id:created.external_id,status:created.status,created_at:created.created_at,idempotent:!created.created,message:'Recebido para análise. Nenhum certificado foi emitido.'});
   }
   const id=isGet[1];
   const rows=await rest('academy_external_requests?select=id,external_id,status,certificate_code,created_at,updated_at&tenant_id=eq.'+encodeURIComponent(session.tenant_id)+'&id=eq.'+encodeURIComponent(id));
@@ -45,7 +45,7 @@ Deno.serve(async req=>{
  }catch(e){
   const msg=String(e?.message||e);
   if(msg.includes('Limite de requisições'))return send(429,{error:'rate_limit'});
-  if(msg.includes('duplicate key'))return send(409,{error:'duplicate_external_id'});
+  if(msg.includes('Conflicting duplicate external_id'))return send(409,{error:'conflicting_external_id'});
   return send(500,{error:'internal_error'});
  }
 });
