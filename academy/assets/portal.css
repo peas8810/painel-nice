@@ -78,3 +78,17 @@ html{scroll-padding-top:16px}
 .academy-modal-inner h3{margin:0}.academy-modal-inner textarea{width:100%;padding:12px;min-height:100px;font:inherit;border-radius:10px;border:1px solid #ccdce4}
 .crop-preview{width:100%;height:auto;max-height:50dvh;object-fit:contain;background:#e8eef1;border-radius:10px}.conversation-history{overflow-y:auto;max-height:42dvh;display:grid;gap:8px}.conversation-history p{background:#f1f8fa;border-radius:9px;padding:12px;margin:0;overflow-wrap:anywhere}
 @media(max-width:620px){.wizard-actions{flex-direction:column}.wizard-actions button{width:100%}.camera-actions{grid-template-columns:1fr}.academy-modal-inner{padding:15px}.attention-row{min-height:50px}#certificate-wallet{margin:14px 0}.wizard-review{font-size:13px}}
+
+/* 2026 Academy growth: contextual guidance and accessible student search */
+.academy-smart-tools{background:#f8fbfd;border:1px solid #dce9ee;border-radius:16px;padding:17px;margin:0 0 16px}
+.academy-smart-tools h3{margin:0 0 6px;font-size:17px}
+.academy-smart-tools textarea{width:100%;min-height:92px;font-size:16px;border:1px solid #c9dce5;border-radius:10px;padding:12px;resize:vertical}
+.academy-smart-tools .primary{display:block;margin-top:10px;min-height:48px}
+.request-search-label{display:grid;gap:8px;margin:14px 0;font-weight:700;font-size:13px}
+.request-search-label input{width:100%;font:inherit;font-size:16px;min-height:48px;padding:12px;border:1px solid #c9dce5;border-radius:11px}
+.record-line{border-top:1px solid #e5edf1;padding-top:9px;font-size:13px;overflow-wrap:anywhere}
+#help-center details{border-bottom:1px solid #e3ecee;padding:14px 0}
+#help-center summary{font-weight:700;cursor:pointer;min-height:32px}
+#help-center details p{color:#557184;font-size:14px}
+#academic-record{max-width:1190px;margin:20px auto}
+@media(max-width:620px){.academy-smart-tools{padding:14px}.academy-smart-tools .primary,#export-academic-record{width:100%}#academic-record{margin:12px 0}}
