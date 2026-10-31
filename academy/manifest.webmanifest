@@ -1,0 +1,19 @@
+{
+  "name": "Protocolo Academy",
+  "short_name": "Academy",
+  "description": "Protocolos, documentos e certificados do estudante",
+  "lang": "pt-BR",
+  "start_url": "/academy/portal/",
+  "scope": "/academy/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#102a43",
+  "icons": [
+    {
+      "src": "/academy/assets/academy-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
