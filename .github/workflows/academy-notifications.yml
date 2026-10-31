@@ -1,0 +1,33 @@
+name: Academy - dispatch transactional notifications
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: academy-notification-dispatch
+  cancel-in-progress: false
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    env:
+      ACADEMY_DISPATCH_CRON_SECRET: ${{ secrets.ACADEMY_DISPATCH_CRON_SECRET }}
+    steps:
+      - name: Process up to 30 queued notifications
+        if: ${{ env.ACADEMY_DISPATCH_CRON_SECRET != '' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          endpoint="https://jufnkfyvqgkrxsbctqqk.supabase.co/functions/v1/academy-dispatch-notifications"
+          for i in $(seq 1 30); do
+            result=$(curl -fsS --connect-timeout 10 --max-time 35 --retry 2 --retry-delay 2 \
+              -H "Content-Type: application/json" \
+              -H "x-academy-cron-secret: ${ACADEMY_DISPATCH_CRON_SECRET}" \
+              --data '{}' "$endpoint")
+            echo "$result" | python3 -c 'import json,sys; d=json.load(sys.stdin); print("processed="+str(d.get("processed",0))+", result="+str(d.get("status","ok")))' 
+            [ "$(echo "$result" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("processed",0))')" = "0" ] && break
+          done
+      - name: Report inactive automation
+        if: ${{ env.ACADEMY_DISPATCH_CRON_SECRET == '' }}
+        run: echo "Dispatch not enabled. Configure ACADEMY_DISPATCH_CRON_SECRET in both GitHub Actions and Supabase Edge secrets."
