@@ -3,7 +3,7 @@ const headers={'content-type':'application/json','cache-control':'no-store','acc
 const send=(status,body)=>new Response(JSON.stringify(body),{status,headers});
 async function rest(path,method='GET',body){
  const res=await fetch(SB+'/rest/v1/'+path,{method,headers:{'apikey':SERVICE,'authorization':'Bearer '+SERVICE,'content-type':'application/json','prefer':'return=representation'},body:body===undefined?undefined:JSON.stringify(body)});
- const text=await res.text();if(!res.ok)throw Error('Database request rejected ('+res.status+')');
+ const text=await res.text();if(!res.ok){let detail=null;try{detail=JSON.parse(text)}catch{};if(detail?.message==='Conflicting duplicate external_id')throw Error('Conflicting duplicate external_id');throw Error('Database request rejected ('+res.status+')')}
  return text?JSON.parse(text):null;
 }
 Deno.serve(async req=>{
@@ -29,7 +29,7 @@ Deno.serve(async req=>{
    const string=(name,max)=>typeof p[name]==='string'&&p[name].trim().length<=max?p[name].trim():null;
    const external_id=string('external_id',120),student_name=string('student_name',200),student_email=string('student_email',320),activity=string('activity',180);
    const hours=Number(p.hours);
-   const date=v=>v==null||v===''?null:/^\d{4}-\d{2}-\d{2}$/.test(v)&&!Number.isNaN(Date.parse(v+'T00:00:00Z'))?v:undefined;
+   const date=v=>v==null||v===''?null:/^\d{4}-\d{2}-\d{2}$/.test(v)&&!Number.isNaN(Date.parse(v+'T00:00:00Z'))&&new Date(v+'T00:00:00Z').toISOString().slice(0,10)===v?v:undefined;
    const start_date=date(p.start_date),end_date=date(p.end_date);
    if(!external_id||external_id.length>120||!student_name||student_name.length<2||!student_email||!/^\S+@\S+\.\S+$/.test(student_email)||!activity||activity.length<3||!Number.isFinite(hours)||hours<=0||hours>1000||start_date===undefined||end_date===undefined||(start_date&&end_date&&end_date<start_date))return send(422,{error:'validation_failed',required:['external_id','student_name','student_email','activity','hours']});
    const metadata=p.metadata&&typeof p.metadata==='object'&&!Array.isArray(p.metadata)?p.metadata:{};
