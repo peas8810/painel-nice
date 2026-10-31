@@ -1,0 +1,135 @@
+openapi: 3.0.3
+info:
+  title: Protocolo Academy — API de integração institucional
+  version: 1.0.0-beta
+  description: |
+    API de homologação para receber solicitações de emissão e acompanhar status.
+    Não realiza emissão automática de certificados. A instituição deve estar habilitada.
+servers:
+  - url: https://jufnkfyvqgkrxsbctqqk.supabase.co/functions/v1/academy-partner-api
+security:
+  - InstitutionKey: []
+paths:
+  /v1/issuance-requests:
+    post:
+      summary: Solicitar análise para emissão
+      description: Idempotente por external_id e instituição; a mesma solicitação retorna o registro original.
+      operationId: submitIssuanceRequest
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IssuanceRequest'
+      responses:
+        '202':
+          description: Solicitação recebida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Submitted'
+        '200':
+          description: Solicitação idempotente anteriormente recebida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Submitted'
+        '401':
+          description: Chave ausente ou inválida
+        '403':
+          description: Instituição inativa ou escopo insuficiente
+        '409':
+          description: Identificador externo utilizado com dados incompatíveis
+        '422':
+          description: Campos inválidos
+        '429':
+          description: Limite de requisições excedido
+  /v1/issuance-requests/{id}:
+    get:
+      summary: Consultar situação da solicitação
+      operationId: getIssuanceRequest
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Solicitação da instituição
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IssuanceStatus'
+        '401':
+          description: Chave ausente ou inválida
+        '403':
+          description: Escopo insuficiente ou instituição inativa
+        '404':
+          description: Solicitação não encontrada no tenant
+        '429':
+          description: Limite de requisições excedido
+components:
+  securitySchemes:
+    InstitutionKey:
+      type: apiKey
+      in: header
+      name: x-academy-key
+  schemas:
+    IssuanceRequest:
+      type: object
+      required: [external_id,student_name,student_email,activity,hours]
+      properties:
+        external_id:
+          type: string
+          minLength: 1
+          maxLength: 120
+        student_name:
+          type: string
+          minLength: 2
+          maxLength: 200
+        student_email:
+          type: string
+          format: email
+        activity:
+          type: string
+          minLength: 3
+          maxLength: 180
+        hours:
+          type: number
+          exclusiveMinimum: 0
+          maximum: 1000
+        start_date:
+          type: string
+          format: date
+          nullable: true
+        end_date:
+          type: string
+          format: date
+          nullable: true
+        metadata:
+          type: object
+          additionalProperties: true
+    Submitted:
+      type: object
+      properties:
+        id: {type: string, format: uuid}
+        external_id: {type: string}
+        status: {type: string, example: RECEBIDA}
+        created_at: {type: string, format: date-time}
+        idempotent: {type: boolean}
+        message: {type: string}
+    IssuanceStatus:
+      type: object
+      properties:
+        id: {type: string, format: uuid}
+        external_id: {type: string}
+        status:
+          type: string
+          enum: [RECEBIDA,EM_ANALISE,PENDENTE,REPROVADA,APROVADA,EMITIDA]
+        certificate_code:
+          type: string
+          nullable: true
+        created_at: {type: string, format: date-time}
+        updated_at: {type: string, format: date-time}
