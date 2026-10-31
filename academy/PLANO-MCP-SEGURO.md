@@ -32,3 +32,18 @@
 - [ ] Testar interface autenticada em dispositivos e isolamento entre contas.
 
 **Revisão:** central segura como cadastro e interface, mas não se deve anunciar conexão ChatGPT/Claude operacional. **Próxima inovação proposta:** autorizações por finalidade e escopo, expiração curta configurável e histórico de acesso por aplicativo, com painel de consentimentos.
+
+
+## Revisão de implementação de 31/10/2026 — Marco 2 e abertura do Marco 3
+- [x] Registro de auditoria `academy_ai_access_log` com RLS e consulta própria via `academy_ai_access_history`.
+- [x] MCP de leitura implantado como versão 2 (requere JWT individual, sem operações financeiras).
+- [ ] **Marco 2 não homologado:** falta OAuth externo real (PKCE, descoberta OAuth, consentimento, escopos e revogação de tokens), testes de conectividade ChatGPT e Claude e testes entre contas.
+- [x] `academy-prepare-request` implantada, versão 2, com autenticação, limite diário e retorno de campos sugeridos.
+- [x] Assistente textual do aluno conectado à nova API; registro do protocolo ainda depende de revisão e confirmação pelo formulário.
+- [ ] **Marco 3 não homologado:** configurar chave da OpenAI em Secrets e validar resposta com exemplos reais; testar limites e controle de custos; avaliar privacidade dos dados enviados.
+
+### Ideias de inovação após Marco 2
+Painel de trilha de cada ferramenta e consentimentos por ação, prazo e instituição. Exigir autorização nova para quaisquer ações mutáveis.
+
+### Ideias de inovação após primeiro incremento do Marco 3
+Assistente que explique somente os campos faltantes e ofereça uma estimativa de esforço, sem inventar horas ou certificar autenticidade. Monitorar taxa de conclusão e tempo real de preenchimento.
