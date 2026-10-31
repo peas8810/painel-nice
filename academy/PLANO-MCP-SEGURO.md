@@ -22,3 +22,13 @@
 5. Homologar pagamentos sandbox, emissão e validação.
 6. Testar mobile e RLS entre estudantes/instituições.
 7. Operação comercial somente após critérios de segurança e qualidade aprovados.
+
+
+## Marco 2 — Central de aplicativos conectados (31/10/2026)
+- [x] Registro privado por usuário `academy_connected_apps`, com provedor, permissões, validade e revogação.
+- [x] Consulta no portal e botão de revogação via RPC com checagem de titularidade.
+- [ ] Conexão OAuth externa funcional (PKCE, discovery, registro de cliente, emissão e rotação de tokens).
+- [ ] Garantir revogação efetiva de tokens já emitidos; atualmente não existem tokens MCP externos autorizados por este cadastro.
+- [ ] Testar interface autenticada em dispositivos e isolamento entre contas.
+
+**Revisão:** central segura como cadastro e interface, mas não se deve anunciar conexão ChatGPT/Claude operacional. **Próxima inovação proposta:** autorizações por finalidade e escopo, expiração curta configurável e histórico de acesso por aplicativo, com painel de consentimentos.
