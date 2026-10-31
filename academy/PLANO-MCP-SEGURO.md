@@ -47,3 +47,18 @@ Painel de trilha de cada ferramenta e consentimentos por ação, prazo e institu
 
 ### Ideias de inovação após primeiro incremento do Marco 3
 Assistente que explique somente os campos faltantes e ofereça uma estimativa de esforço, sem inventar horas ou certificar autenticidade. Monitorar taxa de conclusão e tempo real de preenchimento.
+
+
+## Avanço em 31/10/2026 — OAuth e Marco 4
+- [x] Tela de consentimento `/academy/oauth/consent/` publicada com SDK Supabase OAuth 2.1 (`getAuthorizationDetails`, `approveAuthorization`, `denyAuthorization`).
+- [x] MCP v4 publica metadados de recurso OAuth e resposta HTTP 401 com `WWW-Authenticate`; verifica token Supabase em chamadas de ferramentas e mantém três funções somente leitura.
+- [x] Central do estudante lista e revoga concessões OAuth reais pelo SDK (`getUserGrants`/`listGrants` e `revokeGrant`) quando OAuth Server estiver ativo.
+- [ ] **Configuração no dashboard:** Supabase Authentication > OAuth Server > habilitar OAuth 2.1; configurar Authorization Path `/academy/oauth/consent/` considerando a Site URL configurada. Validar signing keys assimétricas se usar OIDC e verificar URLs de redirecionamento. Avaliar habilitar registro dinâmico de clientes sob aprovação.
+- [ ] Homologar fluxo PKCE de autorização e revogação em ChatGPT, Claude e outros clientes MCP compatíveis, com dois estudantes de teste.
+- [x] Marco 4: Worker agendável, recepção de status assinados de Meta e Resend, métricas de entrega, controle de tentativas, runbook próprio.
+- [ ] Marco 4: ativação de credenciais de Meta, Resend e GitHub Actions e recebimento de mensagens reais.
+
+### Revisão e inovação
+**Marco 2:** autenticação planejada sem servidor de tokens próprio, aproveitando Supabase Auth OAuth 2.1 (beta). Próxima inovação: centro de privacidade com concessões reais por app e histórico de último acesso em tempo real, além de confirmação forte para ações de escrita.
+**Marco 3:** continuar com campos sugeridos e confirmação manual. Próxima inovação: assistente de correções que explica diferenças entre regulamento da instituição e comprovante, sem tomar decisão sozinho.
+**Marco 4:** passar da contagem de mensagens aceitas para status reais de entrega. Próxima inovação: comunicação adaptativa opt-in, escalonamento por urgência e limite de contatos para evitar spam.
