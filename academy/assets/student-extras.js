@@ -23,22 +23,61 @@ $('end').addEventListener('input',()=> $('end').setCustomValidity(''));
 $('description').addEventListener('input',()=> $('description').setCustomValidity(''));
 function readForm(d){if(!d||typeof d!=='object')return;for(const id of ids){if(typeof d[id]==='string'&&d[id].length<2500){if(id==='activity-type'&&![...$(id).options].some(o=>o.value===d[id])){const o=document.createElement('option');o.value=d[id];o.textContent=d[id];$(id).append(o)}$(id).value=d[id]}}}
 const localDraftKey=id=>'academy_student_draft_'+id;
+let draftUserId=null,revision=0,syncedRevision=0,syncRunning=false,draftSubmitted=false;
+const draftStatus=document.getElementById('academy-draft-status');
+function status(text){if(draftStatus)draftStatus.textContent=text}
 async function sessionUser(){const {data}=await db.auth.getSession();return data.session?.user||null}
+function localSnapshot(){
+ if(!draftUserId||draftSubmitted)return;
+ revision++;
+ const fields=data();
+ try{localStorage.setItem(localDraftKey(draftUserId),JSON.stringify({fields,updated_at:Date.now()}));status(navigator.onLine?'Salvo neste dispositivo · sincronização pendente':'Salvo neste dispositivo · sem internet')}
+ catch{status('Armazenamento local indisponível. Mantenha a página aberta.')}
+}
+async function syncDraft(){
+ if(syncRunning||draftSubmitted||!draftUserId||!navigator.onLine)return;
+ syncRunning=true;
+ try{
+  while(revision>syncedRevision&&!draftSubmitted&&navigator.onLine){
+   const current=revision,fields=data(),userId=draftUserId;
+   const {error}=await db.from('academy_request_drafts').upsert({user_id:userId,payload:fields,updated_at:new Date().toISOString()},{onConflict:'user_id'});
+   if(error){status('Salvo no dispositivo · nuvem indisponível');break}
+   syncedRevision=current;
+   status(revision===syncedRevision?'Rascunho salvo no dispositivo e na nuvem':'Sincronizando novas alterações…');
+  }
+ }catch{status('Salvo no dispositivo · aguardando conexão')}finally{syncRunning=false}
+}
+function scheduleCloud(){clearTimeout(saveTimer);saveTimer=setTimeout(syncDraft,950)}
 async function loadDraft(){
- const user=await sessionUser();if(!user||draftLoadedFor===user.id)return;draftLoadedFor=user.id;
+ const user=await sessionUser();if(!user||draftLoadedFor===user.id)return;
+ draftLoadedFor=user.id;draftUserId=user.id;draftSubmitted=false;revision=0;syncedRevision=0;
  let local=null;try{local=JSON.parse(localStorage.getItem(localDraftKey(user.id))||'null')}catch{}
- const {data:row}=await db.from('academy_request_drafts').select('payload,updated_at').eq('user_id',user.id).maybeSingle();
- const remote=row?.payload,fields=local?.fields||remote;
- if(fields&&Object.values(fields).some(Boolean)&&!$('activity').value){readForm(fields);const n=document.createElement('p');n.className='notice';n.textContent='Seu rascunho foi recuperado. Confira os dados antes de enviar.';$('request-status').after(n)}
+ const {data:row,error}=await db.from('academy_request_drafts').select('payload,updated_at').eq('user_id',user.id).maybeSingle();
+ const localTime=Number(local?.updated_at)||0,remoteTime=row?.updated_at?Date.parse(row.updated_at):0;
+ const fields=localTime>=remoteTime&&local?.fields?local.fields:row?.payload;
+ if(fields&&Object.values(fields).some(Boolean)&&!$('activity').value){readForm(fields);status('Rascunho recuperado. Revise os dados antes de enviar.')}
+ else status(error?'Salvamento local disponível; nuvem indisponível':'Salvamento automático ativo');
+ if(localTime>remoteTime&&local?.fields){revision=1;scheduleCloud()}
 }
-async function saveDraft(){
- const user=await sessionUser();if(!user)return;
- const fields=data();try{localStorage.setItem(localDraftKey(user.id),JSON.stringify({fields,updated_at:Date.now()}))}catch{}
- await db.from('academy_request_drafts').upsert({user_id:user.id,payload:fields,updated_at:new Date().toISOString()},{onConflict:'user_id'});
-}
-$('request').addEventListener('input',()=>{clearTimeout(saveTimer);saveTimer=setTimeout(saveDraft,950)});
-window.addEventListener('academy-request-saved',async()=>{clearTimeout(saveTimer);const {data:{user}}=await db.auth.getUser();if(user){await db.from('academy_request_drafts').delete().eq('user_id',user.id);try{localStorage.removeItem(localDraftKey(user.id))}catch{}}setStep(1)});
-db.auth.onAuthStateChange((event,session)=>{if(session?.user&&event!=='TOKEN_REFRESHED')setTimeout(loadDraft,100)});
+$('request').addEventListener('input',()=>{localSnapshot();scheduleCloud()});
+$('request').addEventListener('change',()=>{localSnapshot();scheduleCloud()});
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')localSnapshot();else syncDraft()});
+window.addEventListener('pagehide',localSnapshot);
+window.addEventListener('online',()=>{status('Conexão restaurada · sincronizando');syncDraft()});
+window.addEventListener('offline',()=>status('Sem internet · o rascunho continua salvo neste dispositivo'));
+window.addEventListener('academy-request-saved',async()=>{
+ draftSubmitted=true;clearTimeout(saveTimer);
+ const id=draftUserId;revision=0;syncedRevision=0;
+ if(id){try{localStorage.removeItem(localDraftKey(id))}catch{}
+  const {error}=await db.from('academy_request_drafts').delete().eq('user_id',id);
+  status(error?'Protocolo registrado; limpeza do rascunho pendente':'Protocolo registrado com sucesso');
+ }
+ setStep(1);
+});
+db.auth.onAuthStateChange((event,session)=>{
+ if(event==='SIGNED_OUT'){draftUserId=null;draftLoadedFor=null;clearTimeout(saveTimer);return}
+ if(session?.user&&event!=='TOKEN_REFRESHED')setTimeout(loadDraft,100)
+});
 setTimeout(loadDraft,600);
 async function refreshOverview(){
  const {data:{user}}=await db.auth.getUser();if(!user)return;
