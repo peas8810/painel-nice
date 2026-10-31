@@ -15,7 +15,7 @@ function setStep(n){
  $('wizard-progress').value=step;
  if(step===3){const box=$('wizard-review');box.replaceChildren();for(const [label,value] of [['Atividade',$('activity').value],['Tipo',$('activity-type').value],['Período',$('start').value+' a '+$('end').value],['Horas',$('hours').value],['Descrição',$('description').value]]){const p=document.createElement('p'),strong=document.createElement('strong');strong.textContent=label+': ';p.append(strong,document.createTextNode(value));box.append(p)}}
 }
-window.academyWizardSetStep=setStep;setStep(1);
+window.academyWizardSetStep=setStep;setStep(1);$('request').addEventListener('submit',e=>{if(step!==3){e.preventDefault();e.stopImmediatePropagation();if(validStep(step))setStep(step+1)}},true);
 function validStep(n){for(const el of document.querySelectorAll('.wizard-panel[data-step="'+n+'"] input,.wizard-panel[data-step="'+n+'"] textarea,.wizard-panel[data-step="'+n+'"] select'))if(!el.reportValidity())return false;if(n===2){if($('end').value<$('start').value){$('end').setCustomValidity('A data final deve ser igual ou posterior à inicial.');$('end').reportValidity();return false}$('end').setCustomValidity('');if($('description').value.trim().length<15){$('description').setCustomValidity('Descreva sua atividade com pelo menos 15 caracteres.');$('description').reportValidity();return false}$('description').setCustomValidity('')}return true}
 $('wizard-next').onclick=()=>{if(validStep(step))setStep(step+1)};
 $('wizard-back').onclick=()=>setStep(step-1);
@@ -65,7 +65,7 @@ function openCrop(file){
  inner.append(h,canvas,zoom,original,crop,close);overlay.append(inner);document.body.append(overlay);close.focus();
 }
 $('analyze-evidence').onclick=async()=>{
- const f=selectedFile||$('evidence-file').files?.[0];if(!f){$('ai-status').textContent='Escolha ou fotografe um comprovante antes de solicitar a leitura.';return}
+ const f=selectedFile||window.academySelectedEvidence||$('evidence-file').files?.[0];if(!f){$('ai-status').textContent='Escolha ou fotografe um comprovante antes de solicitar a leitura.';return}
  if(f.size>5*1024*1024){$('ai-status').textContent='A leitura assistida aceita arquivos de até 5 MB. O envio normal aceita até 10 MB.';return}
  if(!confirm('Autoriza o processamento deste comprovante por um serviço de IA para sugerir campos? Os dados serão enviados para análise apenas após sua confirmação.'))return;
  const btn=$('analyze-evidence');btn.disabled=true;$('ai-status').textContent='Analisando o documento…';
