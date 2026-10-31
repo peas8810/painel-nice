@@ -1,0 +1,1 @@
+Plano de implementação Academy MCP: 1) consultas autenticadas do próprio estudante; 2) preparação de protocolo com confirmação; 3) homologação de comunicação e pagamentos. A conexão com clientes externos requer OAuth seguro e testes reais.
