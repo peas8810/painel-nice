@@ -38,3 +38,13 @@ body{font-family:Arial,Helvetica,system-ui,-apple-system,sans-serif!important;ba
 [hidden]{display:none!important}
 @media(max-width:700px){:where(button,.btn,.primary,input,select){min-height:44px}:where(input,select,textarea){font-size:16px!important}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*:before,*:after{transition-duration:.01ms!important;animation-duration:.01ms!important}}
+
+/* Components with legacy dark backgrounds: reset explicitly */
+.hero,.hero .herotext,.hero .halo,.hero .assurance,.hero .tag,.hero .buttons,.hero .btn,
+.top,.top p,.top h1,.bar,.bar span{background-color:#fff!important;color:#111!important}
+.hero{background-image:none!important;border-bottom:1px solid #e5e5e5!important}
+.hero .halo{display:none!important}
+.hero :is(h1,h1 em,p,span,a,b,strong){color:#111!important}
+.hero .buttons :is(.btn,.light,.outline){background:#f3f3f3!important;color:#111!important;border:1px solid #cecece!important}
+#approve,#deny,.query button{background:#f3f3f3!important;color:#111!important;border:1px solid #cecece!important}
+#student-view .mobile-quick-nav a[aria-current="page"]:before{color:#111!important}
