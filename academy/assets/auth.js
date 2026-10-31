@@ -66,7 +66,7 @@ async function editRequest(item){
  $('request-submit').textContent='Salvar alterações';
  display('cancel-edit',true);display('edit-notice',true);
  message('request-status','Editando protocolo '+data.id.slice(0,8)+'. Revise os campos e clique em Salvar alterações.');
- $('request').scrollIntoView({behavior:'smooth',block:'start'});
+ window.academyWizardSetStep?.(1);$('request').scrollIntoView({behavior:'smooth',block:'start'});
 }
 async function deleteRequest(item){
  if(!confirm('Excluir o protocolo "'+item.activity+'"? Ele será cancelado e sairá do seu painel. O histórico de auditoria será preservado.'))return;
