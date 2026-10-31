@@ -69,6 +69,7 @@ window.addEventListener('academy-request-saved',async()=>{
  draftSubmitted=true;clearTimeout(saveTimer);
  const id=draftUserId;revision=0;syncedRevision=0;
  if(id){try{localStorage.removeItem(localDraftKey(id))}catch{}
+  while(syncRunning)await new Promise(resolve=>setTimeout(resolve,50));
   const {error}=await db.from('academy_request_drafts').delete().eq('user_id',id);
   status(error?'Protocolo registrado; limpeza do rascunho pendente':'Protocolo registrado com sucesso');
  }
