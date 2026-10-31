@@ -2,20 +2,28 @@
 (()=>{
 const $=id=>document.getElementById(id), client=()=>window.academyDb;
 let records=[];
-$('guided-fill').onclick=()=>{
+$('guided-fill').onclick=async()=>{
  const story=$('guided-story').value.trim();
  if(story.length<15){$('guided-status').textContent='Descreva a atividade com mais detalhes.';return}
- const hours=story.match(/(\d{1,3}(?:[,.]\d+)?)\s*(?:horas?|h\b)/i);
- const date=story.match(/\b(\d{1,2})\/(\d{1,2})\/(\d{4})\b/);
- const title=story.replace(/\b\d{1,2}\/\d{1,2}\/\d{4}\b/g,'').replace(/\b\d+[,.]?\d*\s*(?:horas?|h\b)/gi,'').slice(0,150).trim();
- if(!$('activity').value)$('activity').value=title||story.slice(0,150);
- $('description').value=story;
- if(hours&&!$('hours').value)$('hours').value=hours[1].replace(',','.');
- if(date){const d=date[3]+'-'+date[2].padStart(2,'0')+'-'+date[1].padStart(2,'0');if(!$('start').value)$('start').value=d;if(!$('end').value)$('end').value=d}
- window.academyWizardSetStep?.(1);
- $('new-request').scrollIntoView({behavior:'smooth'});
- $('guided-status').textContent='Dados iniciais organizados. Confira e complete todas as informações antes de registrar.';
- $('request').dispatchEvent(new Event('input',{bubbles:true}));
+ const button=$('guided-fill');button.disabled=true;$('guided-status').textContent='Preparando uma sugestão com IA…';
+ try{
+  const db=client();if(!db)throw Error('Conexão indisponível');
+  const {data,error}=await db.functions.invoke('academy-prepare-request',{body:{story}});
+  if(error||data?.error)throw Error(data?.error||error.message);
+  const f=data.fields||{};
+  const mapping={activity:'activity',activity_type:'activity-type',start_date:'start',end_date:'end',hours_declared:'hours',description:'description'};
+  for(const [key,id] of Object.entries(mapping)){
+   if(f[key]===null||f[key]===undefined||String(f[key]).trim()==='')continue;
+   const el=$(id),value=String(f[key]);
+   if(id==='activity-type'&&![...el.options].some(x=>x.value===value)){const o=document.createElement('option');o.value=value;o.textContent=value;el.add(o)}
+   el.value=value;
+  }
+  window.academyWizardSetStep?.(1);$('new-request').scrollIntoView({behavior:'smooth'});
+  const missing=(data.missing||[]).map(String).join('; ');
+  $('guided-status').textContent='Rascunho sugerido. Revise todos os campos e confirme no formulário.'+(missing?' Informações a completar: '+missing:'');
+  $('request').dispatchEvent(new Event('input',{bubbles:true}));
+ }catch(e){$('guided-status').textContent='IA indisponível: '+String(e.message||e)+'. O preenchimento manual permanece disponível.'}
+ finally{button.disabled=false}
 };
 $('student-request-search').addEventListener('input',()=>{
  const q=$('student-request-search').value.trim().toLocaleLowerCase('pt-BR');
