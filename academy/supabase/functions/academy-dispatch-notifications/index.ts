@@ -26,7 +26,7 @@ Deno.serve(async req=>{
    const title=kinds[job.kind];if(!title)throw Error("Unsupported event type");
    const portal=job.kind==="PROTOCOL_MESSAGE_ADMIN"?"https://www.protocolo.me/academy/admin/":"https://www.protocolo.me/academy/portal/";
    let extraLink=portal;
-   if(job.kind==="PAYMENT_RELEASED"){const p=await db("/rest/v1/academy_payment_releases?select=checkout_url,payment_status&request_id=eq."+job.request_id);const link=p[0]?.checkout_url; if(!link||p[0]?.payment_status!=="AGUARDANDO_PAGAMENTO")throw Error("Checkout link not yet ready");const url=new URL(link);if(url.protocol!=="https:"||!url.hostname.endsWith("mercadopago.com.br"))throw Error("Untrusted payment link");extraLink=url.toString()}
+   if(job.kind==="PAYMENT_RELEASED"){const p=await db("/rest/v1/academy_payment_releases?select=checkout_url,payment_status&request_id=eq."+job.request_id);const link=p[0]?.checkout_url; if(!link||p[0]?.payment_status!=="AGUARDANDO_PAGAMENTO")throw Error("Checkout link not yet ready");const url=new URL(link);if(url.protocol!=="https:"||!(url.hostname==="mercadopago.com.br"||url.hostname.endsWith(".mercadopago.com.br")))throw Error("Untrusted payment link");extraLink=url.toString()}
    let providerId;
    if(job.channel==="EMAIL"){
     if(!EMAIL_KEY||!FROM)throw Error("Email service not configured");
