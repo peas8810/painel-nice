@@ -22,3 +22,31 @@ body{background:var(--acad-bg);color:var(--acad-text);-webkit-font-smoothing:ant
 [hidden]{display:none!important}
 @media(max-width:700px){:where(button,.btn,.primary){min-height:48px}:where(input,select,textarea){font-size:16px}:where(h1){line-height:1.12}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+
+/* Academy / Uber-like minimal product aesthetic; system font fallback, no proprietary assets */
+:root{--acad-navy:#000;--acad-primary:#000;--acad-bg:#f6f6f6;--acad-border:#e6e6e6;--acad-text:#111;--acad-muted:#555;--acad-radius:12px;--navy:#000;--dark:#000;--teal:#000;--ink:#111;--muted:#555;--light:#f5f5f5}
+html{font-family:Inter,"Arial",system-ui,-apple-system,sans-serif}body{background:#f6f6f6;color:#111;font-family:Inter,Arial,system-ui,sans-serif}
+:where(.portal-card,.panel,.card,.feature,.benefit,.stat,.review-box){background:#fff;border-color:#e6e6e6;box-shadow:none;border-radius:12px}
+:where(.primary,.btn,.navcta,button[type=submit]){background:#000;color:#fff;border-radius:9px;font-weight:700}
+:where(.primary,.btn,.navcta,button[type=submit]):hover{background:#292929;color:#fff}
+:where(.btn-alt,.google-login){background:#eee;color:#111}
+:where(.bar,.top){background:#000}
+:where(.eyebrow,.step){color:#333;letter-spacing:.08em}
+:where(h1,h2,h3){color:#111;font-weight:800;letter-spacing:-.035em}
+:where(input,select,textarea){background:#f7f7f7;border:1px solid #d8d8d8;border-radius:9px;color:#111}
+#student-view .portal-heading{background:#000;border-radius:16px}
+#student-view .portal-heading h1{color:#fff}
+#student-view .portal-heading .eyebrow{color:#d1d1d1}
+#student-view .portal-heading p.dashboard-intro{color:#dfdfdf}
+#student-view .academy-hero-main{background:#fff;color:#000!important}
+#student-view .academy-hero-secondary{background:#333;color:#fff!important}
+#student-view .portal-card{box-shadow:none;border:1px solid #e5e5e5}
+#student-view .primary{background:#000}
+#student-view .primary:hover{background:#333}
+#student-view .academy-overview{background:#f2f2f2}
+#student-view .academy-overview h3{color:#111}
+#student-view .academy-smart-tools{background:#f7f7f7;border-color:#e8e8e8}
+#student-view .mobile-quick-nav a[aria-current=page]{background:#111;color:#fff;border-color:#111}
+#student-view .request-item{border-color:#e5e5e5}
+:where(a){text-underline-offset:3px}
+@media(max-width:650px){#student-view .mobile-quick-nav a[aria-current=page]{color:#000;background:#e8e8e8;border:0}}
