@@ -27,3 +27,16 @@ Atualizado em 31/10/2026.
 
 ## Critério de conclusão
 A Etapa 6 só estará concluída após ensaios autenticados entre contas, verificação mobile real e DNS/Pages funcionais.
+
+## Avanço SafeDraft e controle de qualidade — 31/10/2026
+- [x] SafeDraft: gravação local síncrona a cada input/change, proteção ao ocultar/sair da página, retomada online, indicador de estado e reconciliação por data entre versão local e remota.
+- [x] Evitar concorrência entre sincronização remota pendente e limpeza de rascunho depois de registrar o protocolo.
+- [x] Workflow de qualidade `.github/workflows/academy-quality.yml` criado para verificar sintaxe dos JS, existência de assets e status HTTP das cinco páginas.
+- [ ] Testar SafeDraft no Safari iPhone/Chrome Android com queda real de conexão, app fechado à força, login em dois dispositivos e armazenamento privado.
+- [ ] Validar GitHub Actions em execução e ajustar qualquer erro apontado.
+- [ ] Testes de integração de anexos, formulários e autorizações com contas reais.
+- [ ] Falha de acesso a www.protocolo.me permanece bloqueadora e deve ser tratada no DNS/GitHub Pages.
+
+### Inovação Apple recomendada
+- **Carteira de certificados no Apple Wallet**: oferecer um passe verificável por QR para cada certificado já emitido, via PassKit e credenciais oficiais de assinatura da Apple; NÃO confundir passe com certificado jurídico/acadêmico original e manter link público de verificação. Serviço não implementado.
+- Inspirar-se em feedback discreto, recuperação de erros, continuidade e simplicidade do Apple Human Interface Guidelines. 
