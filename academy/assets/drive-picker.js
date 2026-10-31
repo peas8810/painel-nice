@@ -36,7 +36,7 @@
    if(!response.ok)throw Error('O Google Drive não liberou o arquivo ('+response.status+').');
    const blob=await response.blob();
    if(blob.size>10485760||!blob.size)throw Error('Arquivo vazio ou maior que 10 MB.');
-   const file=new File([blob],name,{type:info.mimeType});
+   const file=new File([blob],name,{type:info.mimeType});window.academySelectedEvidence=file;
    if(typeof window.academyUploadEvidence!=='function')throw Error('Envio do Academy indisponível.');
    await window.academyUploadEvidence(file,requestId);
   }catch(e){say('Não foi possível importar do Drive: '+(e.message||e))}
