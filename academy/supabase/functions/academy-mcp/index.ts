@@ -1,5 +1,6 @@
 const url=Deno.env.get("SUPABASE_URL")||"",anon=Deno.env.get("SUPABASE_ANON_KEY")||"",service=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")||"";
-const headers={"content-type":"application/json","access-control-allow-origin":"*","access-control-allow-headers":"authorization,apikey,content-type,mcp-protocol-version","access-control-allow-methods":"POST,OPTIONS"};
+const RESOURCE=url+"/functions/v1/academy-mcp",METADATA=RESOURCE+"/oauth-protected-resource";
+const headers={"content-type":"application/json","access-control-allow-origin":"*","access-control-allow-headers":"authorization,apikey,content-type,mcp-protocol-version,mcp-session-id","access-control-allow-methods":"POST,GET,OPTIONS","access-control-expose-headers":"WWW-Authenticate"};
 const catalog=[{name:"academy_my_protocols",description:"Read only your own protocols",inputSchema:{type:"object",properties:{limit:{type:"integer",minimum:1,maximum:30}}}},{name:"academy_my_certificates",description:"Read only issued certificates linked to your account",inputSchema:{type:"object",properties:{}}},{name:"academy_help",description:"Explain how to submit evidence and monitor protocols",inputSchema:{type:"object",properties:{}}}];
 const send=(body,status=200)=>new Response(JSON.stringify(body),{status,headers});
 const ok=(id,result)=>send({jsonrpc:"2.0",id,result});
@@ -7,6 +8,7 @@ const fail=(id,code,message)=>send({jsonrpc:"2.0",id,error:{code,message}});
 async function get(path,token){const r=await fetch(url+"/rest/v1/"+path,{headers:{apikey:anon,authorization:token}});if(!r.ok)throw Error("Consulta recusada");return r.json()}
 Deno.serve(async req=>{
  if(req.method==="OPTIONS")return new Response(null,{headers});
+ if(req.method==="GET"&&new URL(req.url).pathname.endsWith("/oauth-protected-resource"))return send({resource:RESOURCE,authorization_servers:[url+"/auth/v1"],bearer_methods_supported:["header"]});
  if(req.method!=="POST")return send({error:"Use JSON-RPC POST"},405);
  let input;try{input=await req.json()}catch{return send({error:"Invalid JSON"},400)}
  const id=input.id??null;
@@ -16,9 +18,9 @@ Deno.serve(async req=>{
  if(input.method==="tools/list")return ok(id,{tools:catalog});
  if(input.method!=="tools/call")return fail(id,-32601,"Unknown method");
  const token=req.headers.get("authorization")||"";
- if(!token.startsWith("Bearer "))return fail(id,-32001,"Authentication required");
+ if(!token.startsWith("Bearer "))return new Response(JSON.stringify({error:"Authentication required"}),{status:401,headers:{...headers,"WWW-Authenticate":`Bearer resource_metadata="${METADATA}"`}});
  const userResponse=await fetch(url+"/auth/v1/user",{headers:{apikey:anon,authorization:token}});
- if(!userResponse.ok)return fail(id,-32001,"Invalid session");
+ if(!userResponse.ok)return new Response(JSON.stringify({error:"Invalid session"}),{status:401,headers:{...headers,"WWW-Authenticate":`Bearer resource_metadata="${METADATA}"`}});
  const user=await userResponse.json();if(!user.id)return fail(id,-32001,"Invalid user");
  const name=input.params?.name; if(!catalog.some(t=>t.name===name))return fail(id,-32602,"Unknown tool");
  try{
