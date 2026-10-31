@@ -1,52 +1,40 @@
-/* Protocolo Academy Unified Design System v3.0 */
-:root{--acad-navy:#111827;--acad-primary:#0b766d;--acad-bg:#f5f7fa;--acad-border:#e1e7ed;--acad-text:#152435;--acad-muted:#617387;--acad-radius:16px}
-*,*::before,*::after{box-sizing:border-box}
-html{scroll-behavior:smooth}
-body{background:var(--acad-bg);color:var(--acad-text);-webkit-font-smoothing:antialiased}
-:where(button,input,select,textarea,a){font-family:inherit}
-:where(input,select,textarea){max-width:100%}
-:where(button,a,input,textarea,select):focus-visible{outline:3px solid #0b766d80;outline-offset:2px}
-:where(button,[role=button]){touch-action:manipulation}
-:where(.portal-card,.panel,.card,.feature,.benefit,.stat,.review-box){border-radius:var(--acad-radius)}
-:where(.btn,.primary,.navcta){border-radius:12px;min-height:45px;font-weight:750}
-:where(input:not([type=checkbox]):not([type=radio]),select,textarea){border-radius:11px}
-:where(h1,h2,h3){letter-spacing:-.025em;text-wrap:balance}
-:where(p){line-height:1.55}
-:where(.status,.notice,.muted){overflow-wrap:anywhere}
-:where(header .logo,.logo){letter-spacing:-.025em}
-:where(.bar){background:var(--acad-navy)}
-:where(footer){border-top:1px solid var(--acad-border)}
-:where(.portal-wrap,.wrap,.container){max-width:1300px}
-:where(.warning){border-radius:14px}
-:where(.request-item){overflow-wrap:anywhere}
+/* Academy Light UI v5 — shared across all pages. No proprietary fonts. */
+:root{color-scheme:light;--navy:#111;--dark:#111;--teal:#111;--ink:#111;--muted:#555;--light:#f5f5f5;--bg:#fff;--line:#e5e5e5;--acad-bg:#fff;--acad-navy:#111;--acad-primary:#111;--acad-text:#111;--acad-border:#e5e5e5;--acad-muted:#555}
+*,*:before,*:after{box-sizing:border-box}
+html{background:#fff!important;color-scheme:light}
+body{font-family:Arial,Helvetica,system-ui,-apple-system,sans-serif!important;background:#fff!important;color:#111!important;-webkit-font-smoothing:antialiased}
+:where(main,.wrap,.portal-wrap,.shell,.container){background:#fff!important;color:#111!important}
+:where(header,.bar,.top,footer){background:#fff!important;color:#111!important;border-color:#e5e5e5!important}
+:where(header,.bar,.top,footer) :where(span,a,h1,h2,h3,p,.logo){color:#111!important}
+:where(h1,h2,h3,h4,h5,h6,p,label,legend,small,strong,summary,th,td){color:#111}
+:where(.portal-card,.panel,.card,.feature,.stat,.benefit,.review-box,.portal-heading,.academy-smart-tools,.academy-overview){background:#fff!important;color:#111!important;border-color:#e6e6e6!important;box-shadow:none!important}
+:where(.notice,.muted,.status,.dashboard-intro,.step,.eyebrow){color:#454545!important}
+:where(.primary,.btn,.btn-alt,.navcta,.google-login,button[type="submit"],.academy-hero-main,.academy-hero-secondary){background:#f3f3f3!important;color:#111!important;border:1px solid #cecece!important;border-radius:10px!important;box-shadow:none!important;font-weight:700}
+:where(.primary,.btn,.btn-alt,.navcta,.google-login,button[type="submit"],.academy-hero-main,.academy-hero-secondary):hover{background:#e8e8e8!important;color:#111!important}
+:where(button):disabled{opacity:.6;cursor:not-allowed}
+:where(input:not([type="checkbox"]):not([type="radio"]),select,textarea){background:#fff!important;color:#111!important;border:1px solid #c9c9c9!important;border-radius:10px!important}
+:where(input,select,textarea)::placeholder{color:#676767!important}
+:where(a){color:#111;text-underline-offset:3px}
+:where(a,button,input,textarea,select,summary):focus-visible{outline:3px solid #777!important;outline-offset:3px}
+#student-view .portal-heading{background:#fff!important;border:1px solid #e5e5e5!important;border-radius:16px!important}
+#student-view .portal-heading :is(h1,.eyebrow,p,.dashboard-intro,#student-email,#academy-logout){color:#111!important}
+#student-view .academy-hero-actions a{background:#f3f3f3!important;color:#111!important;border:1px solid #cecece!important}
+#student-view .academy-hero-actions a:hover{background:#e8e8e8!important}
+#student-view .portal-card,#student-view .academy-smart-tools,#student-view .academy-overview,#student-view .request-item{background:#fff!important;color:#111!important;border:1px solid #e5e5e5!important}
+#student-view .portal-card :is(h2,h3,.step,.notice),#student-view .request-item strong{color:#111!important}
+#student-view .portal-card :is(.primary,.google-login){background:#f3f3f3!important;color:#111!important;border:1px solid #cecece!important}
+#student-view .mobile-quick-nav{background:#fff!important;border-color:#e5e5e5!important}
+#student-view .mobile-quick-nav a{color:#333!important;background:#fff!important}
+#student-view .mobile-quick-nav a[aria-current="page"]{background:#eee!important;color:#111!important;border-color:#ddd!important}
+:where(.admin-tabs,.stat-grid,.stat,.actions,.upload-area,.wizard-progress){background:#fff!important;color:#111!important}
+:where(.admin-tabs) button{background:#f5f5f5!important;color:#111!important}
+:where(.admin-tabs) button[aria-selected="true"],:where(.admin-tabs) button.active{background:#e8e8e8!important;color:#111!important}
+:where(.status-chip,.badge){color:#111}
+:where(.bar,.top){border-bottom:1px solid #e5e5e5!important}
+:where(.logo,.logo span,.logo i){color:#111!important}
+:where(table){background:#fff;color:#111}
+:where(th){background:#f6f6f6;color:#111}
+:where(details,details summary){color:#111}
 [hidden]{display:none!important}
-@media(max-width:700px){:where(button,.btn,.primary){min-height:48px}:where(input,select,textarea){font-size:16px}:where(h1){line-height:1.12}}
-@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
-
-/* Academy / Uber-like minimal product aesthetic; system font fallback, no proprietary assets */
-:root{--acad-navy:#000;--acad-primary:#000;--acad-bg:#f6f6f6;--acad-border:#e6e6e6;--acad-text:#111;--acad-muted:#555;--acad-radius:12px;--navy:#000;--dark:#000;--teal:#000;--ink:#111;--muted:#555;--light:#f5f5f5}
-html{font-family:Inter,"Arial",system-ui,-apple-system,sans-serif}body{background:#f6f6f6;color:#111;font-family:Inter,Arial,system-ui,sans-serif}
-:where(.portal-card,.panel,.card,.feature,.benefit,.stat,.review-box){background:#fff;border-color:#e6e6e6;box-shadow:none;border-radius:12px}
-:where(.primary,.btn,.navcta,button[type=submit]){background:#000;color:#fff;border-radius:9px;font-weight:700}
-:where(.primary,.btn,.navcta,button[type=submit]):hover{background:#292929;color:#fff}
-:where(.btn-alt,.google-login){background:#eee;color:#111}
-:where(.bar,.top){background:#000}
-:where(.eyebrow,.step){color:#333;letter-spacing:.08em}
-:where(h1,h2,h3){color:#111;font-weight:800;letter-spacing:-.035em}
-:where(input,select,textarea){background:#f7f7f7;border:1px solid #d8d8d8;border-radius:9px;color:#111}
-#student-view .portal-heading{background:#000;border-radius:16px}
-#student-view .portal-heading h1{color:#fff}
-#student-view .portal-heading .eyebrow{color:#d1d1d1}
-#student-view .portal-heading p.dashboard-intro{color:#dfdfdf}
-#student-view .academy-hero-main{background:#fff;color:#000!important}
-#student-view .academy-hero-secondary{background:#333;color:#fff!important}
-#student-view .portal-card{box-shadow:none;border:1px solid #e5e5e5}
-#student-view .primary{background:#000}
-#student-view .primary:hover{background:#333}
-#student-view .academy-overview{background:#f2f2f2}
-#student-view .academy-overview h3{color:#111}
-#student-view .academy-smart-tools{background:#f7f7f7;border-color:#e8e8e8}
-#student-view .mobile-quick-nav a[aria-current=page]{background:#111;color:#fff;border-color:#111}
-#student-view .request-item{border-color:#e5e5e5}
-:where(a){text-underline-offset:3px}
-@media(max-width:650px){#student-view .mobile-quick-nav a[aria-current=page]{color:#000;background:#e8e8e8;border:0}}
+@media(max-width:700px){:where(button,.btn,.primary,input,select){min-height:44px}:where(input,select,textarea){font-size:16px!important}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*:before,*:after{transition-duration:.01ms!important;animation-duration:.01ms!important}}
