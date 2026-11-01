@@ -1,0 +1,8 @@
+export const uuid=x=>typeof x==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(x);
+export const phone=x=>typeof x==='string'&&/^\+[1-9]\d{7,14}$/.test(x);
+export function snapshot(c,r){return {certificate_id:c.id,code:c.certificate_code,pdf_sha256:c.pdf_sha256,owner_id:r.user_id,activity:r.activity,start:r.start_date,end:r.end_date,hours:r.hours_verified};}
+export function same(a,b){return JSON.stringify(a,Object.keys(a).sort())===JSON.stringify(b,Object.keys(b).sort());}
+export function publicSeal(s,current){if(!s)return {status:'SEM_SELO'};if(s.revoked_at)return {id:s.id,status:'REVOGADO'};if(!same(s.snapshot,current))return {id:s.id,status:'DADOS_ALTERADOS'};if(!s.confirmed_at)return {status:'PENDENTE'};return {id:s.id,status:'ATIVO',phone_confirmed:Boolean(s.phone_confirmed_at),holder_confirmed_at:s.confirmed_at,identity:s.review_result==='CONFERIDA'?'CONFERIDA_POR_RESPONSAVEL':'NAO_CONFERIDA',reviewed_at:s.reviewed_at};}
+export const hash=async x=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',typeof x==='string'?new TextEncoder().encode(x):x)),b=>b.toString(16).padStart(2,'0')).join('');
+export async function otpHash(secret,id,code){const k=await crypto.subtle.importKey('raw',new TextEncoder().encode(secret),{name:'HMAC',hash:'SHA-256'},false,['sign']);return Array.from(new Uint8Array(await crypto.subtle.sign('HMAC',k,new TextEncoder().encode(id+':'+code))),b=>b.toString(16).padStart(2,'0')).join('');}
+export function otp(){const a=new Uint32Array(1);do{crypto.getRandomValues(a);}while(a[0]>=4294000000);return String(a[0]%1000000).padStart(6,'0');}
