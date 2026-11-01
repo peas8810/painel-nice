@@ -5,7 +5,7 @@ const SECRET=Deno.env.get("ACADEMY_SIGNING_SECRET")||"";
 const mode=Deno.env.get("ACADEMY_ENABLE_ISSUANCE")||"disabled";
 const enabled=mode==="sandbox"||(mode==="production"&&Deno.env.get("ACADEMY_COMMERCIAL_RELEASE")==="approved"&&Deno.env.get("ACADEMY_ENABLE_PAYMENTS")==="production");
 const BASE="https://www.protocolo.me/academy/validar/";
-function response(status,x){return new Response(JSON.stringify(x),{status,headers:{"content-type":"application/json","access-control-allow-origin":"https://www.protocolo.me","access-control-allow-headers":"authorization,apikey,content-type"}})}
+function response(status,x){return new Response(JSON.stringify(x),{status,headers:{"content-type":"application/json","access-control-allow-origin":"https://www.protocolo.me","access-control-allow-headers":"authorization,apikey,content-type,x-client-info"}})}
 async function api(path,method="GET",payload,key=SR){
  const r=await fetch(URL+path,{method,headers:{"apikey":key,"authorization":"Bearer "+key,"content-type":"application/json","prefer":"return=representation"},body:payload===undefined?undefined:JSON.stringify(payload)});
  const content=await r.text();if(!r.ok)throw Error("Backend "+r.status+" "+content.slice(0,100));return content?JSON.parse(content):[];

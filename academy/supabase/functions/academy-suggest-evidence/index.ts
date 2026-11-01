@@ -1,6 +1,6 @@
 const URL=Deno.env.get('SUPABASE_URL')||'',ANON=Deno.env.get('SUPABASE_ANON_KEY')||'',KEY=Deno.env.get('OPENAI_API_KEY')||'',SR=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')||'';
 const origin='https://www.protocolo.me';
-function respond(data,status=200){return new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json','access-control-allow-origin':origin,'access-control-allow-headers':'authorization,apikey,content-type','access-control-allow-methods':'POST,OPTIONS'}})}
+function respond(data,status=200){return new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json','access-control-allow-origin':origin,'access-control-allow-headers':'authorization,apikey,content-type,x-client-info','access-control-allow-methods':'POST,OPTIONS'}})}
 Deno.serve(async req=>{
  if(req.method==='OPTIONS')return respond({});
  if(req.method!=='POST')return respond({error:'Método não permitido'},405);

@@ -5,7 +5,7 @@ const MP=Deno.env.get("MP_ACCESS_TOKEN")||"";
 const mode=Deno.env.get("ACADEMY_ENABLE_PAYMENTS")||"disabled";
 const enable=mode==="sandbox"||(mode==="production"&&Deno.env.get("ACADEMY_COMMERCIAL_RELEASE")==="approved");
 const ORIGINS=new Set(["https://www.protocolo.me","https://protocolo.me"]);
-function reply(body,status=200,origin=""){return new Response(JSON.stringify(body),{status,headers:{"content-type":"application/json","access-control-allow-origin":ORIGINS.has(origin)?origin:"https://www.protocolo.me","access-control-allow-headers":"authorization,apikey,content-type","access-control-allow-methods":"POST,OPTIONS","vary":"Origin"}})}
+function reply(body,status=200,origin=""){return new Response(JSON.stringify(body),{status,headers:{"content-type":"application/json","access-control-allow-origin":ORIGINS.has(origin)?origin:"https://www.protocolo.me","access-control-allow-headers":"authorization,apikey,content-type,x-client-info","access-control-allow-methods":"POST,OPTIONS","vary":"Origin"}})}
 async function api(path,{method="GET",body,token=SR,apikey=SR}={}){
  const r=await fetch(URL+path,{method,headers:{"apikey":apikey,"authorization":"Bearer "+token,"content-type":"application/json","prefer":"return=representation"},body:body?JSON.stringify(body):undefined});
  const text=await r.text();let parsed;try{parsed=JSON.parse(text)}catch{parsed=text}

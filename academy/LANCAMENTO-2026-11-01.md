@@ -14,7 +14,9 @@
 - Monitoramento periódico das rotas via GitHub Actions. Alertas dependem das preferências de notificações do GitHub; não é monitoramento completo do backend.
 
 ## Testes executados
-20 testes Node passaram. Uma credencial sintética assinada pelo código do Academy foi verificada independentemente com Python cryptography, incluindo rejeição de adulteração; isso não comprova compatibilidade com carteiras digitais. Testes transacionais no banco, com rollback, validaram encaminhamento condicional, isolamento por instituição, impedimento de autoanálise, bloqueio de revisão desatualizada e ausência de aprovação automática. Outro teste transacional validou ambientes de pagamento, notificação repetida, pagamento alternativo e estorno sem reativação por evento antigo. Nenhuma cobrança ou mensagem externa foi realizada nesses testes.
+29 testes Node passaram, incluindo preflight do navegador em oito funções e fluxo simulado de convite por e-mail. Uma credencial sintética assinada pelo código do Academy foi verificada independentemente com Python cryptography, incluindo rejeição de adulteração; isso não comprova compatibilidade com carteiras digitais. Testes transacionais no banco, com rollback, validaram encaminhamento condicional, isolamento por instituição, impedimento de autoanálise, bloqueio de revisão desatualizada e ausência de aprovação automática. Outro teste transacional validou ambientes de pagamento, notificação repetida, pagamento alternativo e estorno sem reativação por evento antigo. Nenhuma cobrança ou mensagem externa foi realizada nesses testes.
+
+Também foram corrigidos cabeçalhos CORS para o SDK do navegador, o escopo da variável do trabalho de e-mail e o conflito com o construtor URL no envio de convites.
 
 ## Dependências reais que permanecem
 1. Configurar provedores pelos painéis e provar entrega/recebimento com a conta de teste do responsável. Ter conta no provedor não significa que os secrets deste projeto estejam configurados.

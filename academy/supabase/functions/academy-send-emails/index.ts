@@ -1,12 +1,14 @@
-const URL=Deno.env.get("SUPABASE_URL")||"",SERVICE=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")||"",ANON=Deno.env.get("SUPABASE_ANON_KEY")||"";
+const API_URL=Deno.env.get("SUPABASE_URL")||"",SERVICE=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")||"",ANON=Deno.env.get("SUPABASE_ANON_KEY")||"";
 const API=Deno.env.get("RESEND_API_KEY")||"",FROM=Deno.env.get("ACADEMY_EMAIL_FROM")||"";
-function out(status,data){return new Response(JSON.stringify(data),{status,headers:{"content-type":"application/json"}})}
-async function db(path,method="GET",body){const r=await fetch(URL+path,{method,headers:{"apikey":SERVICE,"authorization":"Bearer "+SERVICE,"content-type":"application/json","prefer":"return=representation"},body:body?JSON.stringify(body):undefined});const txt=await r.text();if(!r.ok)throw Error("DB "+r.status);return txt?JSON.parse(txt):[]}
-async function validate(req){const token=(req.headers.get("authorization")||"").replace(/^Bearer /,"");if(!token)return false;const r=await fetch(URL+"/auth/v1/user",{headers:{"apikey":ANON,"authorization":"Bearer "+token}});if(!r.ok)return false;const user=await r.json();const a=await db("/rest/v1/academy_admin_members?select=user_id&enabled=eq.true&user_id=eq."+encodeURIComponent(user.id));return a.length>0}
+function out(status,data){return new Response(JSON.stringify(data),{status,headers:{"content-type":"application/json","access-control-allow-origin":"https://www.protocolo.me","access-control-allow-headers":"authorization,apikey,content-type,x-client-info","access-control-allow-methods":"POST,OPTIONS"}})}
+async function db(path,method="GET",body){const r=await fetch(API_URL+path,{method,headers:{"apikey":SERVICE,"authorization":"Bearer "+SERVICE,"content-type":"application/json","prefer":"return=representation"},body:body?JSON.stringify(body):undefined});const txt=await r.text();if(!r.ok)throw Error("DB "+r.status);return txt?JSON.parse(txt):[]}
+async function validate(req){const token=(req.headers.get("authorization")||"").replace(/^Bearer /,"");if(!token)return false;const r=await fetch(API_URL+"/auth/v1/user",{headers:{"apikey":ANON,"authorization":"Bearer "+token}});if(!r.ok)return false;const user=await r.json();const a=await db("/rest/v1/academy_admin_members?select=user_id&enabled=eq.true&user_id=eq."+encodeURIComponent(user.id));return a.length>0}
 function safeCheckout(raw){try{const u=new URL(raw);return u.protocol==="https:"&&(u.hostname==="www.mercadopago.com.br"||u.hostname==="mercadopago.com.br"||u.hostname==="www.mercadopago.com"||u.hostname==="mercadopago.com"||u.hostname==="sandbox.mercadopago.com.br"||u.hostname==="sandbox.mercadopago.com")?u.toString():null}catch{return null}}
 Deno.serve(async(req)=>{
+ if(req.method==="OPTIONS")return out(200,{});
+ let job;
  if(req.method!=="POST")return out(405,{error:"Method"});
- if(!URL||!SERVICE||!ANON||!API||!FROM)return out(503,{error:"Email provider not configured"});
+ if(!API_URL||!SERVICE||!ANON||!API||!FROM)return out(503,{error:"Email provider not configured"});
  if(!(await validate(req)))return out(403,{error:"Administrative access required"});
  try{
   const rows=await db("/rest/v1/rpc/academy_claim_email_outbox","POST",{});

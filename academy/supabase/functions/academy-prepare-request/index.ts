@@ -1,5 +1,5 @@
 const origin="https://www.protocolo.me",url=Deno.env.get("SUPABASE_URL")||"",anon=Deno.env.get("SUPABASE_ANON_KEY")||"",service=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")||"",key=Deno.env.get("OPENAI_API_KEY")||"";
-const headers={"content-type":"application/json","access-control-allow-origin":origin,"access-control-allow-headers":"authorization,apikey,content-type","access-control-allow-methods":"POST,OPTIONS"};
+const headers={"content-type":"application/json","access-control-allow-origin":origin,"access-control-allow-headers":"authorization,apikey,content-type,x-client-info","access-control-allow-methods":"POST,OPTIONS"};
 function send(data,status=200){return new Response(JSON.stringify(data),{status,headers})}
 Deno.serve(async req=>{
  if(req.method==="OPTIONS")return new Response(null,{headers});

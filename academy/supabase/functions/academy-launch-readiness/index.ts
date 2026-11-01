@@ -1,5 +1,5 @@
 const base=Deno.env.get('SUPABASE_URL')||'', service=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')||'', anon=Deno.env.get('SUPABASE_ANON_KEY')||'';
-const headers={'content-type':'application/json','access-control-allow-origin':'https://www.protocolo.me','access-control-allow-headers':'authorization,apikey,content-type','cache-control':'no-store'};
+const headers={'content-type':'application/json','access-control-allow-origin':'https://www.protocolo.me','access-control-allow-headers':'authorization,apikey,content-type,x-client-info','cache-control':'no-store'};
 const reply=(status,body)=>new Response(JSON.stringify(body),{status,headers});
 Deno.serve(async req=>{
  if(req.method==='OPTIONS')return reply(200,{});

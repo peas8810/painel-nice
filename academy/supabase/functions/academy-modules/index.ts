@@ -2,7 +2,7 @@ import QRCode from 'npm:qrcode@1.5.4';
 import {uuid,tokenValid,hash,secret,active,regulationAnswer,signCredential,verifyCredential,unb64} from './core.mjs';
 const BASE=Deno.env.get('SUPABASE_URL')||'',SR=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')||'',ANON=Deno.env.get('SUPABASE_ANON_KEY')||'';
 const ENDPOINT=BASE+'/functions/v1/academy-modules',SITE='https://www.protocolo.me/academy/';
-const headers={'content-type':'application/json','access-control-allow-origin':'*','access-control-allow-headers':'authorization,apikey,content-type','access-control-allow-methods':'POST,GET,OPTIONS','cache-control':'no-store','x-content-type-options':'nosniff'};
+const headers={'content-type':'application/json','access-control-allow-origin':'*','access-control-allow-headers':'authorization,apikey,content-type,x-client-info','access-control-allow-methods':'POST,GET,OPTIONS','cache-control':'no-store','x-content-type-options':'nosniff'};
 const out=(body,status=200)=>new Response(JSON.stringify(body),{status,headers});
 function fail(message,status=400){throw Object.assign(new Error(message),{status});}
 function id(x){if(!uuid(x))fail('Identificador inválido');return x;}
