@@ -3,7 +3,8 @@
 const SUPABASE_URL=Deno.env.get("SUPABASE_URL")||"",SERVICE=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")||"";
 const TOKEN=Deno.env.get("MP_ACCESS_TOKEN")||"",SECRET=Deno.env.get("MP_WEBHOOK_SECRET")||"";
 const SELLER=Deno.env.get("MP_COLLECTOR_ID")||"";
-const enabled=Deno.env.get("ACADEMY_ENABLE_PAYMENTS")==="sandbox";
+const mode=Deno.env.get("ACADEMY_ENABLE_PAYMENTS")||"disabled";
+const enabled=mode==="sandbox"||(mode==="production"&&Deno.env.get("ACADEMY_COMMERCIAL_RELEASE")==="approved");
 function response(status,msg){return new Response(JSON.stringify({message:msg}),{status,headers:{"content-type":"application/json"}})}
 function constantTime(a,b){if(a.length!==b.length)return false;let v=0;for(let i=0;i<a.length;i++)v|=a[i]^b[i];return v===0}
 async function hmac(secret,text){
@@ -31,12 +32,13 @@ Deno.serve(async(req)=>{
   const remote=await fetch("https://api.mercadopago.com/v1/payments/"+id,{headers:{"authorization":"Bearer "+TOKEN}});
   if(!remote.ok)return response(502,"Payment provider lookup failed");
   const payment=await remote.json();
+  if(payment.live_mode!==(mode==="production"))return response(422,"Payment environment mismatch");
   if(String(payment.id)!==id||String(payment.collector_id)!==SELLER)return response(422,"Seller mismatch");
   const reference=String(payment.external_reference||"");
   if(!/^[0-9a-f-]{36}$/i.test(reference))return response(422,"Unknown order reference");
   const amount=Math.round(Number(payment.transaction_amount)*100),currency=String(payment.currency_id||"");
   if(!Number.isSafeInteger(amount)||amount<=0||currency!=="BRL")return response(422,"Invalid payment amount/currency");
-  const r=await fetch(SUPABASE_URL+"/rest/v1/rpc/academy_payment_provider_reconcile",{method:"POST",headers:{"authorization":"Bearer "+SERVICE,"apikey":SERVICE,"content-type":"application/json"},body:JSON.stringify({p_request:reference,p_payment_id:id,p_status:String(payment.status||""),p_amount_cents:amount,p_currency:currency,p_collector:SELLER})});
+  const r=await fetch(SUPABASE_URL+"/rest/v1/rpc/academy_payment_provider_reconcile_v2",{method:"POST",headers:{"authorization":"Bearer "+SERVICE,"apikey":SERVICE,"content-type":"application/json"},body:JSON.stringify({p_request:reference,p_payment_id:id,p_status:String(payment.status||""),p_amount_cents:amount,p_currency:currency,p_collector:SELLER,p_environment:mode})});
   if(!r.ok)return response(409,"Reconciliation blocked");
   return response(200,"Payment notification reconciled");
  }catch(e){return response(500,"Webhook processing error")}

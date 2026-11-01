@@ -12,15 +12,18 @@ Deno.serve(async req=>{
   const access=await fetch(base+'/rest/v1/academy_admin_members?select=user_id&enabled=eq.true&role=eq.SUPER_ADMIN&user_id=eq.'+encodeURIComponent(user.id),{headers:{apikey:service,authorization:'Bearer '+service}});
   if(!access.ok||!(await access.json()).length)return reply(403,{error:'Superadministrator required'});
   const groups={
-   'Pagamento de teste':['MP_ACCESS_TOKEN','MP_WEBHOOK_SECRET','MP_COLLECTOR_ID'],
+   'Mercado Pago':['MP_ACCESS_TOKEN','MP_WEBHOOK_SECRET','MP_COLLECTOR_ID'],
    'Certificado':['ACADEMY_SIGNING_SECRET'],
    'E-mail':['RESEND_API_KEY','ACADEMY_EMAIL_FROM','RESEND_WEBHOOK_SECRET'],
    'WhatsApp':['META_WHATSAPP_TOKEN','META_WHATSAPP_PHONE_NUMBER_ID','META_APP_SECRET','META_WHATSAPP_VERIFY_TOKEN'],
+   'Selo de identidade':['ACADEMY_IDENTITY_TEMPLATE','ACADEMY_IDENTITY_OTP_SECRET','META_GRAPH_VERSION'],
    'Agendamento de avisos':['ACADEMY_DISPATCH_CRON_SECRET'],
    'Assistência por IA':['OPENAI_API_KEY']
   };
   const checks=Object.entries(groups).map(([name,keys])=>({name,configured:keys.every(k=>Boolean(Deno.env.get(k))),missing:keys.filter(k=>!Deno.env.get(k))}));
   const signing=Deno.env.get('ACADEMY_SIGNING_SECRET')||'';
-  return reply(200,{checks,signing_key_length_valid:signing.length>=32,payment_mode:Deno.env.get('ACADEMY_ENABLE_PAYMENTS')==='sandbox'?'sandbox':'disabled',issuance_mode:Deno.env.get('ACADEMY_ENABLE_ISSUANCE')==='sandbox'?'sandbox':'disabled',commercial_release:false,message:'Configuração não comprova funcionamento. Pagamento, entrega de avisos, emissão e validação precisam de teste integrado. A versão atual opera em homologação.'});
+  const gate=await fetch(base+'/rest/v1/rpc/academy_commercial_ready',{method:'POST',headers:{apikey:service,authorization:'Bearer '+service,'content-type':'application/json'},body:'{}'});
+  const checklist=gate.ok&&await gate.json();
+  return reply(200,{checks,signing_key_length_valid:signing.length>=32,payment_mode:Deno.env.get('ACADEMY_ENABLE_PAYMENTS')||'disabled',issuance_mode:Deno.env.get('ACADEMY_ENABLE_ISSUANCE')||'disabled',commercial_release:Deno.env.get('ACADEMY_COMMERCIAL_RELEASE')==='approved'&&checklist,checklist_complete:checklist,message:'Presença de configuração não comprova entrega ou cobrança. Registre evidências dos testes reais antes da ativação comercial.'});
  }catch{return reply(503,{error:'Não foi possível verificar a configuração'});}
 });

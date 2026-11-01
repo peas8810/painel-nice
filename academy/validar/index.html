@@ -19,4 +19,4 @@ async function verify(code){
 }
 $('verify').addEventListener('submit',e=>{e.preventDefault();const code=$('code').value.trim().toUpperCase();const params=new URLSearchParams(location.search);params.set('codigo',code);history.replaceState({},'',location.pathname+'?'+params.toString());verify(code)});
 const given=new URLSearchParams(location.search).get('codigo');if(given){$('code').value=given;verify(given)}
-</script></body></html>
+</script><script src="../assets/navigation.js"></script></body></html>

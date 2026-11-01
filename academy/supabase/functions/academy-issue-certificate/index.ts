@@ -2,7 +2,8 @@ import { PDFDocument, StandardFonts, rgb } from "npm:pdf-lib@1.17.1";
 import QRCode from "npm:qrcode@1.5.4";
 const URL=Deno.env.get("SUPABASE_URL")||"",SR=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")||"",ANON=Deno.env.get("SUPABASE_ANON_KEY")||"";
 const SECRET=Deno.env.get("ACADEMY_SIGNING_SECRET")||"";
-const enabled=Deno.env.get("ACADEMY_ENABLE_ISSUANCE")==="sandbox";
+const mode=Deno.env.get("ACADEMY_ENABLE_ISSUANCE")||"disabled";
+const enabled=mode==="sandbox"||(mode==="production"&&Deno.env.get("ACADEMY_COMMERCIAL_RELEASE")==="approved"&&Deno.env.get("ACADEMY_ENABLE_PAYMENTS")==="production");
 const BASE="https://www.protocolo.me/academy/validar/";
 function response(status,x){return new Response(JSON.stringify(x),{status,headers:{"content-type":"application/json","access-control-allow-origin":"https://www.protocolo.me","access-control-allow-headers":"authorization,apikey,content-type"}})}
 async function api(path,method="GET",payload,key=SR){
@@ -29,15 +30,17 @@ Deno.serve(async req=>{
  if(!URL||!SR||!ANON||SECRET.length<32||!enabled)return response(503,{error:"Certificate issuer disabled until sandbox configuration and tests"});
  try{
   if(!(await authorized(req)))return response(403,{error:"Administrative authorization required"});
+  if(mode==="production"&&!await api("/rest/v1/rpc/academy_commercial_ready","POST",{}))return response(409,{error:"Commercial validation checklist incomplete"});
   const input=await req.json(),id=String(input.request_id||"");
   if(!/^[0-9a-f-]{36}$/i.test(id))return response(400,{error:"Invalid request"});
   const [payments,requests,approvals,evidences,certs]=await Promise.all([
-   api("/rest/v1/academy_payment_releases?select=payment_status,mp_payment_id&request_id=eq."+id),
+   api("/rest/v1/academy_payment_releases?select=payment_status,mp_payment_id,checkout_environment&request_id=eq."+id),
    api("/rest/v1/academy_requests?select=*&id=eq."+id),
    api("/rest/v1/academy_approvals?select=hours_verified&request_id=eq."+id),
    api("/rest/v1/academy_evidence?select=id,review_status&request_id=eq."+id),
    api("/rest/v1/academy_certificates?select=*&request_id=eq."+id)]);
   const pay=payments[0],p=requests[0],approval=approvals[0],cert=certs[0];
+  if(mode==="production"&&pay?.checkout_environment!=="production")return response(409,{error:"Production issuance requires a production payment"});
   if(!pay||pay.payment_status!=="PAGO_CONFIRMADO"||!pay.mp_payment_id||!p||p.status!=="APROVADO"||!approval||!cert)return response(409,{error:"Missing approved protocol or verified payment"});
   if(evidences.length===0||evidences.some(x=>x.review_status!=="VALIDADO"))return response(409,{error:"All evidence must be validated"});
   if(cert.status==="EMITIDO")return response(200,{issued:true,code:cert.certificate_code,existing:true});
@@ -53,7 +56,7 @@ Deno.serve(async req=>{
   const navy=rgb(.07,.17,.25),teal=rgb(.02,.43,.45);
   page.drawRectangle({x:0,y:0,width:842,height:595,color:rgb(.975,.986,.987)});
   page.drawRectangle({x:25,y:25,width:792,height:545,borderColor:teal,borderWidth:2});
-  page.drawText("HOMOLOGACAO - SEM VALOR COMERCIAL",{x:140,y:40,size:17,font:bold,color:rgb(.72,.18,.17)});
+  if(mode!=="production")page.drawText("HOMOLOGACAO - SEM VALOR COMERCIAL",{x:140,y:40,size:17,font:bold,color:rgb(.72,.18,.17)});
   const line=(text,x,y,size=14,strong=false,color=navy)=>page.drawText(fit(text,120),{x,y,size,font:strong?bold:regular,color});
   line("EDITORA UJN | PROTOCOLO ACADEMY",55,532,13,true,teal);
   line("CERTIFICADO DE ATIVIDADE DOCUMENTADA",55,473,23,true);

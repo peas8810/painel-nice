@@ -1,0 +1,32 @@
+begin;
+do $$
+declare a uuid:=gen_random_uuid();student uuid:=gen_random_uuid();reviewer uuid:=gen_random_uuid();outsider uuid:=gen_random_uuid();t uuid:=gen_random_uuid();other_t uuid:=gen_random_uuid();req uuid:=gen_random_uuid();model uuid;inst uuid;step uuid;doc uuid:=gen_random_uuid();
+begin
+ insert into auth.users(id) values(a),(student),(reviewer),(outsider);
+ insert into public.academy_admin_members(user_id,role) values(a,'SUPER_ADMIN');
+ insert into public.academy_tenants(id,name,slug,active) values(t,'Conditional fixture','test-'||t,true),(other_t,'Isolation fixture','test-'||other_t,true);
+ insert into public.academy_tenant_members values(t,student,'STUDENT'),(t,reviewer,'REVIEWER'),(other_t,outsider,'MANAGER');
+ insert into public.academy_requests(id,user_id,activity,activity_type,start_date,end_date,hours_declared,description) values(req,student,'Conditional fixture','Oficina',current_date,current_date,10,'Fictitious test with rollback');
+ perform set_config('request.jwt.claim.sub',a::text,true);
+ model:=public.academy_workflow_setup(t,'Conditional model','Oficina',array['Initial review','Only above twenty hours','Final human review']);
+ select id into step from public.academy_workflow_steps where template_id=model and step_order=2;
+ perform public.academy_workflow_step_config(step,'REVIEWER',null,20,null,null);
+ perform public.academy_workflow_activate(model,true);perform public.academy_workflow_bind(req,t);inst:=public.academy_workflow_start(model,req);
+ begin perform public.academy_workflow_step_config(step,'MANAGER');raise exception 'TEST FAIL: mutable model';exception when others then if sqlerrm<>'Crie uma nova versão do modelo já utilizado' then raise;end if;end;
+ perform set_config('request.jwt.claim.sub',outsider::text,true);
+ if public.academy_can_review(req) then raise exception 'TEST FAIL: cross-tenant access';end if;
+ begin perform public.academy_reviewer_detail(inst);raise exception 'TEST FAIL: detail leak';exception when others then if sqlerrm<>'Acesso restrito' then raise;end if;end;
+ perform set_config('request.jwt.claim.sub',student::text,true);
+ if public.academy_can_review(req) then raise exception 'TEST FAIL: self-review';end if;
+ perform set_config('request.jwt.claim.sub',reviewer::text,true);
+ if not public.academy_can_review(req) then raise exception 'TEST FAIL: assigned reviewer denied';end if;
+ insert into public.academy_evidence(id,request_id,user_id,file_path,file_name) values(doc,req,student,student||'/'||req||'/conditional.pdf','conditional.pdf');
+ perform public.academy_reviewer_evidence(inst,0,doc,'VALIDADO','Evidence checked for this test only');
+ begin perform public.academy_workflow_transition(inst,0,'AVANCAR','Stale decision must be rejected');raise exception 'TEST FAIL: stale';exception when serialization_failure then null;end;
+ perform public.academy_workflow_transition(inst,1,'AVANCAR','Forward after reviewing the evidence');
+ if (select current_step from public.academy_workflow_instances where id=inst)<>3 then raise exception 'TEST FAIL: condition not applied';end if;
+ if (select state from public.academy_workflow_instances where id=inst)<>'EM_ANALISE' then raise exception 'TEST FAIL: automated approval';end if;
+ perform public.academy_workflow_transition(inst,2,'CONCLUIR','Final human review completed explicitly');
+ if exists(select 1 from public.academy_approvals where request_id=req) then raise exception 'TEST FAIL: automatic academic approval';end if;
+end $$;
+rollback;

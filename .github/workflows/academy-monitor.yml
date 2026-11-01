@@ -1,0 +1,20 @@
+name: Academy availability monitor
+on:
+  schedule:
+    - cron: '13,43 * * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  availability:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check public routes
+        shell: bash
+        run: |
+          set -euo pipefail
+          for path in academy/ academy/portal/ academy/avaliacao/ academy/operacao/ academy/modules/ academy/identidade/ academy/validar/; do
+            code=$(curl --retry 2 --retry-delay 3 --connect-timeout 10 --max-time 25 -sSL -o /dev/null -w '%{http_code}' "https://www.protocolo.me/$path")
+            echo "$path $code"
+            test "$code" = 200
+          done

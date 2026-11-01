@@ -33,7 +33,7 @@ Deno.serve(async req=>{
   const rows=await db('academy_credential_keys','?select=kid,public_jwk');return out({keys:rows.map(x=>({...x.public_jwk,kid:ENDPOINT+'?resource=key&id='+x.kid,use:'sig',alg:'ES256'}))});
  }
  if(req.method==='GET'&&url.searchParams.get('resource')==='key'){
-  const k=(await db('academy_credential_keys','?select=kid,public_jwk&kid=eq.'+id(url.searchParams.get('id'))))[0];if(!k)fail('Chave não encontrada',404);return out({...k.public_jwk,kid:ENDPOINT+'?resource=key&id='+k.kid,use:'sig',alg:'ES256'});
+  const k=(await db('academy_credential_keys','?select=kid,public_jwk,revoked_at&kid=eq.'+id(url.searchParams.get('id'))))[0];if(!k)fail('Chave não encontrada',404);return out({...k.public_jwk,kid:ENDPOINT+'?resource=key&id='+k.kid,use:'sig',alg:'ES256'});
  }
  if(req.method!=='POST')return out({issuer:SITE,jwks:ENDPOINT+'?resource=jwks',verification:'POST action=credential_verify'});
  if(Number(req.headers.get('content-length'))>65536)fail('Requisição muito grande',413);
@@ -52,8 +52,8 @@ Deno.serve(async req=>{
   if(typeof b.jwt!=='string'||b.jwt.length>40000)fail('Credencial inválida');
   let payload,header;try{header=JSON.parse(new TextDecoder().decode(unb64(b.jwt.split('.')[0])));payload=JSON.parse(new TextDecoder().decode(unb64(b.jwt.split('.')[1])));}catch{fail('Credencial inválida');}
   const kid=String(header.kid||'').split('&id=')[1];if(!uuid(kid))return out({valid:false});
-  const k=(await db('academy_credential_keys','?select=kid,public_jwk&kid=eq.'+kid))[0];
-  if(!k||!await verifyCredential(b.jwt,k.public_jwk,ENDPOINT+'?resource=key&id='+kid,SITE))return out({valid:false});
+  const k=(await db('academy_credential_keys','?select=kid,public_jwk,revoked_at&kid=eq.'+kid))[0];
+  if(!k||k.revoked_at||!await verifyCredential(b.jwt,k.public_jwk,ENDPOINT+'?resource=key&id='+kid,SITE))return out({valid:false});
   const credentialId=String(payload.id||'').replace('urn:uuid:','');if(!uuid(credentialId))return out({valid:false});
   const row=(await db('academy_verifiable_credentials','?id=eq.'+credentialId))[0];
   const c=row?(await db('academy_certificates','?id=eq.'+row.certificate_id))[0]:null;
@@ -112,6 +112,14 @@ Deno.serve(async req=>{
   const jwt=await signCredential(payload,key.private_jwk,ENDPOINT+'?resource=key&id='+key.kid);
   try{await db('academy_verifiable_credentials','','POST',{id:credentialId,certificate_id:a.row.id,owner_id:user.id,kid:key.kid,jwt});return out({jwt});}catch{const winner=(await db('academy_verifiable_credentials','?certificate_id=eq.'+a.row.id))[0];if(!winner||winner.revoked_at)fail('Emissão não concluída',409);return out({jwt:winner.jwt});}
  }
+ if(b.action==='key_list'){if(!await admin(user))fail('Acesso restrito',403);return out({keys:await db('academy_credential_keys','?select=kid,active,revoked_at,created_at')});}
+ if(b.action==='key_rotate'){
+  if(!await admin(user))fail('Acesso restrito',403);
+  const pair=await crypto.subtle.generateKey({name:'ECDSA',namedCurve:'P-256'},true,['sign','verify']);
+  const kid=await db('rpc/academy_rotate_credential_key','','POST',{p_private:await crypto.subtle.exportKey('jwk',pair.privateKey),p_public:await crypto.subtle.exportKey('jwk',pair.publicKey)});
+  return out({kid});
+ }
+ if(b.action==='key_revoke'){if(!await admin(user))fail('Acesso restrito',403);await db('academy_credential_keys','?kid=eq.'+id(b.id),'PATCH',{active:false,revoked_at:new Date().toISOString(),private_jwk:null});return out({ok:true});}
  if(b.action==='credential_revoke'){await db('academy_verifiable_credentials','?certificate_id=eq.'+id(b.id)+'&owner_id=eq.'+user.id,'PATCH',{revoked_at:new Date().toISOString()});return out({ok:true});}
  if(!await admin(user))fail('Acesso administrativo necessário',403);
  if(b.action==='team_list')return out({members:await db('academy_tenant_members','?tenant_id=eq.'+id(b.tenant_id))});
