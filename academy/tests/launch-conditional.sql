@@ -21,6 +21,8 @@ begin
  perform set_config('request.jwt.claim.sub',reviewer::text,true);
  if not public.academy_can_review(req) then raise exception 'TEST FAIL: assigned reviewer denied';end if;
  insert into public.academy_evidence(id,request_id,user_id,file_path,file_name) values(doc,req,student,student||'/'||req||'/conditional.pdf','conditional.pdf');
+ begin perform public.academy_reviewer_evidence(inst,0,doc,'VALIDADO','Missing file must not be validated');raise exception 'TEST FAIL: absent file accepted';exception when others then if sqlerrm<>'Arquivo privado ausente ou metadados inválidos' then raise;end if;end;
+ insert into storage.objects(bucket_id,name,owner_id,metadata) values('academy-evidencias',student||'/'||req||'/conditional.pdf',student::text,'{"mimetype":"application/pdf","size":100}'::jsonb);
  perform public.academy_reviewer_evidence(inst,0,doc,'VALIDADO','Evidence checked for this test only');
  begin perform public.academy_workflow_transition(inst,0,'AVANCAR','Stale decision must be rejected');raise exception 'TEST FAIL: stale';exception when serialization_failure then null;end;
  perform public.academy_workflow_transition(inst,1,'AVANCAR','Forward after reviewing the evidence');

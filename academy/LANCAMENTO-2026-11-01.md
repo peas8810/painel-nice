@@ -36,3 +36,9 @@ Também foram corrigidos cabeçalhos CORS para o SDK do navegador, o escopo da v
 - Em incidente: suspender emissão/checkout pelos modos disabled, preservar registros, revogar chaves comprometidas e acompanhar credenciais afetadas. Rotacionar segredos nos provedores e no Supabase, sem colocá-los no chat.
 
 Fontes técnicas: https://supabase.com/docs/guides/platform/backups e https://www.mercadopago.com.br/developers/pt/docs/checkout-pro-preferences/payment-notifications
+
+## Continuação da revisão de segurança
+- Corrigida a revisão de comprovantes no painel institucional: VALIDADO exige arquivo no bucket privado, propriedade correspondente, formato permitido e tamanho entre 1 byte e 10 MB. A conferência usa os metadados do Storage; não equivale a verificar autenticidade do conteúdo.
+- Teste transacional de encaminhamento passou também com tentativa de validar arquivo ausente, seguida de metadados de teste válidos. Todas as alterações fictícias foram desfeitas por rollback.
+- Teste de autorização chamou 21 rotinas administrativas com uma conta comum fictícia; nenhuma devolveu dados nem permitiu operação administrativa. Isso testa suas verificações de identidade e papel com argumentos nulos; não representa cobertura exaustiva de todas as entradas ou uma auditoria externa.
+- A solicitação de autenticação no painel Supabase foi bloqueada pela revisão automática por limite de uso do ambiente, antes de abrir formulário. A configuração de provedores e os testes reais permanecem pendentes. Não foram coletadas senhas nem tokens pelo chat.
