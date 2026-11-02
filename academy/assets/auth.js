@@ -162,6 +162,7 @@ async function uploadEvidenceFile(file,requestId){
  finally{if(submit)submit.disabled=false;if(drive)drive.disabled=false}
 }
 window.academyUploadEvidence=uploadEvidenceFile;
+window.academyRefreshRequests=async()=>{await listRequests();await listEvidence();};
 $('evidence-upload').addEventListener('submit',async e=>{
  e.preventDefault();if(!e.target.reportValidity())return;
  await uploadEvidenceFile($('evidence-file').files[0],$('evidence-request').value);
