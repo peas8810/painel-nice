@@ -5,7 +5,7 @@ let records=[];
 $('guided-fill').onclick=async()=>{
  const story=$('guided-story').value.trim();
  if(story.length<15){$('guided-status').textContent='Descreva a atividade com mais detalhes.';return}
- const button=$('guided-fill');button.disabled=true;$('guided-status').textContent='Preparando uma sugestão com IA…';
+ const button=$('guided-fill');button.disabled=true;$('guided-status').textContent='Organizando o que você contou…';
  try{
   const db=client();if(!db)throw Error('Conexão indisponível');
   const {data,error}=await db.functions.invoke('academy-prepare-request',{body:{story}});
@@ -18,11 +18,11 @@ $('guided-fill').onclick=async()=>{
    if(id==='activity-type'&&![...el.options].some(x=>x.value===value)){const o=document.createElement('option');o.value=value;o.textContent=value;el.add(o)}
    el.value=value;
   }
-  window.academyWizardSetStep?.(1);$('new-request').scrollIntoView({behavior:'smooth'});
+  window.academyOpenSection?.('new-request');window.academyWizardSetStep?.(1);$('new-request').scrollIntoView({behavior:'smooth'});
   const missing=(data.missing||[]).map(String).join('; ');
-  $('guided-status').textContent='Rascunho sugerido. Revise todos os campos e confirme no formulário.'+(missing?' Informações a completar: '+missing:'');
+  $('guided-status').textContent='Preenchemos uma sugestão. Confira os dados antes de enviar.'+(missing?' Informações a completar: '+missing:'');
   $('request').dispatchEvent(new Event('input',{bubbles:true}));
- }catch(e){$('guided-status').textContent='IA indisponível: '+String(e.message||e)+'. O preenchimento manual permanece disponível.'}
+ }catch(e){$('guided-status').textContent='Não conseguimos preencher automaticamente: '+String(e.message||e)+'. Você pode preencher os campos normalmente.'}
  finally{button.disabled=false}
 };
 $('student-request-search').addEventListener('input',()=>{
@@ -37,7 +37,7 @@ async function refresh(){
  records=data||[];
  const verified=records.reduce((sum,r)=>sum+(r.status==='APROVADO'?Number(r.hours_verified||0):0),0);
  const summary=$('academic-record-summary');summary.replaceChildren();
- const p=document.createElement('p');p.textContent=records.length+' protocolo(s) · '+verified.toLocaleString('pt-BR')+' horas verificadas em atividades aprovadas.';summary.append(p);
+ const p=document.createElement('p');p.textContent=records.length+' pedido(s) · '+verified.toLocaleString('pt-BR')+' horas verificadas em atividades aprovadas.';summary.append(p);
  for(const r of records.slice(0,8)){const line=document.createElement('p');line.className='record-line';line.textContent=r.activity+' · '+r.status+' · '+(r.hours_verified??'—')+' horas verificadas';summary.append(line)}
 }
 $('export-academic-record').onclick=()=>{

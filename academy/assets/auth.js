@@ -29,42 +29,42 @@ async function loadActivityTypes(){
 async function listRequests(){
  const revision=++currentRevision;
  if(!currentUser)return;
- const tracking=$('tracking');tracking.replaceChildren(document.createTextNode('Carregando solicitações…'));
+ const tracking=$('tracking');tracking.replaceChildren(document.createTextNode('Buscando seus pedidos…'));
  const {data,error}=await db.from('academy_requests').select('id,activity,activity_type,start_date,end_date,description,status,hours_declared,participants_count,teaching_activity,created_at').eq('user_id',currentUser.id).neq('status','CANCELADA').order('created_at',{ascending:false}).limit(50);
  if(revision!==currentRevision||!currentUser)return;
  tracking.replaceChildren();
- if(error){tracking.textContent='Não foi possível carregar as solicitações: '+error.message;return}
+ if(error){tracking.textContent='Não conseguimos abrir seus pedidos. Tente novamente. Detalhe: '+error.message;return}
  const {data:payments}=await db.from('academy_payment_releases').select('request_id,payment_status,checkout_url').in('request_id',(data||[]).map(x=>x.id).length?(data||[]).map(x=>x.id):['00000000-0000-0000-0000-000000000000']);
  const {data:certs}=await db.from('academy_certificates').select('request_id,status,certificate_code,pdf_path').in('request_id',(data||[]).map(x=>x.id).length?(data||[]).map(x=>x.id):['00000000-0000-0000-0000-000000000000']);
  const payById=new Map((payments||[]).map(x=>[x.request_id,x])),certById=new Map((certs||[]).map(x=>[x.request_id,x]));
  const select=$('evidence-request');select.replaceChildren();(data||[]).filter(x=>!['REPROVADO','APROVADO'].includes(x.status)).forEach(x=>{const o=document.createElement('option');o.value=x.id;o.textContent=x.activity+' · '+x.id.slice(0,8);select.append(o)});
  await listEvidence();
- if(!data?.length){tracking.textContent='Você ainda não tem solicitações. Preencha o formulário ao lado para começar.';window.dispatchEvent(new Event('academy-requests-loaded'));return}
- const descriptions={ENVIADA:'Solicitação recebida',EM_ANALISE:'Em análise documental',PENDENTE_DOCUMENTOS:'Aguardando documentos',APROVADO:'Análise aprovada',REPROVADO:'Não aprovada',INCONCLUSIVO:'Análise inconclusiva'};
- for(const item of data){const card=document.createElement('article');card.className='request-item';const heading=document.createElement('strong');heading.textContent=item.activity;const state=document.createElement('span');state.className='request-status';state.textContent=descriptions[item.status]||item.status;const detail=document.createElement('small');detail.textContent=String(item.hours_declared)+' horas declaradas · Solicitação '+item.id;card.append(heading,state,detail);const pay=payById.get(item.id),cert=certById.get(item.id);if(pay){const p=document.createElement('small');p.textContent='Financeiro: '+pay.payment_status;card.append(p);if(pay.checkout_url&&pay.payment_status==='AGUARDANDO_PAGAMENTO'){const link=document.createElement('a');link.href=pay.checkout_url;link.rel='noopener noreferrer';link.target='_blank';link.textContent='Acessar pagamento seguro';card.append(link)}}if(cert){const c=document.createElement('small');c.textContent='Certificado: '+cert.status+(cert.status==='EMITIDO'?' · '+cert.certificate_code:'');card.append(c);if(cert.status==='EMITIDO'&&cert.pdf_path){const button=document.createElement('button');button.type='button';button.className='plain-action';button.textContent='Baixar certificado PDF';button.onclick=async()=>{button.disabled=true;const {data:url,error}=await db.storage.from('academy-certificados').createSignedUrl(cert.pdf_path,60);button.disabled=false;if(error){message('evidence-status','Não foi possível abrir o PDF: '+error.message);return}window.open(url.signedUrl,'_blank','noopener,noreferrer')};card.append(button);const link=document.createElement('a');link.href='../validar/?codigo='+encodeURIComponent(cert.certificate_code);link.textContent='Validar autenticidade';link.target='_blank';link.rel='noopener noreferrer';card.append(link)}}const actions=document.createElement('div');actions.className='actions';if(['ENVIADA','EM_ANALISE','PENDENTE_DOCUMENTOS','INCONCLUSIVO'].includes(item.status)&&!pay&&!cert){const edit=document.createElement('button');edit.type='button';edit.className='plain-action';edit.textContent='Editar protocolo';edit.onclick=()=>editRequest(item);const del=document.createElement('button');del.type='button';del.className='plain-action';del.textContent='Excluir protocolo';del.onclick=()=>deleteRequest(item);actions.append(edit,del)}const duplicate=document.createElement('button');duplicate.type='button';duplicate.className='plain-action';duplicate.textContent='Duplicar';duplicate.onclick=()=>{resetEdit();$('activity').value=item.activity;$('start').value=item.start_date;$('end').value=item.end_date;$('hours').value=String(item.hours_declared);$('description').value=item.description;const type=$('activity-type');if(![...type.options].some(o=>o.value===item.activity_type)){const op=document.createElement('option');op.value=item.activity_type;op.textContent=item.activity_type;type.append(op)}type.value=item.activity_type;window.academyWizardSetStep?.(1);$('request').scrollIntoView({behavior:'smooth'});message('request-status','Dados copiados. Revise tudo e anexe um novo comprovante; nenhum documento anterior será reutilizado.')};actions.append(duplicate);const chat=document.createElement('button');chat.type='button';chat.className='plain-action';chat.textContent='Mensagens';chat.onclick=()=>window.academyOpenConversation?.(item.id,item.activity);actions.append(chat);
+ if(!data?.length){tracking.textContent='Você ainda não fez um pedido. Clique em “Pedir certificado” para começar.';window.dispatchEvent(new Event('academy-requests-loaded'));return}
+ const descriptions={ENVIADA:'Recebemos seu pedido',EM_ANALISE:'Estamos conferindo seus documentos',PENDENTE_DOCUMENTOS:'Você precisa enviar documentos',APROVADO:'Seu pedido foi aprovado',REPROVADO:'Seu pedido não foi aprovado',INCONCLUSIVO:'Precisamos de mais informações'};
+ for(const item of data){const card=document.createElement('article');card.className='request-item';const heading=document.createElement('strong');heading.textContent=item.activity;const state=document.createElement('span');state.className='request-status';state.textContent=descriptions[item.status]||item.status;const detail=document.createElement('small');detail.textContent=String(item.hours_declared)+' horas informadas · Pedido '+item.id.slice(0,8);card.append(heading,state,detail);const pay=payById.get(item.id),cert=certById.get(item.id);if(pay){const p=document.createElement('small');p.textContent='Pagamento: '+({PAGO_CONFIRMADO:'confirmado',AGUARDANDO_PAGAMENTO:'aguardando pagamento',ESTORNADO:'devolvido',REJEITADO:'não aprovado'}[pay.payment_status]||'consulte a equipe');card.append(p);if(pay.checkout_url&&pay.payment_status==='AGUARDANDO_PAGAMENTO'){const link=document.createElement('a');link.href=pay.checkout_url;link.rel='noopener noreferrer';link.target='_blank';link.textContent='Acessar pagamento seguro';card.append(link)}}if(cert){const c=document.createElement('small');c.textContent='Certificado: '+({EMITIDO:'pronto para baixar',PENDENTE_EMISSAO:'ainda não foi emitido',REVOGADO:'cancelado, sem validade'}[cert.status]||'em preparação')+(cert.status==='EMITIDO'?' · '+cert.certificate_code:'');card.append(c);if(cert.status==='EMITIDO'&&cert.pdf_path){const button=document.createElement('button');button.type='button';button.className='plain-action';button.textContent='Baixar certificado PDF';button.onclick=async()=>{button.disabled=true;const {data:url,error}=await db.storage.from('academy-certificados').createSignedUrl(cert.pdf_path,60);button.disabled=false;if(error){message('evidence-status','Não foi possível abrir o PDF: '+error.message);return}window.open(url.signedUrl,'_blank','noopener,noreferrer')};card.append(button);const link=document.createElement('a');link.href='../validar/?codigo='+encodeURIComponent(cert.certificate_code);link.textContent='Validar autenticidade';link.target='_blank';link.rel='noopener noreferrer';card.append(link)}}const actions=document.createElement('div');actions.className='actions';if(['ENVIADA','EM_ANALISE','PENDENTE_DOCUMENTOS','INCONCLUSIVO'].includes(item.status)&&!pay&&!cert){const edit=document.createElement('button');edit.type='button';edit.className='plain-action';edit.textContent='Corrigir dados';edit.onclick=()=>editRequest(item);const del=document.createElement('button');del.type='button';del.className='plain-action';del.textContent='Cancelar pedido';del.onclick=()=>deleteRequest(item);actions.append(edit,del)}const duplicate=document.createElement('button');duplicate.type='button';duplicate.className='plain-action';duplicate.textContent='Usar como modelo de outro pedido';duplicate.onclick=()=>{resetEdit();$('activity').value=item.activity;$('start').value=item.start_date;$('end').value=item.end_date;$('hours').value=String(item.hours_declared);$('description').value=item.description;const type=$('activity-type');if(![...type.options].some(o=>o.value===item.activity_type)){const op=document.createElement('option');op.value=item.activity_type;op.textContent=item.activity_type;type.append(op)}type.value=item.activity_type;window.academyOpenSection?.('new-request');window.academyWizardSetStep?.(1);$('request').scrollIntoView({behavior:'smooth'});message('request-status','Preenchemos os campos com o pedido anterior. Confira os dados e envie os documentos da nova atividade.')};actions.append(duplicate);const chat=document.createElement('button');chat.type='button';chat.className='plain-action';chat.textContent='Falar com a equipe';chat.onclick=()=>window.academyOpenConversation?.(item.id,item.activity);actions.append(chat);
 if(['APROVADO','REPROVADO'].includes(item.status)){
  const feedback=document.createElement('button');feedback.type='button';feedback.className='plain-action';feedback.textContent='Avaliar experiência';
  feedback.onclick=async()=>{const reply=prompt('Como foi sua experiência no Academy? Dê uma nota de 1 a 5.');if(reply===null)return;const score=Number(reply);if(!Number.isInteger(score)||score<1||score>5){message('evidence-status','Informe uma nota entre 1 e 5.');return}
  const comment=prompt('Deseja deixar uma sugestão? (opcional, até 1500 caracteres)')||'';
  const {data:{user}}=await db.auth.getUser();if(!user)return;
  const {error}=await db.from('academy_feedback').insert({request_id:item.id,user_id:user.id,score,comment:comment.slice(0,1500)});
- message('evidence-status',error?'Não foi possível registrar: '+error.message:'Obrigado! Sua avaliação foi registrada.');
+ message('evidence-status',error?'Não conseguimos enviar seu pedido: '+error.message:'Obrigado! Sua avaliação foi registrada.');
  };actions.append(feedback)
 }
-card.append(actions);tracking.appendChild(card)}window.dispatchEvent(new Event('academy-requests-loaded'))
+const more=document.createElement('details'),summary=document.createElement('summary');summary.textContent='Outras opções deste pedido';more.append(summary,actions);if(['ENVIADA','EM_ANALISE','PENDENTE_DOCUMENTOS','INCONCLUSIVO'].includes(item.status)){const send=document.createElement('button');send.type='button';send.className='primary';send.textContent='Enviar fotos e documentos';send.onclick=()=>{$('evidence-request').value=item.id;window.academyOpenSection?.('upload-section');};card.append(send);}card.append(more);tracking.appendChild(card)}window.dispatchEvent(new Event('academy-requests-loaded'))
 }
 function resetEdit(){
  editingRequestId=null;
  $('request').reset();
- $('request-title').textContent='Protocolar atividade';
- $('request-submit').textContent='Registrar protocolo de análise';
+ $('request-title').textContent='Pedir um certificado';
+ $('request-submit').textContent='Enviar meu pedido';
  display('cancel-edit',false);display('edit-notice',false);
 }
 $('cancel-edit').onclick=()=>{resetEdit();message('request-status','Edição cancelada. Nenhuma alteração foi salva.')};
 async function editRequest(item){
  const {data,error}=await db.from('academy_requests').select('id,user_id,activity,activity_type,start_date,end_date,hours_declared,description,participants_count,teaching_activity,status').eq('id',item.id).eq('user_id',currentUser.id).maybeSingle();
- if(error||!data){message('evidence-status','Não foi possível carregar este protocolo para edição.');return}
- if(!['ENVIADA','EM_ANALISE','PENDENTE_DOCUMENTOS','INCONCLUSIVO'].includes(data.status)){message('evidence-status','Este protocolo não permite alterações diretas.');return}
+ if(error||!data){message('evidence-status','Não conseguimos abrir este pedido para corrigir. Tente novamente.');return}
+ if(!['ENVIADA','EM_ANALISE','PENDENTE_DOCUMENTOS','INCONCLUSIVO'].includes(data.status)){message('evidence-status','Este pedido já está em uma etapa que exige ajuda da equipe. Abra “Ajuda” para pedir uma correção.');return}
  editingRequestId=data.id;
  $('activity').value=data.activity||'';
  const type=$('activity-type');if(![...type.options].some(o=>o.value===data.activity_type)){const opt=document.createElement('option');opt.value=data.activity_type;opt.textContent=data.activity_type;type.appendChild(opt)}type.value=data.activity_type;
@@ -72,16 +72,16 @@ async function editRequest(item){
  $('end').value=data.end_date||'';
  $('hours').value=String(data.hours_declared??'');$('participants').value=data.participants_count??'';$('teaching').value=data.teaching_activity?'true':'';
  $('description').value=data.description||'';
- $('request-title').textContent='Editar protocolo existente';
+ $('request-title').textContent='Corrigir dados existente';
  $('request-submit').textContent='Salvar alterações';
  display('cancel-edit',true);display('edit-notice',true);
- message('request-status','Editando protocolo '+data.id.slice(0,8)+'. Revise os campos e clique em Salvar alterações.');
- window.academyWizardSetStep?.(1);$('request').scrollIntoView({behavior:'smooth',block:'start'});
+ message('request-status','Corrigindo o pedido '+data.id.slice(0,8)+'. Revise os campos e clique em Salvar alterações.');
+ window.academyOpenSection?.('new-request');window.academyWizardSetStep?.(1);$('request').scrollIntoView({behavior:'smooth',block:'start'});
 }
 async function deleteRequest(item){
- if(!confirm('Excluir o protocolo "'+item.activity+'"? Ele será cancelado e sairá do seu painel. O histórico de auditoria será preservado.'))return;
+ if(!confirm('Cancelar o pedido "'+item.activity+'"? Ele será cancelado e sairá do seu painel. O registro do cancelamento será mantido.'))return;
  const {error}=await db.rpc('academy_student_change_request',{p_id:item.id,p_action:'EXCLUIR'});
- message('evidence-status',error?'Exclusão não realizada: '+error.message:'Protocolo cancelado com sucesso.');
+ message('evidence-status',error?'Não foi possível cancelar: '+error.message:'Pedido cancelado.');
  if(!error)await listRequests()
 }
 async function loadNotificationPreferences(){
@@ -137,15 +137,15 @@ async function uploadEvidenceFile(file,requestId){
  if(!file||!requestId){message('evidence-status','Selecione um protocolo e um arquivo.');return false}
  const ownership=await db.from('academy_requests').select('id,status').eq('id',requestId).eq('user_id',user.id).maybeSingle();
  if(ownership.error||!ownership.data){message('evidence-status','Protocolo não encontrado nesta conta.');await listRequests();return false}
- if(!['ENVIADA','EM_ANALISE','PENDENTE_DOCUMENTOS','INCONCLUSIVO'].includes(ownership.data.status)){message('evidence-status','Este protocolo não aceita novos comprovantes.');return false}
- if(!$('evidence-category').value){message('evidence-status','Selecione o tipo de comprovante.');return false}
+ if(!['ENVIADA','EM_ANALISE','PENDENTE_DOCUMENTOS','INCONCLUSIVO'].includes(ownership.data.status)){message('evidence-status','Não é possível enviar novos documentos para este pedido. Fale com a equipe em “Ajuda”.');return false}
+ if(!$('evidence-category').value){message('evidence-status','Escolha o tipo de documento que você vai enviar.');return false}
  const allowed={'application/pdf':'pdf','image/jpeg':'jpg','image/png':'png'};
- if(file.size>10485760||file.size===0||!allowed[file.type]){message('evidence-status','Arquivo inválido. Use PDF, JPG ou PNG de até 10 MB.');return false}
+ if(file.size>10485760||file.size===0||!allowed[file.type]){message('evidence-status','Não conseguimos usar este arquivo. Envie um PDF ou uma foto JPG ou PNG, com até 10 MB.');return false}
  const path=user.id+'/'+requestId+'/'+crypto.randomUUID()+'.'+allowed[file.type];
  const submit=$('evidence-upload').querySelector('button[type=submit]'),drive=$('drive-picker-button');
  if(submit)submit.disabled=true;if(drive)drive.disabled=true;
  try{
-  message('evidence-status','Enviando e vinculando comprovante…');
+  message('evidence-status','Enviando seu arquivo. Aguarde até terminar…');
   const {error:up}=await db.storage.from('academy-evidencias').upload(path,file,{contentType:file.type,upsert:false});
   if(up){message('evidence-status','Falha no upload: '+up.message);return false}
   const {data:evidenceRow,error:insert}=await db.from('academy_evidence').insert({request_id:requestId,file_path:path,file_name:file.name.slice(0,240),category:$('evidence-category').value}).select('id').single();
@@ -155,7 +155,7 @@ async function uploadEvidenceFile(file,requestId){
   }
   if(evidenceRow?.id) await db.functions.invoke('academy-modules',{body:{action:'document_seal',id:evidenceRow.id}}).catch(()=>null);
   $('evidence-file').value='';
-  message('evidence-status','Documento enviado e vinculado com sucesso. Aguarde a análise.');
+  message('evidence-status','Arquivo enviado. Confira se você já enviou os quatro tipos de documento.');
   await listEvidence();
   return true
  }catch(e){message('evidence-status','Erro no envio: '+String(e.message||e));return false}
@@ -171,13 +171,13 @@ $('request').addEventListener('submit',async e=>{e.preventDefault();if(!e.curren
  const item={activity:$('activity').value.trim(),activity_type:$('activity-type').value,start_date:$('start').value,end_date:$('end').value,hours_declared:Number($('hours').value),description:$('description').value.trim(),participants_count:Number($('participants').value),teaching_activity:$('teaching').value==='true'};
  if(item.end_date<item.start_date||item.description.length<15){message('request-status','Verifique as datas e a descrição (mínimo de 15 caracteres).');return}
  const isEditing=!!editingRequestId;
- message('request-status',isEditing?'Salvando alterações…':'Registrando atividade…');
+ message('request-status',isEditing?'Salvando alterações…':'Enviando seu pedido…');
  const submit=$('request-submit');submit.disabled=true;
  const {error}=isEditing
   ? await db.rpc('academy_student_policy_edit',{p_id:editingRequestId,p_activity:item.activity,p_activity_type:item.activity_type,p_start_date:item.start_date,p_end_date:item.end_date,p_hours:item.hours_declared,p_description:item.description,p_participants:item.participants_count,p_teaching:item.teaching_activity})
   : await db.from('academy_requests').insert(item);
  submit.disabled=false;
- const outcome=error?(isEditing?'Não foi possível salvar: ':'Não foi possível registrar: ')+error.message:(isEditing?'Alterações salvas com sucesso. Seu protocolo voltou à análise.':'Solicitação registrada. Acompanhe o andamento no painel. A análise aguarda evidências.');
+ const outcome=error?(isEditing?'Não foi possível salvar: ':'Não conseguimos enviar seu pedido: ')+error.message:(isEditing?'Dados corrigidos. A equipe vai conferir seu pedido novamente.':'Pedido recebido. Agora envie as fotos e os documentos para a equipe conferir.');
  if(!error){resetEdit();await listRequests();window.dispatchEvent(new Event('academy-request-saved'))}message('request-status',outcome);
 });
 db.auth.onAuthStateChange(event=>{if(event==='PASSWORD_RECOVERY'){display('student-view',false);display('visitor-view',true);authTab('login');display('academy-new-password',true);message('login-status','Defina sua nova senha abaixo.')}else if(event==='SIGNED_IN'||event==='SIGNED_OUT'||event==='TOKEN_REFRESHED')setTimeout(refresh,0)});
