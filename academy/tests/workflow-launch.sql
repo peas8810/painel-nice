@@ -8,7 +8,7 @@ begin
  insert into public.academy_admin_members(user_id,role) values(admin,'SUPER_ADMIN');
  insert into public.academy_tenants(id,name,slug,active) values(tenant,'Launch fixture','test-'||tenant,true),(other_tenant,'Other fixture','test-'||other_tenant,true);
  insert into public.academy_tenant_members values(tenant,student,'STUDENT'),(other_tenant,student,'STUDENT'),(other_tenant,outsider,'REVIEWER');
- insert into public.academy_requests(id,user_id,activity,activity_type,start_date,end_date,hours_declared,description) values(req,student,'Test activity','Test category',current_date,current_date,10,'Fictitious workflow launch fixture');
+ insert into public.academy_requests(id,user_id,activity,activity_type,start_date,end_date,hours_declared,description,participants_count,teaching_activity) values(req,student,'Test activity','Test category',current_date,current_date,10,'Fictitious workflow launch fixture',2,true);
  perform set_config('request.jwt.claim.sub',admin::text,true);
  model:=public.academy_workflow_setup(tenant,'Test model','Test category',array['First step','Final step']);
  perform public.academy_workflow_activate(model,true);
@@ -50,7 +50,8 @@ begin
   perform public.academy_workflow_finalize(inst,'APROVADO','Approval without validated evidence',5);
   raise exception 'TEST FAILED: evidence missing';
  exception when others then if sqlerrm<>'Nenhum comprovante validado' then raise; end if; end;
- insert into public.academy_evidence(request_id,user_id,file_path,file_name,review_status,reviewed_by) values(req,student,student||'/'||req||'/fixture.pdf','fixture.pdf','VALIDADO',admin);
+ insert into public.academy_evidence(request_id,user_id,file_path,file_name,review_status,reviewed_by,category) select req,student,student||'/'||req||'/'||v||'.pdf',v||'.pdf','VALIDADO',admin,v from unnest(array['PRESENCA','FOTOS','ARTES','CONTEUDO']) v;
+ insert into public.academy_ai_reviews(request_id,snapshot,model,report,requested_by) values(req,public.academy_policy_snapshot(req),'fixture','Synthetic report for rollback test only',admin);
  begin
   perform public.academy_workflow_finalize(inst,'APROVADO','Approval with invalid hours',null);
   raise exception 'TEST FAILED: null hours';

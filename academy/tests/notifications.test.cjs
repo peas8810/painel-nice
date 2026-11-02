@@ -1,10 +1,10 @@
 const {test}=require('node:test'),assert=require('node:assert/strict'),vm=require('node:vm'),fs=require('node:fs'),path=require('node:path');
-const code=fs.readFileSync(path.join(__dirname,'../supabase/functions/academy-dispatch-notifications/index.ts'),'utf8');
+const code=fs.readFileSync(path.join(__dirname,'../supabase/functions/academy-dispatch-notifications/index.ts'),'utf8').replace(/^import .*;\n/gm,'');
 async function run(link){
  let handler;const calls=[];
  const values={SUPABASE_URL:'https://example.invalid',SUPABASE_SERVICE_ROLE_KEY:'test',SUPABASE_ANON_KEY:'test',RESEND_API_KEY:'test',ACADEMY_EMAIL_FROM:'test@example.invalid',ACADEMY_DISPATCH_CRON_SECRET:'test-cron'};
  const response=x=>new Response(JSON.stringify(x),{status:200});
- vm.runInNewContext(code,{URL,Response,Deno:{env:{get:k=>values[k]},serve:fn=>handler=fn},fetch:async(url,opts)=>{
+ vm.runInNewContext(code,{providerSettings:async()=>k=>values[k]||'',URL,Response,Deno:{env:{get:k=>values[k]},serve:fn=>handler=fn},fetch:async(url,opts)=>{
   calls.push({url,opts});
   if(url.includes('academy_claim_notification'))return response([{id:1,kind:'PAYMENT_RELEASED',channel:'EMAIL',user_id:'user',request_id:'request',recipient:'student@example.invalid'}]);
   if(url.includes('delivery_enabled'))return response(true);

@@ -30,7 +30,7 @@ async function listRequests(){
  const revision=++currentRevision;
  if(!currentUser)return;
  const tracking=$('tracking');tracking.replaceChildren(document.createTextNode('Carregando solicitações…'));
- const {data,error}=await db.from('academy_requests').select('id,activity,activity_type,start_date,end_date,description,status,hours_declared,created_at').eq('user_id',currentUser.id).neq('status','CANCELADA').order('created_at',{ascending:false}).limit(50);
+ const {data,error}=await db.from('academy_requests').select('id,activity,activity_type,start_date,end_date,description,status,hours_declared,participants_count,teaching_activity,created_at').eq('user_id',currentUser.id).neq('status','CANCELADA').order('created_at',{ascending:false}).limit(50);
  if(revision!==currentRevision||!currentUser)return;
  tracking.replaceChildren();
  if(error){tracking.textContent='Não foi possível carregar as solicitações: '+error.message;return}
@@ -62,7 +62,7 @@ function resetEdit(){
 }
 $('cancel-edit').onclick=()=>{resetEdit();message('request-status','Edição cancelada. Nenhuma alteração foi salva.')};
 async function editRequest(item){
- const {data,error}=await db.from('academy_requests').select('id,user_id,activity,activity_type,start_date,end_date,hours_declared,description,status').eq('id',item.id).eq('user_id',currentUser.id).maybeSingle();
+ const {data,error}=await db.from('academy_requests').select('id,user_id,activity,activity_type,start_date,end_date,hours_declared,description,participants_count,teaching_activity,status').eq('id',item.id).eq('user_id',currentUser.id).maybeSingle();
  if(error||!data){message('evidence-status','Não foi possível carregar este protocolo para edição.');return}
  if(!['ENVIADA','EM_ANALISE','PENDENTE_DOCUMENTOS','INCONCLUSIVO'].includes(data.status)){message('evidence-status','Este protocolo não permite alterações diretas.');return}
  editingRequestId=data.id;
@@ -70,7 +70,7 @@ async function editRequest(item){
  const type=$('activity-type');if(![...type.options].some(o=>o.value===data.activity_type)){const opt=document.createElement('option');opt.value=data.activity_type;opt.textContent=data.activity_type;type.appendChild(opt)}type.value=data.activity_type;
  $('start').value=data.start_date||'';
  $('end').value=data.end_date||'';
- $('hours').value=String(data.hours_declared??'');
+ $('hours').value=String(data.hours_declared??'');$('participants').value=data.participants_count??'';$('teaching').value=data.teaching_activity?'true':'';
  $('description').value=data.description||'';
  $('request-title').textContent='Editar protocolo existente';
  $('request-submit').textContent='Salvar alterações';
@@ -138,6 +138,7 @@ async function uploadEvidenceFile(file,requestId){
  const ownership=await db.from('academy_requests').select('id,status').eq('id',requestId).eq('user_id',user.id).maybeSingle();
  if(ownership.error||!ownership.data){message('evidence-status','Protocolo não encontrado nesta conta.');await listRequests();return false}
  if(!['ENVIADA','EM_ANALISE','PENDENTE_DOCUMENTOS','INCONCLUSIVO'].includes(ownership.data.status)){message('evidence-status','Este protocolo não aceita novos comprovantes.');return false}
+ if(!$('evidence-category').value){message('evidence-status','Selecione o tipo de comprovante.');return false}
  const allowed={'application/pdf':'pdf','image/jpeg':'jpg','image/png':'png'};
  if(file.size>10485760||file.size===0||!allowed[file.type]){message('evidence-status','Arquivo inválido. Use PDF, JPG ou PNG de até 10 MB.');return false}
  const path=user.id+'/'+requestId+'/'+crypto.randomUUID()+'.'+allowed[file.type];
@@ -147,7 +148,7 @@ async function uploadEvidenceFile(file,requestId){
   message('evidence-status','Enviando e vinculando comprovante…');
   const {error:up}=await db.storage.from('academy-evidencias').upload(path,file,{contentType:file.type,upsert:false});
   if(up){message('evidence-status','Falha no upload: '+up.message);return false}
-  const {data:evidenceRow,error:insert}=await db.from('academy_evidence').insert({request_id:requestId,file_path:path,file_name:file.name.slice(0,240)}).select('id').single();
+  const {data:evidenceRow,error:insert}=await db.from('academy_evidence').insert({request_id:requestId,file_path:path,file_name:file.name.slice(0,240),category:$('evidence-category').value}).select('id').single();
   if(insert){
    await db.storage.from('academy-evidencias').remove([path]);
    message('evidence-status','Falha ao associar o arquivo ao protocolo: '+insert.message);return false
@@ -167,13 +168,13 @@ $('evidence-upload').addEventListener('submit',async e=>{
 });
 $('request').addEventListener('submit',async e=>{e.preventDefault();if(!e.currentTarget.reportValidity())return;
  const {data:auth,error:authError}=await db.auth.getUser();if(authError||!auth.user){message('request-status','Sessão encerrada. Entre novamente.');await refresh();return}
- const item={activity:$('activity').value.trim(),activity_type:$('activity-type').value,start_date:$('start').value,end_date:$('end').value,hours_declared:Number($('hours').value),description:$('description').value.trim()};
+ const item={activity:$('activity').value.trim(),activity_type:$('activity-type').value,start_date:$('start').value,end_date:$('end').value,hours_declared:Number($('hours').value),description:$('description').value.trim(),participants_count:Number($('participants').value),teaching_activity:$('teaching').value==='true'};
  if(item.end_date<item.start_date||item.description.length<15){message('request-status','Verifique as datas e a descrição (mínimo de 15 caracteres).');return}
  const isEditing=!!editingRequestId;
  message('request-status',isEditing?'Salvando alterações…':'Registrando atividade…');
  const submit=$('request-submit');submit.disabled=true;
  const {error}=isEditing
-  ? await db.rpc('academy_student_change_request',{p_id:editingRequestId,p_action:'EDITAR',p_activity:item.activity,p_activity_type:item.activity_type,p_start_date:item.start_date,p_end_date:item.end_date,p_hours:item.hours_declared,p_description:item.description})
+  ? await db.rpc('academy_student_policy_edit',{p_id:editingRequestId,p_activity:item.activity,p_activity_type:item.activity_type,p_start_date:item.start_date,p_end_date:item.end_date,p_hours:item.hours_declared,p_description:item.description,p_participants:item.participants_count,p_teaching:item.teaching_activity})
   : await db.from('academy_requests').insert(item);
  submit.disabled=false;
  const outcome=error?(isEditing?'Não foi possível salvar: ':'Não foi possível registrar: ')+error.message:(isEditing?'Alterações salvas com sucesso. Seu protocolo voltou à análise.':'Solicitação registrada. Acompanhe o andamento no painel. A análise aguarda evidências.');

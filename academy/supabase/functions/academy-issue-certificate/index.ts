@@ -45,6 +45,8 @@ Deno.serve(async req=>{
   if(evidences.length===0||evidences.some(x=>x.review_status!=="VALIDADO"))return response(409,{error:"All evidence must be validated"});
   if(cert.status==="EMITIDO")return response(200,{issued:true,code:cert.certificate_code,existing:true});
   if(cert.status!=="PENDENTE_EMISSAO")return response(409,{error:"Certificate not eligible"});
+  const issuanceToken=await api("/rest/v1/rpc/academy_certificate_claim","POST",{p_request:id,p_environment:mode});
+  if(!issuanceToken)return response(409,{error:"Certificate issuance already in progress or completed"});
   const student=await api("/auth/v1/admin/users/"+p.user_id);
   const fullName=fit(student.user_metadata?.full_name||student.email?.split("@")[0]||"Estudante",90);
   const hours=Number(approval.hours_verified);
@@ -73,12 +75,12 @@ Deno.serve(async req=>{
   page.drawImage(qrA,{x:525,y:95,width:100,height:100});page.drawImage(qrB,{x:662,y:95,width:100,height:100});
   line("Autenticidade",535,83,9);line("Relatorio",687,83,9);
   line("Este documento comprova a analise da Editora UJN; nao garante aproveitamento de horas por instituicoes.",55,55,9);
-  const binary=await doc.save(),digest=await sha256(binary),path=p.user_id+"/"+p.id+"/"+cert.certificate_code+".pdf";
+  line("Editora Unified Journals Network - Ujn LTDA | CNPJ 53.275.018/0001-62 | contato@ujn.ojsbr.com",55,72,9);
+  const binary=await doc.save(),digest=await sha256(binary),path=p.user_id+"/"+p.id+"/"+cert.certificate_code+"."+issuanceToken+".pdf";
   const upload=await fetch(URL+"/storage/v1/object/academy-certificados/"+path,{method:"POST",headers:{"apikey":SR,"authorization":"Bearer "+SR,"content-type":"application/pdf","x-upsert":"false"},body:binary});
-  if(!upload.ok&&upload.status!==409)throw Error("Storage failed "+upload.status);
-  await api("/rest/v1/academy_certificates?request_id=eq."+id,"PATCH",{status:"EMITIDO",pdf_path:path,pdf_sha256:digest,signature_hmac:sign,issued_at:new Date().toISOString()});
-  await api("/rest/v1/academy_event_log","POST",{request_id:id,event_type:"CERTIFICADO_EMITIDO",metadata:{code:cert.certificate_code,pdf_sha256:digest}});
-  await api("/rest/v1/academy_email_outbox?on_conflict=request_id,kind","POST",{request_id:id,kind:"CERTIFICATE_READY",recipient:student.email,status:"PENDENTE"}).catch(()=>null);
+  if(!upload.ok)throw Error("Storage failed "+upload.status);
+  try{await api("/rest/v1/rpc/academy_certificate_finish","POST",{p_request:id,p_token:issuanceToken,p_path:path,p_sha:digest,p_signature:sign,p_email:student.email});}
+  catch(e){await fetch(URL+"/storage/v1/object/academy-certificados",{method:"DELETE",headers:{apikey:SR,authorization:"Bearer "+SR,"content-type":"application/json"},body:JSON.stringify({prefixes:[path]})}).catch(()=>null);throw e;}
   return response(200,{issued:true,code:cert.certificate_code});
  }catch(e){return response(500,{error:"Certificate could not be issued",detail:String(e?.message||e).slice(0,110)})}
 });

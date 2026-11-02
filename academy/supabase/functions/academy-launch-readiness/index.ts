@@ -1,7 +1,12 @@
+import {providerSettings} from './provider-config.ts';
 const base=Deno.env.get('SUPABASE_URL')||'', service=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')||'', anon=Deno.env.get('SUPABASE_ANON_KEY')||'';
 const headers={'content-type':'application/json','access-control-allow-origin':'https://www.protocolo.me','access-control-allow-headers':'authorization,apikey,content-type,x-client-info','cache-control':'no-store'};
 const reply=(status,body)=>new Response(JSON.stringify(body),{status,headers});
 Deno.serve(async req=>{
+ if(req.method==='OPTIONS')return new Response(null,{status:204,headers:{'access-control-allow-origin':'https://www.protocolo.me','access-control-allow-headers':'authorization,apikey,content-type,x-client-info','access-control-allow-methods':'POST,GET,OPTIONS'}});
+ let setting;try{setting=await providerSettings();}catch{return new Response(JSON.stringify({error:'Configuração temporariamente indisponível'}),{status:503,headers:{'content-type':'application/json','access-control-allow-origin':'https://www.protocolo.me'}});}
+
+
  if(req.method==='OPTIONS')return reply(200,{});
  if(req.method!=='POST')return reply(405,{error:'Method not allowed'});
  try{
@@ -20,10 +25,10 @@ Deno.serve(async req=>{
    'Agendamento de avisos':['ACADEMY_DISPATCH_CRON_SECRET'],
    'Assistência por IA':['OPENAI_API_KEY']
   };
-  const checks=Object.entries(groups).map(([name,keys])=>({name,configured:keys.every(k=>Boolean(Deno.env.get(k))),missing:keys.filter(k=>!Deno.env.get(k))}));
-  const signing=Deno.env.get('ACADEMY_SIGNING_SECRET')||'';
+  const checks=Object.entries(groups).map(([name,keys])=>({name,configured:keys.every(k=>Boolean(setting(k))),missing:keys.filter(k=>!setting(k))}));
+  const signing=setting('ACADEMY_SIGNING_SECRET')||'';
   const gate=await fetch(base+'/rest/v1/rpc/academy_commercial_ready',{method:'POST',headers:{apikey:service,authorization:'Bearer '+service,'content-type':'application/json'},body:'{}'});
   const checklist=gate.ok&&await gate.json();
-  return reply(200,{checks,signing_key_length_valid:signing.length>=32,payment_mode:Deno.env.get('ACADEMY_ENABLE_PAYMENTS')||'disabled',issuance_mode:Deno.env.get('ACADEMY_ENABLE_ISSUANCE')||'disabled',commercial_release:Deno.env.get('ACADEMY_COMMERCIAL_RELEASE')==='approved'&&checklist,checklist_complete:checklist,message:'Presença de configuração não comprova entrega ou cobrança. Registre evidências dos testes reais antes da ativação comercial.'});
+  return reply(200,{checks,signing_key_length_valid:signing.length>=32,payment_mode:setting('ACADEMY_ENABLE_PAYMENTS')||'disabled',issuance_mode:setting('ACADEMY_ENABLE_ISSUANCE')||'disabled',commercial_release:setting('ACADEMY_COMMERCIAL_RELEASE')==='approved'&&checklist,checklist_complete:checklist,message:'Presença de configuração não comprova entrega ou cobrança. Registre evidências dos testes reais antes da ativação comercial.'});
  }catch{return reply(503,{error:'Não foi possível verificar a configuração'});}
 });

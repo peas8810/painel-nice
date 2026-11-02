@@ -43,7 +43,7 @@ $('upload').onclick=()=>busy($('upload'),async()=>{
  let upload=file;if(image&&$('use-adjusted').checked)upload=new File([await new Promise(resolve=>$('preview').toBlob(resolve,'image/jpeg',.92))],'documento-ajustado.jpg',{type:'image/jpeg'});
  const mime=detectFormat(new Uint8Array(await upload.slice(0,8).arrayBuffer())),ext={'application/pdf':'pdf','image/jpeg':'jpg','image/png':'png'}[mime];const path=user.id+'/'+req.id+'/'+crypto.randomUUID()+'.'+ext;
  const {error:up}=await db.storage.from('academy-evidencias').upload(path,upload,{contentType:mime,upsert:false});if(up)throw up;
- const {data:row,error}=await db.from('academy_evidence').insert({request_id:req.id,file_path:path,file_name:upload.name.slice(0,240)}).select('id').single();
+ const {data:row,error}=await db.from('academy_evidence').insert({request_id:req.id,file_path:path,file_name:upload.name.slice(0,240),category:$('document-category').value}).select('id').single();
  if(error){await db.storage.from('academy-evidencias').remove([path]);throw error;}
  let sealed=true;try{await api('document_seal',{id:row.id});}catch{sealed=false;}
  file=null;image?.close();image=null;$('preview').hidden=true;$('rotate').hidden=true;$('document').value='';$('camera-file').value='';await load();status(sealed?'Documento anexado e integridade registrada.':'Documento anexado. Use Verificar integridade para concluir o registro.');

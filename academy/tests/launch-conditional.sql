@@ -6,7 +6,7 @@ begin
  insert into public.academy_admin_members(user_id,role) values(a,'SUPER_ADMIN');
  insert into public.academy_tenants(id,name,slug,active) values(t,'Conditional fixture','test-'||t,true),(other_t,'Isolation fixture','test-'||other_t,true);
  insert into public.academy_tenant_members values(t,student,'STUDENT'),(t,reviewer,'REVIEWER'),(other_t,outsider,'MANAGER');
- insert into public.academy_requests(id,user_id,activity,activity_type,start_date,end_date,hours_declared,description) values(req,student,'Conditional fixture','Oficina',current_date,current_date,10,'Fictitious test with rollback');
+ insert into public.academy_requests(id,user_id,activity,activity_type,start_date,end_date,hours_declared,description,participants_count,teaching_activity) values(req,student,'Conditional fixture','Oficina',current_date,current_date,10,'Fictitious test with rollback',2,true);
  perform set_config('request.jwt.claim.sub',a::text,true);
  model:=public.academy_workflow_setup(t,'Conditional model','Oficina',array['Initial review','Only above twenty hours','Final human review']);
  select id into step from public.academy_workflow_steps where template_id=model and step_order=2;

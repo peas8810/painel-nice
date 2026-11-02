@@ -1,7 +1,12 @@
-const URL=Deno.env.get('SUPABASE_URL')||'',ANON=Deno.env.get('SUPABASE_ANON_KEY')||'',KEY=Deno.env.get('OPENAI_API_KEY')||'',SR=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')||'';
+import {providerSettings} from './provider-config.ts';
+const URL=Deno.env.get('SUPABASE_URL')||'',ANON=Deno.env.get('SUPABASE_ANON_KEY')||'',SR=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')||'';
 const origin='https://www.protocolo.me';
 function respond(data,status=200){return new Response(JSON.stringify(data),{status,headers:{'content-type':'application/json','access-control-allow-origin':origin,'access-control-allow-headers':'authorization,apikey,content-type,x-client-info','access-control-allow-methods':'POST,OPTIONS'}})}
 Deno.serve(async req=>{
+ if(req.method==='OPTIONS')return new Response(null,{status:204,headers:{'access-control-allow-origin':'https://www.protocolo.me','access-control-allow-headers':'authorization,apikey,content-type,x-client-info','access-control-allow-methods':'POST,GET,OPTIONS'}});
+ let setting;try{setting=await providerSettings();}catch{return new Response(JSON.stringify({error:'Configuração temporariamente indisponível'}),{status:503,headers:{'content-type':'application/json','access-control-allow-origin':'https://www.protocolo.me'}});}
+const KEY=setting('OPENAI_API_KEY');
+
  if(req.method==='OPTIONS')return respond({});
  if(req.method!=='POST')return respond({error:'Método não permitido'},405);
  if(!KEY)return respond({error:'A leitura por IA aguarda configuração administrativa.'},503);
@@ -17,7 +22,7 @@ Deno.serve(async req=>{
  const content=[{type:'input_text',text:prompt}];
  if(mime==='application/pdf')content.push({type:'input_file',filename:String(filename||'comprovante.pdf').slice(0,120),file_data:'data:application/pdf;base64,'+base64});
  else content.push({type:'input_image',image_url:'data:'+mime+';base64,'+base64});
- const response=await fetch('https://api.openai.com/v1/responses',{method:'POST',headers:{Authorization:'Bearer '+KEY,'content-type':'application/json'},body:JSON.stringify({model:Deno.env.get('ACADEMY_AI_MODEL')||'gpt-4.1-mini',input:[{role:'user',content}],max_output_tokens:420})});
+ const response=await fetch('https://api.openai.com/v1/responses',{method:'POST',headers:{Authorization:'Bearer '+KEY,'content-type':'application/json'},body:JSON.stringify({model:setting('ACADEMY_AI_MODEL')||'gpt-4.1-mini',input:[{role:'user',content}],max_output_tokens:420})});
  if(!response.ok)return respond({error:'Serviço de IA indisponível. Tente preencher manualmente.'},502);
  const payload=await response.json(),txt=(payload.output||[]).flatMap(x=>x.content||[]).filter(x=>x.type==='output_text').map(x=>x.text).join('');
  const cleaned=txt.trim().replace(/^\x60\x60\x60(?:json)?/i,'').replace(/\x60\x60\x60$/,'').trim();

@@ -4,7 +4,7 @@ const $=id=>document.getElementById(id),cfg=window.ACADEMY_AUTH_CONFIG||{};
 const db=window.academyDb||(window.supabase?.createClient&&cfg.url&&cfg.publishableKey?window.supabase.createClient(cfg.url,cfg.publishableKey):null);
 if(!db||!$('request'))return;
 let step=1,saveTimer=null,draftLoadedFor=null,selectedFile=null;
-const ids=['activity','activity-type','start','end','hours','description'];
+const ids=['activity','activity-type','start','end','hours','description','participants','teaching'];
 const data=()=>Object.fromEntries(ids.map(id=>[id,$(id).value]));
 function setStep(n){
  step=Math.max(1,Math.min(3,n));
@@ -13,7 +13,7 @@ function setStep(n){
  $('request-submit').hidden=step!==3;
  $('wizard-label').textContent='Passo '+step+' de 3: '+(['Dados da atividade','Datas e descrição','Conferência final'][step-1]);
  $('wizard-progress').value=step;
- if(step===3){const box=$('wizard-review');box.replaceChildren();for(const [label,value] of [['Atividade',$('activity').value],['Tipo',$('activity-type').value],['Período',$('start').value+' a '+$('end').value],['Horas',$('hours').value],['Descrição',$('description').value]]){const p=document.createElement('p'),strong=document.createElement('strong');strong.textContent=label+': ';p.append(strong,document.createTextNode(value));box.append(p)}}
+ if(step===3){const box=$('wizard-review');box.replaceChildren();for(const [label,value] of [['Atividade',$('activity').value],['Tipo',$('activity-type').value],['Período',$('start').value+' a '+$('end').value],['Horas',$('hours').value],['Participantes',$('participants').value],['Atividade de ensino',$('teaching').value==='true'?'Sim':'Não informado'],['Descrição',$('description').value]]){const p=document.createElement('p'),strong=document.createElement('strong');strong.textContent=label+': ';p.append(strong,document.createTextNode(value));box.append(p)}}
 }
 window.academyWizardSetStep=setStep;setStep(1);$('request').addEventListener('submit',e=>{if(step!==3){e.preventDefault();e.stopImmediatePropagation();if(validStep(step))setStep(step+1)}},true);
 function validStep(n){for(const el of document.querySelectorAll('.wizard-panel[data-step="'+n+'"] input,.wizard-panel[data-step="'+n+'"] textarea,.wizard-panel[data-step="'+n+'"] select'))if(!el.reportValidity())return false;if(n===2){if($('end').value<$('start').value){$('end').setCustomValidity('A data final deve ser igual ou posterior à inicial.');$('end').reportValidity();return false}$('end').setCustomValidity('');if($('description').value.trim().length<15){$('description').setCustomValidity('Descreva sua atividade com pelo menos 15 caracteres.');$('description').reportValidity();return false}$('description').setCustomValidity('')}return true}

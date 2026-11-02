@@ -15,7 +15,7 @@ Deno.serve(async req=>{
  if(!result.ok)return send({error:"Serviço de IA temporariamente indisponível"},502);
  const payload=await result.json(),text=(payload.output||[]).flatMap(x=>x.content||[]).filter(x=>x.type==="output_text").map(x=>x.text).join("").replace(/^```json\s*/,"").replace(/```$/,"").trim();const raw=JSON.parse(text);const fields={};
  for(const name of ["activity","activity_type","start_date","end_date","description"]){fields[name]=typeof raw[name]==="string"?raw[name].slice(0,name==="description"?1000:180):null}
- fields.hours_declared=Number.isFinite(Number(raw.hours_declared))&&Number(raw.hours_declared)>0&&Number(raw.hours_declared)<=1000?Number(raw.hours_declared):null;
+ fields.hours_declared=Number.isFinite(Number(raw.hours_declared))&&raw.hours_declared!==null&&raw.hours_declared!==''&&Number(raw.hours_declared)>=0&&Number(raw.hours_declared)<=300?Number(raw.hours_declared):null;
  const missing=Array.isArray(raw.missing)?raw.missing.filter(x=>typeof x==="string").slice(0,5):[];
  return send({fields,missing,requires_confirmation:true});
  }catch{return send({error:"Não foi possível interpretar a descrição. Complete os dados manualmente."},422)}

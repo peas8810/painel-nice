@@ -3,7 +3,7 @@ do $$
 declare a uuid:=gen_random_uuid();u uuid:=gen_random_uuid();r uuid:=gen_random_uuid();n bigint;pid text:='987654321012345678901234567890';
 begin
  insert into auth.users(id) values(a),(u);
- insert into public.academy_requests(id,user_id,activity,activity_type,start_date,end_date,hours_declared,description) values(r,u,'Payment fixture','Test',current_date,current_date,1,'Fictitious rollback only');
+ insert into public.academy_requests(id,user_id,activity,activity_type,start_date,end_date,hours_declared,description,participants_count,teaching_activity) values(r,u,'Payment fixture','Test',current_date,current_date,1,'Fictitious rollback only',2,true);
  insert into public.academy_payment_releases(request_id,released_by,checkout_environment) values(r,a,'sandbox');
  begin perform public.academy_payment_provider_reconcile_v2(r,pid,'approved',1500,'BRL','test','production');raise exception 'TEST FAILED: environment accepted';exception when others then if sqlerrm<>'Ambiente do checkout divergente' then raise;end if;end;
  perform public.academy_payment_provider_reconcile_v2(r,pid,'approved',1500,'BRL','test','sandbox');

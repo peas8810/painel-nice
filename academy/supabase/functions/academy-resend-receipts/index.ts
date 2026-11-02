@@ -1,6 +1,7 @@
-const URL=Deno.env.get("SUPABASE_URL")||"",SR=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")||"",SECRET=Deno.env.get("RESEND_WEBHOOK_SECRET")||"";
+import {providerSettings} from './provider-config.ts';
+const URL=Deno.env.get("SUPABASE_URL")||"",SR=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")||"";
 const reply=(msg,status=200)=>new Response(msg,{status,headers:{"content-type":"text/plain"}});
-async function valid(raw,headers){
+async function valid(raw,headers,SECRET){
  const id=headers.get("svix-id")||"",stamp=headers.get("svix-timestamp")||"",signature=headers.get("svix-signature")||"";
  if(!SECRET.startsWith("whsec_")||!id||!/^[0-9]+$/.test(stamp))return false;
  if(Math.abs(Date.now()/1000-Number(stamp))>300)return false;
@@ -13,10 +14,14 @@ async function valid(raw,headers){
  return false;
 }
 Deno.serve(async request=>{
+ if(request.method==='OPTIONS')return new Response(null,{status:204,headers:{'access-control-allow-origin':'https://www.protocolo.me','access-control-allow-headers':'authorization,apikey,content-type,x-client-info','access-control-allow-methods':'POST,GET,OPTIONS'}});
+ let setting;try{setting=await providerSettings();}catch{return new Response(JSON.stringify({error:'Configuração temporariamente indisponível'}),{status:503,headers:{'content-type':'application/json','access-control-allow-origin':'https://www.protocolo.me'}});}
+const SECRET=setting("RESEND_WEBHOOK_SECRET");
+
  if(request.method!=="POST")return reply("Method not allowed",405);
  if(!URL||!SR||!SECRET)return reply("Webhook not configured",503);
  const raw=await request.text();if(raw.length>200000)return reply("Oversized event",413);
- if(!(await valid(raw,request.headers)))return reply("Invalid signature",401);
+ if(!(await valid(raw,request.headers,SECRET)))return reply("Invalid signature",401);
  let event;try{event=JSON.parse(raw)}catch{return reply("Invalid JSON",400)}
  const kinds={"email.delivered":"delivered","email.bounced":"bounced","email.complained":"complained"};
  const state=kinds[event.type];if(!state)return reply("Ignored",200);

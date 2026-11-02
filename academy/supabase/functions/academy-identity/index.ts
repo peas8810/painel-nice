@@ -1,16 +1,21 @@
+import {providerSettings} from './provider-config.ts';
 import {PDFDocument,StandardFonts} from 'npm:pdf-lib@1.17.1';
 import QRCode from 'npm:qrcode@1.5.4';
 import {uuid,phone,snapshot,same,publicSeal,hash,otpHash,otp} from './core.mjs';
-const env=k=>Deno.env.get(k)||'',BASE=env('SUPABASE_URL'),SR=env('SUPABASE_SERVICE_ROLE_KEY');
-const H={'content-type':'application/json','access-control-allow-origin':'https://www.protocolo.me','access-control-allow-headers':'authorization,apikey,content-type','access-control-allow-methods':'POST,OPTIONS','cache-control':'no-store','x-content-type-options':'nosniff'};
+const BASE=Deno.env.get('SUPABASE_URL')||'',SR=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')||'';
+const H={'content-type':'application/json','access-control-allow-origin':'https://www.protocolo.me','access-control-allow-headers':'authorization,apikey,content-type,x-client-info','access-control-allow-methods':'POST,OPTIONS','cache-control':'no-store','x-content-type-options':'nosniff'};
 const out=(x,status=200)=>new Response(JSON.stringify(x),{status,headers:H});
 const fail=(m,s=400)=>{throw Object.assign(Error(m),{status:s});};
 const authHeaders={apikey:SR,authorization:'Bearer '+SR};
 async function db(path,method='GET',body){const r=await fetch(BASE+'/rest/v1/'+path,{method,headers:{...authHeaders,'content-type':'application/json',Prefer:'return=representation'},body:body===undefined?undefined:JSON.stringify(body)});if(!r.ok)fail('Operação indisponível',409);return r.status===204?null:r.json();}
 async function cert(id){if(!uuid(id))fail('Certificado inválido');const c=(await db('academy_certificates?id=eq.'+id))[0];if(!c||c.status!=='EMITIDO'||c.revoked_at||!c.pdf_sha256)fail('Certificado não está disponível',409);const r=(await db('academy_requests?id=eq.'+c.request_id))[0];if(!r||r.status!=='APROVADO')fail('Protocolo não está aprovado',409);const v=await fetch(BASE+'/functions/v1/academy-verify?codigo='+encodeURIComponent(c.certificate_code));if(!v.ok||!(await v.json()).valid)fail('Integridade do certificado não confirmada',409);return {c,r,snap:snapshot(c,r)};}
 const event=(s,actor,action)=>db('academy_identity_events','POST',{seal_id:s.id,actor_id:actor,action});
-const ready=()=>Boolean(env('META_WHATSAPP_TOKEN')&&env('META_WHATSAPP_PHONE_NUMBER_ID')&&env('ACADEMY_IDENTITY_TEMPLATE')&&/^v\d+\.\d+$/.test(env('META_GRAPH_VERSION'))&&env('ACADEMY_IDENTITY_OTP_SECRET').length>=32);
 Deno.serve(async req=>{
+ if(req.method==='OPTIONS')return new Response(null,{status:204,headers:{'access-control-allow-origin':'https://www.protocolo.me','access-control-allow-headers':'authorization,apikey,content-type,x-client-info','access-control-allow-methods':'POST,GET,OPTIONS'}});
+ let setting;try{setting=await providerSettings();}catch{return new Response(JSON.stringify({error:'Configuração temporariamente indisponível'}),{status:503,headers:{'content-type':'application/json','access-control-allow-origin':'https://www.protocolo.me'}});}
+const env=setting;
+const ready=()=>Boolean(env('META_WHATSAPP_TOKEN')&&env('META_WHATSAPP_PHONE_NUMBER_ID')&&env('ACADEMY_IDENTITY_TEMPLATE')&&/^v\d+\.\d+$/.test(env('META_GRAPH_VERSION'))&&env('ACADEMY_IDENTITY_OTP_SECRET').length>=32);
+
  if(req.method==='OPTIONS')return out({});if(req.method!=='POST')return out({error:'Use POST'},405);
  try{
  if(Number(req.headers.get('content-length'))>1500000)fail('Foto muito grande',413);const raw=await req.text();if(raw.length>1500000)fail('Foto muito grande',413);const b=JSON.parse(raw);
