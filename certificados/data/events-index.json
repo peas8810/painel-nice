@@ -1,6 +1,15 @@
 {
-  "updated_at": "2026-10-07T19:08:36.158Z",
+  "updated_at": "2026-11-03T19:28:06.444Z",
   "events": [
+    {
+      "id": 13,
+      "titulo": "IA na escrita científica: Entre a ferramenta e a autoria",
+      "data_evento": "2026-11-03",
+      "campus_unidade": "Teófilo Otoni",
+      "protocolo_nice": "",
+      "status": "EMISSAO_ABERTA",
+      "certificados_emitidos": 0
+    },
     {
       "id": 12,
       "titulo": "Gestão e marketing na psicologia clínica",
