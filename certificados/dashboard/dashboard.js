@@ -14,13 +14,13 @@
   function jsonp(params,timeout=30000){return new Promise((resolve,reject)=>{const cb='__nice_dash_'+Date.now()+'_'+Math.random().toString(36).slice(2),s=document.createElement('script'),u=new URL(API);Object.entries({...params,callback:cb,_:Date.now()}).forEach(([k,v])=>u.searchParams.set(k,v));let done=false;const finish=(err,p)=>{if(done)return;done=true;clearTimeout(t);try{delete window[cb]}catch(_){}s.remove();err?reject(err):resolve(p)};window[cb]=p=>finish(null,p);s.onerror=()=>finish(new Error('Não foi possível comunicar com o sistema.'));const t=setTimeout(()=>finish(new Error('Tempo esgotado na comunicação.')),timeout);s.src=u.toString();document.head.appendChild(s)})}
   async function dashboardCall(){
     try{
-      const r=await fetch('./live-data.json?ts='+Date.now(),{cache:'no-store'});
-      if(r.ok){
-        const p=await r.json();
-        if(p&&p.ok)return p;
-      }
+      const live=await jsonp({action:'cert_dashboard'});
+      if(live?.ok&&Array.isArray(live.events))return live;
     }catch(_){}
-    return jsonp({action:'cert_dashboard'});
+    const r=await fetch('./live-data.json?ts='+Date.now(),{cache:'no-store'});
+    if(!r.ok)throw new Error('Não foi possível atualizar os dados do dashboard.');
+    const p=await r.json();
+    return {...p,offlineSnapshot:true};
   }
   const adminCall=(op,params={})=>jsonp({action:'cert_admin',op,admin_key:adminKey,...params},60000);
 
@@ -221,7 +221,7 @@
 
   eventForm.addEventListener('submit',async e=>{e.preventDefault();const f=new FormData(eventForm),rawDate=String(f.get('data')||'');let brDate=rawDate;if(/^\d{4}-\d{2}-\d{2}$/.test(rawDate)){const [y,m,d]=rawDate.split('-');brDate=`${d}/${m}/${y}`};const params={titulo:f.get('titulo')||'',tipo:f.get('tipo')||'',data:brDate,campus:f.get('campus')||'',local:f.get('local')||'',carga:f.get('carga')||'',responsavel:f.get('responsavel')||'',instituicao_emissora:f.get('instituicao')||'',protocolo:f.get('protocolo')||'',emissao_inicio:f.get('emissao_inicio')||'',emissao_fim:f.get('emissao_fim')||'',descricao:f.get('descricao')||'',abrir:f.get('abrir')?'1':'0'};formResult.textContent='Criando evento e publicando a página…';createBtn.disabled=true;try{const p=await adminCall('create_event',params);if(!p||!p.ok)throw new Error(p&&p.error||'Falha ao criar o evento.');formResult.innerHTML=`<strong>Evento ${esc(p.event.id)} criado com sucesso.</strong><br><a target="_blank" rel="noopener" href="${esc(p.event.url_publica)}">Abrir página pública</a>`;await load();setTimeout(closeModal,1800)}catch(err){formResult.textContent=err.message||'Não foi possível criar o evento.'}finally{createBtn.disabled=false}});
 
-  async function load(){statusEl.textContent='Atualizando dados…';try{const p=await dashboardCall();if(!p||!p.ok)throw new Error(p&&p.error||'Falha ao carregar.');data=p;renderKpis();renderEvents();renderCerts();statusEl.textContent='Atualizado em '+fmtDateTime(p.updated_at)+' · atualização automática a cada 60 segundos';if(adminKey)Promise.all([loadCustomLinks(),loadDigitalBooks()])}catch(e){statusEl.textContent=e.message||'Falha ao carregar o dashboard.'}}
+  async function load(){statusEl.textContent='Atualizando dados…';try{const p=await dashboardCall();if(!p||!p.ok)throw new Error(p&&p.error||'Falha ao carregar.');data=p;renderKpis();renderEvents();renderCerts();statusEl.textContent=(p.offlineSnapshot?'Cópia de segurança de ':'Atualizado em ')+fmtDateTime(p.updated_at)+' · atualização automática a cada 60 segundos';if(adminKey)Promise.all([loadCustomLinks(),loadDigitalBooks()])}catch(e){statusEl.textContent=e.message||'Falha ao carregar o dashboard.'}}
 
   authBtn.addEventListener('click',authenticate);newEventBtn.addEventListener('click',openModal);customLinkBtn.addEventListener('click',createCustomLink);if(authorSearchBtn)authorSearchBtn.addEventListener('click',searchCertificatesByName);if(authorSearch)authorSearch.addEventListener('keydown',e=>{if(e.key==='Enter')searchCertificatesByName()});document.querySelectorAll('[data-close]').forEach(x=>x.addEventListener('click',closeModal));document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!modal.hidden)closeModal()});
   [eventSearch,eventStatus].forEach(x=>x.addEventListener('input',renderEvents));[certSearch,certStatus].forEach(x=>x.addEventListener('input',renderCerts));
