@@ -1,6 +1,15 @@
 {
-  "updated_at": "2026-11-04T00:10:06.992Z",
+  "updated_at": "2026-11-04T19:43:55.557Z",
   "events": [
+    {
+      "id": 15,
+      "titulo": "Fisioterapia no Futebol de Alto Rendimento: desafios e atuação profissional",
+      "data_evento": "2026-10-28",
+      "campus_unidade": "Teófilo Otoni",
+      "protocolo_nice": "",
+      "status": "EMISSAO_ABERTA",
+      "certificados_emitidos": 0
+    },
     {
       "id": 14,
       "titulo": "IA na escrita científica: Entre a ferramenta e a autoria",
