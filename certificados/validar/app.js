@@ -41,17 +41,34 @@
       <p class="seal"><strong>Selo digital:</strong> ${esc(p.selo||'—')}</p>${revoked?`<p class="desc"><strong>Motivo da revogação:</strong> ${esc(p.motivo_revogacao||'Não informado')}</p>`:''}</div>`;
   }
 
+  async function queryCertificate(c){
+    const url=new URL(API);
+    url.searchParams.set('action','cert_verify');
+    url.searchParams.set('code',c);
+    url.searchParams.set('_',Date.now());
+    const controller=new AbortController();
+    const timer=setTimeout(()=>controller.abort(),20000);
+    try{
+      const response=await fetch(url,{signal:controller.signal,cache:'no-store',credentials:'omit'});
+      if(response.ok){
+        const payload=await response.json();
+        if(payload?.ok===true&&typeof payload.valid==='boolean')return payload;
+      }
+    }catch(_){}finally{clearTimeout(timer);}
+    const payload=await jsonp({action:'cert_verify',code:c},25000);
+    if(payload?.ok!==true||typeof payload.valid!=='boolean')throw new Error('Resposta indisponível.');
+    return payload;
+  }
+
   async function verify(){
     const c=code.value.trim().toUpperCase();
     if(!c){code.focus();return;}
     result.innerHTML='<div class="card loading">Consultando assinatura digital…</div>';
     btn.disabled=true;
     try{
-      let payload;
-      try{payload=await jsonp({action:'cert_verify',code:c},45000)}catch(firstErr){await new Promise(r=>setTimeout(r,1200));payload=await jsonp({action:'cert_verify',code:c},45000)}
-      render(payload);
+      render(await queryCertificate(c));
     }catch(err){
-      render({ok:false,error:err.message||'Não foi possível consultar o certificado.'});
+      result.innerHTML='<div class="card"><h2>Consulta indisponível</h2><p class="desc">Não foi possível obter uma resposta do serviço de validação. Tente novamente em instantes.</p></div>';
     }finally{
       btn.disabled=false;
     }
