@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-03T19:43:12.730Z",
+  "updated_at": "2026-11-04T00:10:06.992Z",
   "events": [
     {
       "id": 14,
@@ -7,7 +7,7 @@
       "data_evento": "2026-11-03",
       "campus_unidade": "Teófilo Otoni",
       "protocolo_nice": "",
-      "status": "EMISSAO_ABERTA",
+      "status": "EMISSAO_FECHADA",
       "certificados_emitidos": 0
     },
     {
