@@ -1,17 +1,17 @@
 {
   "id": 14,
-  "status": "EMISSAO_ABERTA",
+  "status": "EMISSAO_FECHADA",
   "protocolo_nice": "",
   "titulo": "IA na escrita científica: Entre a ferramenta e a autoria",
   "tipo": "Palestra",
   "data_evento": "2026-11-03",
   "campus_unidade": "Teófilo Otoni",
   "local": "Auditório",
-  "carga_horaria": "2",
+  "carga_horaria": 2,
   "responsavel": "Daniel de Azevedo Teixeira",
   "descricao": "A na escrita científica: Entre a ferramenta e a autoria",
   "emissao_inicio": "2026-11-03T19:42:00.000Z",
   "emissao_fim": "2026-11-05T19:42:00.000Z",
   "certificados_emitidos": 0,
-  "updated_at": "2026-11-03T19:43:08.980Z"
+  "updated_at": "2026-11-04T00:10:03.431Z"
 }
