@@ -1,6 +1,6 @@
 {
   "id": 9,
-  "status": "EMISSAO_ABERTA",
+  "status": "EMISSAO_FECHADA",
   "protocolo_nice": "",
   "titulo": "Feira Literária Descubra quem Pegou",
   "tipo": "Feira Literária",
@@ -12,6 +12,6 @@
   "descricao": "",
   "emissao_inicio": "2026-09-29T22:00:00.000Z",
   "emissao_fim": "2026-09-30T01:00:00.000Z",
-  "certificados_emitidos": 0,
-  "updated_at": "2026-09-29T15:32:34.812Z"
+  "certificados_emitidos": 180,
+  "updated_at": "2026-11-05T11:35:54.384Z"
 }
