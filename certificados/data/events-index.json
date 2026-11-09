@@ -1,6 +1,15 @@
 {
-  "updated_at": "2026-11-05T11:35:57.772Z",
+  "updated_at": "2026-11-09T19:10:01.001Z",
   "events": [
+    {
+      "id": 17,
+      "titulo": "Currículo e Carreira",
+      "data_evento": "2026-11-09",
+      "campus_unidade": "Teófilo Otoni",
+      "protocolo_nice": "",
+      "status": "EMISSAO_ABERTA",
+      "certificados_emitidos": 0
+    },
     {
       "id": 16,
       "titulo": "Pequenos pacientes, grandes desafios- O papel da fisioterapia na UTI neonatal",
