@@ -1,0 +1,17 @@
+{
+  "id": 17,
+  "status": "EMISSAO_ABERTA",
+  "protocolo_nice": "",
+  "titulo": "Currículo e Carreira",
+  "tipo": "Palestra",
+  "data_evento": "2026-11-09",
+  "campus_unidade": "Teófilo Otoni",
+  "local": "Auditório",
+  "carga_horaria": "3",
+  "responsavel": "Augusto de Pinho",
+  "descricao": "Currículo e Carreira",
+  "emissao_inicio": "2026-11-09T19:09:00.000Z",
+  "emissao_fim": "2026-11-13T19:09:00.000Z",
+  "certificados_emitidos": 0,
+  "updated_at": "2026-11-09T19:09:55.389Z"
+}
