@@ -247,9 +247,11 @@ async function loadManualPix(){
       const see=document.createElement('button');see.type='button';see.className='btn';see.textContent='Visualizar certificado PDF';
       see.onclick=async()=>{
        const tab=window.open('','_blank');if(tab){tab.document.title='Abrindo certificado';tab.document.body.textContent='Preparando PDF protegido…'}
-       const {data:link,error}=await db.storage.from('academy-certificados').createSignedUrl(certificate.pdf_path,120);
-       if(error||!link?.signedUrl){if(tab)tab.close();status.textContent='Falha ao carregar certificado: '+(error?.message||'Arquivo indisponível');return}
-       if(tab)tab.location.href=link.signedUrl;else location.href=link.signedUrl
+       const {data:pdf,error}=await db.functions.invoke('academy-certificate-access',{body:{request_id:r.request_id,action:'download'}});
+       if(error||!(pdf instanceof Blob)||pdf.type!=='application/pdf'){if(tab)tab.close();status.textContent='Falha ao carregar certificado: '+(error?.message||'Arquivo indisponível');return}
+       const objectUrl=URL.createObjectURL(pdf);
+       if(tab)tab.location.href=objectUrl;else location.href=objectUrl;
+       setTimeout(()=>URL.revokeObjectURL(objectUrl),120000)
       };card.append(see)
     }else{
       const issue=document.createElement('button');issue.type='button';issue.className='btn';issue.textContent='Gerar e publicar certificado';
