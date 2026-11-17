@@ -13,14 +13,14 @@ test('reconcilia protocolos sem duplicar o histórico',()=>{
   assert.equal(records.find(r=>r.id===fixtureRecord.id).states[fixtureRecord.protocols[0]],'FINALIZADO');
 });
 test('novos identificadores duplicados representam uma formalização',()=>{
-  const base={id:'NICE-2026-00091',curso:'Farmácia',unidade:'Teófilo Otoni',data_protocolo:'2026-11-18T12:00:00Z',tema:'Orientação em saúde',responsavel:'Pessoa',status:'PROTOCOLADO'};
-  const records=M.merge(history,{projects:{projects:[base,{...base,id:'NICE-2026-00092',status:'FINALIZADO'}]}});
+  const base={id:'NICE-2099-90001',curso:'Farmácia',unidade:'Teófilo Otoni',data_protocolo:'2026-11-18T12:00:00Z',tema:'Orientação em saúde',responsavel:'Pessoa',status:'PROTOCOLADO'};
+  const records=M.merge(history,{projects:{projects:[base,{...base,id:'NICE-2099-90002',status:'FINALIZADO'}]}});
   assert.equal(records.length,history.records.length+1);
-  assert.deepEqual(records.at(-1).protocols,['NICE-2026-00091','NICE-2026-00092']);
-  assert.deepEqual(records.at(-1).closed_protocols,['NICE-2026-00092']);
+  assert.deepEqual(records.at(-1).protocols,['NICE-2099-90001','NICE-2099-90002']);
+  assert.deepEqual(records.at(-1).closed_protocols,['NICE-2099-90002']);
 });
 test('novo identificador de uma origem conhecida se vincula ao histórico',()=>{
-  const extra={...live.projects.projects[0],id:'NICE-2026-00091'};
+  const extra={...live.projects.projects[0],id:'NICE-2099-90001'};
   assert.equal(M.merge(history,{projects:{projects:[extra,...live.projects.projects]}}).length,history.records.length);
 });
 test('filtros combinam campus curso e ano',()=>{
@@ -40,6 +40,17 @@ test('normalização preserva novos cursos e rejeita Sim e Não como municípios
   assert.deepEqual(M.courses('Biomedicina'),['Biomedicina']);
   assert.deepEqual(M.courses('Engenharia Mecânica'),['Engenharia Mecânica']);
   assert.equal(M.unit('Não'),'Unidade não identificada');assert.equal(M.unit('Sim'),'Unidade não identificada');
+});
+test('importação com unidade ausente preserva o contexto territorial já reconciliado',()=>{
+  const h={records:[{id:'ACAO-1',courses:['Farmácia'],unit:'EaD e polos sem município',ods:[],protocols:['NICE-2025-00001'],closed_protocols:[]}]};
+  const r=M.merge(h,{projects:{projects:[{id:'NICE-2025-00001',curso:'Farmácia',unidade:'',data_protocolo:'2025-09-01'}]}});
+  assert.equal(r.length,1);assert.equal(r[0].unit,'EaD e polos sem município');
+});
+test('título lançado como curso no formulário antigo não cria categoria de curso no relatório',()=>{
+  const h={records:[{id:'ACAO-1',courses:['Curso não padronizado'],unit:'Unidade não identificada',ods:[],protocols:['NICE-2025-00001'],closed_protocols:[]}]};
+  const project={id:'NICE-2025-00001',curso:'Calendário Nacional de Vacinação',data_protocolo:'2025-09-01'};
+  assert.deepEqual(M.merge(h,{projects:{projects:[project]}})[0].courses,['Curso não padronizado']);
+  assert.deepEqual(M.merge(h,{projects:{projects:[{...project,curso:'Enfermagem'}]}})[0].courses,['Enfermagem']);
 });
 test('ODS e correlação tratam dados ausentes e variância nula',()=>{
   assert.deepEqual(M.ods({ods:'ODS 3; ODS 4'}),[3,4]);

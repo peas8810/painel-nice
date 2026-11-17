@@ -49,7 +49,15 @@
         row={id:p.id,year:year(p.data_protocolo),courses:courses(p.curso),unit:unit(p.unidade),type:clean(p.titulo),ods:ods(p),expected:null,protocols:[],closed_protocols:[],placeholder:false,states:{},titles:[],live:true};
         records.push(row);
       }
-      row.live=true;if(!row.placeholder)row.courses=courses(p.curso);row.unit=unit(p.unidade);row.year=year(p.data_protocolo)||row.year;
+      row.live=true;
+      const incomingCourses=courses(p.curso);
+      // Legacy form fields sometimes contain an event name instead of a course.
+      // Keep the reconciled category until an identifiable course is provided.
+      const unclassifiedHistory=/^ACAO-/.test(row.id)&&row.courses.some(c=>['Curso não padronizado','Institucional e multicursos','Curso não identificado'].includes(c));
+      if(!row.placeholder&&(!unclassifiedHistory||incomingCourses.every(c=>Object.hasOwn(aliases,c))))row.courses=incomingCourses;
+      const incomingUnit=unit(p.unidade);
+      if(incomingUnit!=='Unidade não identificada'||!row.unit)row.unit=incomingUnit;
+      row.year=year(p.data_protocolo)||row.year;
       row.protocols=[...new Set([...row.protocols,p.id])];row.states[p.id]=p.status||'PROTOCOLADO';
       row.closed_protocols=row.closed_protocols.filter(id=>id!==p.id);
       if(p.status==='FINALIZADO')row.closed_protocols.push(p.id);
