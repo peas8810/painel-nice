@@ -39,7 +39,7 @@
 #student-view #academy-chat .chat-file-label span{font-size:22px;line-height:1;color:#227889}
 #student-view #academy-chat #chat-file{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;border:0!important;opacity:0!important;overflow:hidden!important;clip-path:inset(50%);pointer-events:none}
 #student-view #academy-chat #chat-file-hint{font-size:13px!important;color:#657b88!important;overflow-wrap:anywhere;flex:1 1 130px}
-#student-view #academy-chat #chat-send{display:inline-flex;align-items:center;justify-content:center;gap:12px;min-height:49px;border:1px solid #15384a;border-radius:10px;background:#173849!important;color:#fff!important;padding:11px 20px;font:700 16px inherit;letter-spacing:0;cursor:pointer;margin-left:auto;white-space:nowrap}
+#student-view #academy-chat #chat-send{display:inline-flex;align-items:center;justify-content:center;gap:12px;min-height:49px;border:1px solid #15384a;border-radius:10px;background:#173849!important;color:#fff!important;padding:11px 20px;font-family:inherit;font-size:16px!important;font-weight:700;letter-spacing:0;cursor:pointer;margin-left:auto;white-space:nowrap}
 #student-view #academy-chat #chat-send:hover:not(:disabled){background:#0c4e65!important}
 #student-view #academy-chat #chat-send span{color:inherit!important}
 #student-view #academy-chat #chat-status{min-height:0;margin:0;padding:0 22px;color:#9b3c25!important;font-size:14px!important}
