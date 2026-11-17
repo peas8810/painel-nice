@@ -249,35 +249,69 @@ $('notification-preferences').addEventListener('submit',async e=>{
  const {error}=await db.from('academy_notification_preferences').upsert(payload,{onConflict:'user_id'});
  message('notify-preferences-status',error?'Não foi possível salvar: '+error.message:'Preferências salvas. O WhatsApp depende de ativação da API oficial.');
 });
-let refreshTicket=0,identityLoaded=false,lastLoadedUserId=null;
+let refreshTicket=0,lastLoadedUserId=null,authRecoveryRetry=0;
+const authTimeout=(promise,ms=11000)=>Promise.race([promise,new Promise((_,reject)=>setTimeout(()=>reject(new Error('AUTH_TIMEOUT')),ms))]);
+function showAuthRecovery(reason){
+ display('loading-view',false);
+ display('student-view',false);
+ display('visitor-view',true);
+ authTab('login');
+ message('login-status',reason||'Não foi possível recuperar sua sessão. Entre novamente ou tente reconectar.');
+ let button=$('academy-auth-retry');
+ if(!button){button=document.createElement('button');button.type='button';button.id='academy-auth-retry';button.className='plain-action';button.textContent='Tentar reconectar';$('login-status').insertAdjacentElement('afterend',button);}
+ button.hidden=false;button.disabled=false;
+ button.onclick=async()=>{button.disabled=true;message('login-status','Verificando conexão…');await refresh();button.disabled=false};
+}
 async function refresh({explicitSignOut=false}={}){
  const ticket=++refreshTicket;
  if(explicitSignOut){
-   currentUser=null;lastLoadedUserId=null;identityLoaded=true;currentRevision++;
-   display('loading-view',false);display('visitor-view',true);display('student-view',false);
-   resetEdit();$('tracking').replaceChildren();$('student-email').textContent='';
-   return;
+  currentUser=null;lastLoadedUserId=null;currentRevision++;
+  display('loading-view',false);display('visitor-view',true);display('student-view',false);
+  resetEdit();$('tracking').replaceChildren();$('student-email').textContent='';
+  return;
  }
- let data,error;
- try{({data,error}=await db.auth.getUser())}catch(e){error=e;data=null}
+ let user=null,authError=null;
+ try{
+  const {data,error}=await authTimeout(db.auth.getUser());
+  if(error)authError=error;else user=data?.user||null;
+ }catch(e){authError=e}
  if(ticket!==refreshTicket)return;
- if(error){
-   // A transient authentication/network error must never look like an explicit logout.
-   if(currentUser){display('loading-view',false);display('visitor-view',false);display('student-view',true);}
-   else{display('loading-view',true);message('login-status','Conexão temporariamente indisponível. Atualize a página para tentar novamente.');$('loading-view').querySelector('h2').textContent='Reconectando ao Academy…';}
+ if(authError){
+  // A remote session validation failure must not strand the application on a spinner.
+  // Reuse an already validated user only for rendering; all data remains protected by RLS.
+  if(currentUser){
+   display('loading-view',false);display('visitor-view',false);display('student-view',true);
+   message('request-status','A conexão está instável. Seus dados permanecem protegidos. Tente atualizar seus pedidos.');
    return;
+  }
+  // If the browser still holds a session, try once to restore it; backend RLS remains authoritative.
+  let saved=null;
+  try{const {data}=await authTimeout(db.auth.getSession(),4500);saved=data?.session?.user||null}catch{}
+  if(ticket!==refreshTicket)return;
+  if(saved?.id){
+   currentUser=saved;
+   display('loading-view',false);display('visitor-view',false);display('student-view',true);
+   $('student-email').textContent='Conectado como '+(saved.email||'aluno');
+   message('request-status','Verificando conexão com o Academy…');
+   await Promise.allSettled([listRequests(),loadActivityTypes(),loadNotificationPreferences()]);
+   if(ticket===refreshTicket&&!authRecoveryRetry){authRecoveryRetry=1;setTimeout(()=>refresh(),2200);}
+   return;
+  }
+  showAuthRecovery('Não foi possível confirmar sua conexão com o Academy. Clique em “Tentar reconectar” ou entre novamente.');
+  return;
  }
- const user=data?.user||null;
+ authRecoveryRetry=0;
  if(!user){
-   currentUser=null;lastLoadedUserId=null;identityLoaded=true;currentRevision++;
-   display('loading-view',false);display('visitor-view',true);display('student-view',false);
-   resetEdit();$('tracking').replaceChildren();$('student-email').textContent='';
-   return;
+  currentUser=null;lastLoadedUserId=null;currentRevision++;
+  display('loading-view',false);display('visitor-view',true);display('student-view',false);
+  resetEdit();$('tracking').replaceChildren();$('student-email').textContent='';
+  return;
  }
  const userChanged=currentUser?.id!==user.id;
- currentUser=user;identityLoaded=true;
+ currentUser=user;
  display('loading-view',false);display('visitor-view',false);display('student-view',true);
  $('student-email').textContent='Conectado como '+user.email;
+ const retry=$('academy-auth-retry');if(retry)retry.hidden=true;
  if(!userChanged&&lastLoadedUserId===user.id)return;
  lastLoadedUserId=user.id;
  await Promise.allSettled([listRequests(),loadActivityTypes(),loadNotificationPreferences()]);
