@@ -52,7 +52,7 @@
     projectRows();
     const params=new URLSearchParams();Object.entries(f).forEach(([k,v])=>{if(v)params.set(k,v);});
     window.history.replaceState(null,'',location.pathname+(params.size?'?'+params:''));
-    snapshot={filters:{...f},records:selected,summary,history,updatedAt:live?.synced_at||null,warning:$('warning').hidden?'':$('warning').textContent};
+    snapshot={filters:{...f},records:selected,comparisonRecords:M.filter(records,{unit:f.unit,year:f.year}),summary,history,updatedAt:live?.synced_at||null,warning:$('warning').hidden?'':$('warning').textContent};
     $('pdf').disabled=!selected.length||loading;$('dashboard').setAttribute('aria-busy','false');
   }
   async function fetchJSON(url){const response=await fetch(url+(url.includes('?')?'&':'?')+'v='+Date.now(),{cache:'no-store'});if(!response.ok)throw Error('Não foi possível atualizar a fonte.');const data=await response.json();if(data.ok===false)throw Error('A fonte informou uma falha.');return data;}
@@ -80,9 +80,10 @@
   $('clear').onclick=()=>{['unit','course','year'].forEach(id=>$(id).value='');page=0;populate();render();};$('refresh').onclick=load;
   $('previous').onclick=()=>{page--;projectRows();};$('next').onclick=()=>{page++;projectRows();};
   $('pdf').onclick=async()=>{
-    if(!snapshot)return;const current=snapshot;$('pdf').disabled=true;$('exportStatus').textContent='Preparando o PDF com todos os registros do recorte…';
+    if(!snapshot)return;const current=snapshot;$('pdf').disabled=true;$('exportStatus').textContent='Preparando a análise contextual, as comparações por curso e os textos de cada ação. Recortes grandes podem levar alguns instantes…';
     try{
-      if(!window.NiceCoursePDF||!window.PDFLib)throw Error('O gerador de PDF ainda está carregando. Tente novamente.');
+      if(!window.NiceCoursePDF||!window.PDFLib||!window.NiceCourseNarrative)throw Error('O gerador de PDF ainda está carregando. Tente novamente.');
+      await new Promise(resolve=>setTimeout(resolve,0));
       const bytes=await window.NiceCoursePDF.build(current),blob=new Blob([bytes],{type:'application/pdf'}),url=URL.createObjectURL(blob),a=document.createElement('a');
       const filename='Relatorio_NICE_'+(current.filters.course||'Geral')+'_'+(current.filters.unit||'Todas_unidades');
       a.href=url;a.download=filename.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-zA-Z0-9_-]/g,'_')+'.pdf';a.click();setTimeout(()=>URL.revokeObjectURL(url),60000);

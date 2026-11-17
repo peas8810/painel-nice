@@ -1,7 +1,7 @@
 (function(root){
   'use strict';
   async function build(snapshot){
-    const {PDFDocument,StandardFonts,rgb}=root.PDFLib,M=root.NiceCourseReports;
+    const {PDFDocument,StandardFonts,rgb}=root.PDFLib,M=root.NiceCourseReports,N=root.NiceCourseNarrative;
     const pdf=await PDFDocument.create(),font=await pdf.embedFont(StandardFonts.Helvetica),bold=await pdf.embedFont(StandardFonts.HelveticaBold);
     const W=595.28,H=841.89,margin=43,width=W-2*margin,navy=rgb(.09,.21,.36),gray=rgb(.35,.41,.47),pale=rgb(.95,.97,.98),line=rgb(.85,.89,.92);
     let page,y;
@@ -9,6 +9,7 @@
     function newPage(title){page=pdf.addPage([W,H]);y=H-margin;if(title)heading(title);}
     function ensure(height){if(y-height<margin+22)newPage();}
     function lines(text,size,maxWidth,face=font){
+      maxWidth=Math.max(1,maxWidth-8);
       const result=[];
       for(const paragraph of clean(text).split('\n')){
         let current='';
@@ -55,11 +56,23 @@
     ],[175,75,width-250]);
     text('O público previsto representa planejamento e pode conter as mesmas pessoas em ações diferentes. Resultados comunitários dependem de evidências de execução e medidas antes e depois da intervenção. ND indica dado ausente ou insuficiente.');
     section('Escopo documental');text('O histórico foi reconciliado a partir das planilhas originais. Protocolos associados à mesma formalização são agrupados. Registros históricos sem vínculo NICE mantêm um identificador analítico. Os registros com indício de teste e os campos sem identificação conservam sua sinalização para revisão.');
+    newPage('Análise contextual do portfólio');
+    N.introduction(snapshot).forEach(paragraph=>text(paragraph));
     newPage('Distribuição das ações');
     section('Por campus ou unidade');table(['Campus ou unidade','Registros'],s.units.map(([name,n])=>[name,F.format(n)]),[width-90,90]);
     section('Por curso');table(['Curso','Registros'],s.courses.map(([name,n])=>[name,F.format(n)]),[width-90,90]);
     text('Ações multicursos são atribuídas a cada curso explicitamente citado. A soma das linhas por curso pode superar o total institucional.');
     section('Evolução anual');table(['Ano','Registros'],s.years.map(([name,n])=>[name,F.format(n)]),[width-90,90]);
+    const comparison=snapshot.comparisonRecords||r,courseNames=N.courseNames(snapshot);
+    newPage('Comparação estatística dos cursos');
+    text('A referência comparativa mantém campus/unidade e ano selecionados e inclui todos os cursos. Ações compartilhadas pertencem a mais de um curso. Percentuais de presença utilizam formalizações distintas como denominador; não somam necessariamente 100%. Encerramento é administrativo e público é planejado.');
+    const courseStats=M.summarize(comparison).courses.map(([course])=>N.statistics(course,comparison));
+    table(['Curso','Registros / presença','Finalizadas / taxa','Estimativa: n / cobertura','Mediana prevista'],courseStats.map(c=>[c.course,F.format(c.s.total)+' / '+N.pct(c.s.total,comparison.length),F.format(c.s.closed)+' / '+N.pct(c.s.closed,c.s.total),F.format(c.s.expectedN)+' / '+N.pct(c.s.expectedN,c.s.total),c.median===null?'ND':N.number(c.median)]),[145,90,90,100,width-425]);
+    text('A mediana considera somente registros com estimativa válida. Diferenças de volume e cobertura não demonstram superioridade de um curso; faltam denominadores como alunos matriculados, carga horária e recursos empregados.');
+    for(const course of courseNames){
+      newPage('Análise do curso: '+course);
+      N.courseAnalysis(course,snapshot).forEach(paragraph=>text(paragraph));
+    }
     newPage('Contribuição temática às ODS');
     text('A associação às ODS utiliza os temas do histórico reconciliado e os dados dos protocolos atuais. A classificação temática sugerida ou informada necessita validação institucional. O catálogo de metas orienta a escolha de indicadores locais.');
     table(['ODS','Registros','Metas de referência'],s.ods.map(([n,count])=>['ODS '+n+' - '+h.labels[n],F.format(count),h.targets[n]||'Validar meta']),[320,65,width-385]);
@@ -92,21 +105,26 @@
     table(['Variável',...features.map(v=>v[0])],features.map(([name,left])=>[name,...features.map(([,right])=>{const c=M.spearman(r,left,right);return (c.value===null?'ND':c.value.toFixed(2))+' (n='+c.n+')';})]),[140,...Array(3).fill((width-140)/3)]);
     text('O tamanho da amostra válida aparece em cada par. ND indica dados insuficientes ou ausência de variação. Associações entre características de cadastro são exploratórias e podem refletir o próprio preenchimento dos formulários.');
     section('Ganhos comunitários a aferir');table(['Relação','Situação'],[['Ações e ganho educacional','ND - medidas pareadas de resultado pendentes'],['Ações e ganho em saúde','ND - medidas pareadas de resultado pendentes'],['Ações e ganho econômico','ND - medidas pareadas de resultado pendentes']],[250,width-250]);
-    newPage('Ações com vínculo NICE');
-    text('Todas as formalizações com protocolos do recorte estão incluídas abaixo, independentemente da paginação exibida no dashboard. Os vários identificadores de uma formalização aparecem no mesmo registro.');
-    const linked=r.filter(v=>v.protocols.length);
-    if(!linked.length)text('Nenhuma formalização com vínculo NICE neste recorte.');
-    for(const row of linked){
-      ensure(125);section(row.titles.join(' / ')||row.type||row.id);
-      text(row.id+' | '+row.protocols.join(', ')+'\n'+row.courses.join(', ')+' | '+row.unit+' | '+(row.year||'Sem data'),{size:9});
-      text('ODS associadas: '+(row.ods.join(', ')||'ND')+'. Público previsto: '+(Number.isFinite(row.expected)?F.format(row.expected):'ND')+'.');
-      text('Situação: '+row.protocols.map(id=>id+' '+(row.states[id]|| (row.closed_protocols.includes(id)?'FINALIZADO':'situação anterior'))).join('; '),{size:9});
-      if(row.placeholder)text('Registro com indício de teste. Revisão cadastral necessária.');
+    newPage('Análise individual de cada ação');
+    text('Este capítulo descreve todas as formalizações do recorte, inclusive as históricas sem vínculo NICE. Cada origem aparece uma única vez, mesmo quando envolve vários cursos ou protocolos. A análise utiliza os campos estruturados disponíveis: não substitui a leitura dos anexos, não comprova execução e não infere ganhos a partir do simples protocolo.');
+    let actionIndex=0;
+    const courseGroups=new Map(M.summarize(r).courses.map(([name])=>[name,r.filter(v=>v.courses.includes(name))]));
+    for(const row of r){
+      ensure(140);section(row.id+' - '+(row.titles.join(' / ')||row.type||'Ação sem título informado'));
+      if(row.protocols.length)text('Vínculos: '+row.protocols.map(id=>id+' '+(row.states[id]|| (row.closed_protocols.includes(id)?'FINALIZADO':'situação anterior'))).join('; '),{size:9});
+      const comparisonCourse=f.course||row.courses[0];
+      N.actionAnalysis(row,courseGroups.get(comparisonCourse)||[],h,comparisonCourse).forEach(paragraph=>text(paragraph,{size:9.5}));
+      // Yield during large exports so the page can continue responding.
+      if(++actionIndex%100===0)await new Promise(resolve=>setTimeout(resolve,0));
     }
     newPage('Rastreabilidade de todos os registros');
     text('A relação a seguir inclui o histórico e os protocolos atuais do recorte. Os identificadores ACAO referem-se à reconciliação histórica de 17/11/2026. Os novos registros usam o identificador NICE.');
     table(['Registro','Ano','Curso','Campus / unidade','ODS'],r.map(v=>[v.id,String(v.year||'ND'),v.courses.join(', '),v.unit,v.ods.join(', ')||'ND']),[95,35,145,150,width-425]);
     newPage('Recomendações e referências');
+    section('Conclusão interpretativa');
+    text(`O conjunto analisado permite reconhecer a presença documentada da extensão em ${F.format(s.total)} formalizações e identificar a contribuição potencial dos cursos por suas áreas de atuação e associações temáticas. A comparação estatística explicita diferenças de volume, cobertura e articulação. Os ganhos comprováveis nesta fonte dizem respeito à organização e à rastreabilidade do acervo; os ganhos comunitários específicos requerem evidências de execução e medidas de resultado, descritas nos capítulos individuais. A próxima etapa é transformar o potencial identificado em uma avaliação longitudinal que permita acompanhar mudanças na comunidade.`);
+    section('Critérios da análise narrativa');
+    text('Os textos são gerados automaticamente por regras transparentes a partir do recorte, das estatísticas calculadas, da área de formação e das ODS disponíveis. O contexto usa categorias controladas extraídas das descrições históricas e dos temas atuais, sem publicar os textos originais ou contatos. As menções temáticas, de formato e de público requerem validação; não confirmam execução. Não há leitura automática dos anexos nesta versão. A mediana usa a posição central das estimativas válidas; a taxa de finalização divide formalizações com alguma finalização pelo total do curso; a presença divide registros do curso pela base comparativa. Jaccard divide a interseção pela união dos acervos dos cursos. Spearman usa postos com tratamento de empates e exclusão de pares ausentes. Não são calculados testes de significância, intervalos de confiança ou efeitos causais. Os índices municipais têm referência em 2010 e não são utilizados como medida de ganho atribuível às ações.');
     text('Definir indicadores específicos por projeto, coletar uma linha de base e acompanhar os resultados após a ação. Registrar participantes únicos, participações, custos efetivos e devolutiva da comunidade. Validar as associações às ODS e as evidências antes da publicação de conclusões sobre benefícios.');
     text('Fonte institucional. Histórico reconciliado das planilhas NICE e fonte pública de protocolos sincronizados. A versão do histórico é '+h.as_of+'. A data da fonte atual consta na abertura deste relatório.');
     text('ONU - Objetivos de Desenvolvimento Sustentável\nhttps://sdgs.un.org/goals\nONU - Metadados dos indicadores\nhttps://unstats.un.org/sdgs/metadata/\nPNUD - IDHM municipal de 2010\nhttps://www.undp.org/pt/brazil/idhm-municipios-2010');

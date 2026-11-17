@@ -24,6 +24,7 @@ jobs:
           node --check protocolos/app.js
           node --check protocolos/config.js
           node --check protocolos/relatorios/model.js
+          node --check protocolos/relatorios/narrative.js
           node --check protocolos/relatorios/app.js
           node --check protocolos/relatorios/pdf.js
           node --test tests/course-reports.test.cjs
