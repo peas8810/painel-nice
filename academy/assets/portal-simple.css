@@ -179,3 +179,11 @@ body:has(#student-view:not([hidden]))>header{display:none}body:has(#student-view
 #student-view .academy-certificate-preview-links a:first-child{background:#0b6d60;color:#fff!important;border-color:#0b6d60}
 #student-view .academy-certificate-preview iframe{display:block;width:100%;min-height:560px;height:min(80vh,720px);border:1px solid #c9d8da;border-radius:9px;background:white}
 @media(max-width:700px){#student-view .academy-certificate-preview{padding:11px}#student-view .academy-certificate-preview iframe{min-height:420px;height:65vh}#student-view .academy-certificate-preview-links a{width:100%}}
+
+
+/* Issued certificate: download remains available when iframe preview is unsupported. */
+#student-view .request-item>.academy-download-direct{background:#0b766b!important;border-color:#0b766b!important;color:#fff!important;margin:12px 0 8px!important}
+#student-view .request-item>.academy-certificate-main:not(.academy-download-direct){background:#fff!important;color:#125f60!important;border-color:#9bcac7!important;margin:6px 0!important}
+#student-view .academy-certificate-preview-links .academy-pdf-download{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:10px 16px;font-size:15px;font-weight:700;background:#0c766a;color:#fff;border:1px solid #0c766a;border-radius:10px;cursor:pointer}
+#student-view .academy-certificate-download-error{border:1px solid #e8b9ab;background:#fff6f3;color:#8f3322;padding:12px 14px;border-radius:10px;font-size:14px;overflow-wrap:anywhere}
+@media(max-width:700px){#student-view .academy-certificate-preview-links .academy-pdf-download{width:100%}}
