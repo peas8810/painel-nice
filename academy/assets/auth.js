@@ -78,10 +78,12 @@ function attachPixPayment(card,item,pay){
  const note=document.createElement('p');note.textContent='Pagamento em homologação. Não envie Pix real. Use apenas os dados de teste do Mercado Pago.';inner.append(note);
  const field=document.createElement('label');field.textContent='CPF do pagador (somente para gerar o código de teste)';
  const cpf=document.createElement('input');cpf.type='text';cpf.inputMode='numeric';cpf.autocomplete='off';cpf.maxLength=14;cpf.placeholder='000.000.000-00';cpf.setAttribute('aria-label','CPF do pagador para Pix de teste');field.append(cpf);inner.append(field);
+ const testField=document.createElement('label');testField.textContent='E-mail da conta compradora de teste do Mercado Pago';
+ const testEmail=document.createElement('input');testEmail.type='email';testEmail.autocomplete='off';testEmail.placeholder='Comprador de teste (@testuser.com)';testEmail.setAttribute('aria-label','E-mail de comprador de teste do Mercado Pago');testField.append(testEmail);inner.append(testField);
  const go=document.createElement('button');go.type='button';go.className='primary';go.textContent='Gerar ou recuperar Pix';inner.append(go);
  const result=document.createElement('div');result.className='academy-pix-result';result.setAttribute('role','status');result.setAttribute('aria-live','polite');inner.append(result);
  const check=document.createElement('button');check.type='button';check.className='plain-action';check.textContent='Já paguei? Verificar situação';inner.append(check);
- const invoke=async(body)=>{const {data,error}=await db.functions.invoke('academy-pix',{body:{request_id:item.id,...body}});if(error||data?.error){let msg=data?.message||data?.error||error?.message||'Pix indisponível';if(error?.context){try{const d=await error.context.json();msg=d.message||d.error||msg;if(d.provider_status)msg+=' (HTTP '+d.provider_status+')'}catch{}}throw Error(msg)}return data};
+ const invoke=async(body)=>{const {data,error}=await db.functions.invoke('academy-pix',{body:{request_id:item.id,...body}});if(error||data?.error){let msg=data?.message||data?.error||error?.message||'Pix indisponível';if(error?.context){try{const d=await error.context.json();msg=d.message||d.error||msg;if(d.provider_status)msg+=' (HTTP '+d.provider_status+')';if(d.provider_error_code)msg+=' · '+d.provider_error_code;if(Array.isArray(d.cause_codes)&&d.cause_codes.length)msg+=' · códigos: '+d.cause_codes.join(', ')}catch{}}throw Error(msg)}return data};
  const paint=data=>{
    result.replaceChildren();
    if(!data.qr_code&&!data.ticket_url){result.textContent='Pix criado, mas os dados do pagamento não estão disponíveis.';return}
@@ -93,7 +95,7 @@ function attachPixPayment(card,item,pay){
  };
  go.onclick=async()=>{
    go.disabled=true;go.textContent='Preparando Pix…';result.textContent='Consultando o Mercado Pago…';
-   try{const data=await invoke({action:'create',cpf:cpf.value});paint(data);cpf.value=''}
+   try{const data=await invoke({action:'create',cpf:cpf.value,test_payer_email:testEmail.value.trim()});paint(data);cpf.value='';testEmail.value=''}
    catch(e){result.textContent=e.message}
    finally{go.disabled=false;go.textContent='Gerar ou recuperar Pix'}
  };
