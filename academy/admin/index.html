@@ -142,6 +142,7 @@ async function manualPixInvoke(data){
  return result;
 }
 let academyOcrLoader=null;
+const academyOcrAutoSeen=new Set();
 async function academyLoadOcr(){
  if(window.Tesseract?.recognize)return window.Tesseract;
  if(!academyOcrLoader)academyOcrLoader=new Promise((resolve,reject)=>{
@@ -237,6 +238,11 @@ async function loadManualPix(){
    const ocrResult=document.createElement('div');ocrResult.className='academy-ocr-result';ocrResult.setAttribute('aria-live','polite');
    ocrButton.onclick=async()=>{ocrButton.disabled=true;ocrButton.textContent='Analisando…';try{await academyRunReceiptOcr(r,ocrResult)}finally{ocrButton.disabled=false;ocrButton.textContent='Ler comprovante com OCR'}};
    card.append(ocrButton,ocrResult);
+   if(r.status==='PENDENTE'&&!academyOcrAutoSeen.has(r.id)){
+    academyOcrAutoSeen.add(r.id);
+    ocrResult.textContent='Pré-análise OCR automática em preparação…';
+    setTimeout(()=>academyRunReceiptOcr(r,ocrResult),250);
+   }
    if(r.status==='CONFIRMADO'){
     const certificate=certificates.get(r.request_id);
     const ready=certificate?.status==='EMITIDO'&&!!certificate?.pdf_path;
