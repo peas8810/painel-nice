@@ -92,8 +92,17 @@ async function refreshOverview(){
  }
  if(!count)el.textContent='Veja a situação dos seus pedidos abaixo. A equipe pode pedir outros documentos durante a análise.';
  const wallet=$('certificate-list');wallet.replaceChildren();const issued=certs.filter(c=>c.status==='EMITIDO'&&c.pdf_path&&requests.some(r=>r.id===c.request_id));
- if(!issued.length)wallet.textContent='Quando seu certificado estiver pronto, ele aparecerá aqui para você baixar.';
- for(const c of issued){const row=document.createElement('article');row.className='request-item';const label=document.createElement('strong');label.textContent='Certificado · '+(c.certificate_code||c.request_id);const dl=document.createElement('button');dl.type='button';dl.className='plain-action';dl.textContent='Baixar PDF';dl.onclick=async()=>{const {data,error}=await db.storage.from('academy-certificados').createSignedUrl(c.pdf_path,60);if(error){alert('Não foi possível abrir o certificado: '+error.message);return}window.open(data.signedUrl,'_blank','noopener,noreferrer')};const verify=document.createElement('a');verify.href='../validar/?codigo='+encodeURIComponent(c.certificate_code);verify.textContent='Conferir se o certificado é válido';verify.target='_blank';verify.rel='noopener noreferrer';row.append(label,dl,verify);wallet.append(row)}
+ const awaiting=certs.filter(c=>c.status==='PENDENTE_EMISSAO'&&requests.some(r=>r.id===c.request_id));
+ if(!issued.length&&!awaiting.length)wallet.textContent='Quando seu certificado estiver pronto, ele aparecerá aqui para você baixar.';
+ for(const c of awaiting){
+   const request=requests.find(r=>r.id===c.request_id);
+   const card=document.createElement('article');card.className='request-item academy-cert-pending';
+   const heading=document.createElement('strong');heading.textContent='Certificado em preparação — '+(request?.activity||'Protocolo '+c.request_id.slice(0,8));
+   const p=document.createElement('p');p.textContent='O certificado já possui um registro, mas o arquivo PDF ainda não foi emitido. Consulte o pedido para concluir a etapa de emissão.';
+   const button=document.createElement('button');button.type='button';button.textContent='Ver emissão no meu pedido';button.className='plain-action';button.onclick=()=>window.academyOpenSection?.('my-requests');
+   card.append(heading,p,button);wallet.append(card)
+ }
+ for(const c of issued){const row=document.createElement('article');row.className='request-item';const label=document.createElement('strong');label.textContent='Certificado · '+(c.certificate_code||c.request_id);const dl=document.createElement('button');dl.type='button';dl.className='plain-action';dl.textContent='Baixar PDF';dl.onclick=async()=>{const view=window.open('','_blank');if(view){view.document.title='Abrindo certificado';view.document.body.textContent='Preparando PDF seguro…'}const {data,error}=await db.storage.from('academy-certificados').createSignedUrl(c.pdf_path,120);if(error||!data?.signedUrl){if(view)view.close();alert('Não foi possível abrir o certificado: '+(error?.message||'PDF indisponível'));return}if(view)view.location.href=data.signedUrl;else window.location.href=data.signedUrl};const verify=document.createElement('a');verify.href='../validar/?codigo='+encodeURIComponent(c.certificate_code);verify.textContent='Conferir se o certificado é válido';verify.target='_blank';verify.rel='noopener noreferrer';row.append(label,dl,verify);wallet.append(row)}
 }
 window.addEventListener('academy-requests-loaded',refreshOverview);setTimeout(refreshOverview,1400);
 $('camera-upload').onclick=()=>$('camera-file').click();
