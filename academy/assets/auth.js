@@ -100,12 +100,38 @@ $('notification-preferences').addEventListener('submit',async e=>{
  const {error}=await db.from('academy_notification_preferences').upsert(payload,{onConflict:'user_id'});
  message('notify-preferences-status',error?'Não foi possível salvar: '+error.message:'Preferências salvas. O WhatsApp depende de ativação da API oficial.');
 });
-async function refresh(){
- const {data,error}=await db.auth.getUser();
- const user=error?null:data.user;currentUser=user||null;
- display('loading-view',false);display('visitor-view',!user);display('student-view',!!user);
- if(!user)resetEdit();if(user){$('student-email').textContent='Conectado como '+user.email;await Promise.all([listRequests(),loadActivityTypes(),loadNotificationPreferences()])}
- else{currentRevision++;$('tracking').replaceChildren();$('student-email').textContent=''}
+let refreshTicket=0,identityLoaded=false,lastLoadedUserId=null;
+async function refresh({explicitSignOut=false}={}){
+ const ticket=++refreshTicket;
+ if(explicitSignOut){
+   currentUser=null;lastLoadedUserId=null;identityLoaded=true;currentRevision++;
+   display('loading-view',false);display('visitor-view',true);display('student-view',false);
+   resetEdit();$('tracking').replaceChildren();$('student-email').textContent='';
+   return;
+ }
+ let data,error;
+ try{({data,error}=await db.auth.getUser())}catch(e){error=e;data=null}
+ if(ticket!==refreshTicket)return;
+ if(error){
+   // A transient authentication/network error must never look like an explicit logout.
+   if(currentUser){display('loading-view',false);display('visitor-view',false);display('student-view',true);}
+   else{display('loading-view',true);message('login-status','Conexão temporariamente indisponível. Atualize a página para tentar novamente.');$('loading-view').querySelector('h2').textContent='Reconectando ao Academy…';}
+   return;
+ }
+ const user=data?.user||null;
+ if(!user){
+   currentUser=null;lastLoadedUserId=null;identityLoaded=true;currentRevision++;
+   display('loading-view',false);display('visitor-view',true);display('student-view',false);
+   resetEdit();$('tracking').replaceChildren();$('student-email').textContent='';
+   return;
+ }
+ const userChanged=currentUser?.id!==user.id;
+ currentUser=user;identityLoaded=true;
+ display('loading-view',false);display('visitor-view',false);display('student-view',true);
+ $('student-email').textContent='Conectado como '+user.email;
+ if(!userChanged&&lastLoadedUserId===user.id)return;
+ lastLoadedUserId=user.id;
+ await Promise.allSettled([listRequests(),loadActivityTypes(),loadNotificationPreferences()]);
 }
 $('register').addEventListener('submit',async e=>{e.preventDefault();const form=e.currentTarget;if(!form.reportValidity())return;const full_name=$('name').value.trim(),email=$('email').value.trim(),password=$('password').value;
  if(full_name.length<3||password.length<12){message('registration-status','Informe nome e senha de pelo menos 12 caracteres.');return}
@@ -181,6 +207,11 @@ $('request').addEventListener('submit',async e=>{e.preventDefault();if(!e.curren
  const outcome=error?(isEditing?'Não foi possível salvar: ':'Não conseguimos enviar seu pedido: ')+error.message:(isEditing?'Dados corrigidos. A equipe vai conferir seu pedido novamente.':'Pedido recebido. Agora envie as fotos e os documentos para a equipe conferir.');
  if(!error){resetEdit();await listRequests();window.dispatchEvent(new Event('academy-request-saved'))}message('request-status',outcome);
 });
-db.auth.onAuthStateChange(event=>{if(event==='PASSWORD_RECOVERY'){display('student-view',false);display('visitor-view',true);authTab('login');display('academy-new-password',true);message('login-status','Defina sua nova senha abaixo.')}else if(event==='SIGNED_IN'||event==='SIGNED_OUT'||event==='TOKEN_REFRESHED')setTimeout(refresh,0)});
+db.auth.onAuthStateChange(event=>{
+ if(event==='PASSWORD_RECOVERY'){display('student-view',false);display('visitor-view',true);authTab('login');display('academy-new-password',true);message('login-status','Defina sua nova senha abaixo.');return}
+ if(event==='SIGNED_OUT'){setTimeout(()=>refresh({explicitSignOut:true}),0);return}
+ if(event==='SIGNED_IN'){setTimeout(()=>refresh(),0)}
+ // TOKEN_REFRESHED and INITIAL_SESSION must not reset the visible page or refetch every form.
+});
 await refresh();
 })();
