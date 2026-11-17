@@ -114,3 +114,26 @@ body:has(#student-view:not([hidden]))>header{display:none}body:has(#student-view
 #student-view .academy-pix-result a{color:#08736a!important;font-weight:700;text-decoration:underline}
 #student-view .academy-pix-result button{background:white;color:#086b60;border:1px solid #93c5b9;border-radius:9px;min-height:42px;padding:8px 13px;align-self:flex-start;font:inherit;cursor:pointer}
 @media(max-width:600px){#student-view .academy-pix-inner>button{width:100%}#student-view .academy-pix-panel>summary{font-size:15px!important;padding:12px}}
+
+
+/* Simple company Pix + prominent Mercado Pago action */
+#student-view .request-item>.academy-pay-main{display:flex!important;align-items:center;justify-content:center;width:100%;min-height:58px;padding:14px 18px!important;background:#173849!important;border:1px solid #173849!important;color:#fff!important;font-size:18px!important;font-weight:750!important;border-radius:12px!important;text-decoration:none!important;text-align:center;box-shadow:0 4px 12px rgba(14,53,72,.13)!important}
+#student-view .request-item>.academy-pay-main:hover{background:#0d556e!important;color:#fff!important}
+#student-view .academy-pix-manual{margin:4px 0!important;border-color:#a8d9d0!important}
+#student-view .academy-pix-manual summary{font-size:16px!important}
+#student-view .academy-pix-payment-info{display:flex;flex-direction:column;align-items:flex-start;gap:5px;margin:10px 0 15px}
+#student-view .academy-pix-payment-info>strong{font-size:26px!important;color:#125f52!important}
+#student-view .academy-pix-payment-info p{font-size:16px!important;font-weight:700!important;margin:3px 0!important}
+#student-view .academy-pix-payment-info small{font-size:13px!important;color:#5b7078!important}
+#student-view .academy-pix-qr{width:fit-content;max-width:100%;min-height:220px;margin:18px 0;padding:13px;background:white;border:1px solid #d4e5e3;border-radius:13px}
+#student-view .academy-pix-qr :is(img,canvas){max-width:100%;height:auto}
+#student-view .academy-pix-qr textarea{width:270px;max-width:100%;min-height:135px}
+#student-view .academy-pix-copy-actions{display:flex;gap:9px;flex-wrap:wrap;margin:12px 0}
+#student-view .academy-pix-copy-actions button{min-height:45px;border-radius:10px;border:1px solid #a0cfc6;background:#f1faf7;color:#105f54;padding:11px 15px;font:700 15px inherit;cursor:pointer}
+#student-view .academy-pix-receipt{margin:20px 0 0;padding:18px;border:1px solid #d9e6e7;border-radius:12px;background:#f7fbfc}
+#student-view .academy-pix-receipt>strong{font-size:17px!important}
+#student-view .academy-pix-receipt>p{font-size:14px!important;margin:8px 0!important;color:#526c77!important}
+#student-view .academy-pix-receipt input[type=file]{display:block!important;width:100%;max-width:100%;height:auto;min-height:46px;border:1px solid #c5d9df;border-radius:8px;padding:9px;font-size:14px!important;background:#fff}
+#student-view .academy-pix-receipt button{display:block;margin:12px 0 0;min-height:46px;border:1px solid #0c7769;border-radius:10px;background:#0c7769!important;color:#fff!important;font-size:15px!important;font-weight:700!important;padding:10px 16px;cursor:pointer}
+#student-view .academy-pix-upload-status{font-size:14px!important;color:#275468!important;margin:10px 0 0!important}
+@media(max-width:600px){#student-view .academy-pix-copy-actions button{width:100%}#student-view .academy-pix-qr{margin-inline:auto}#student-view .request-item>.academy-pay-main{font-size:16px!important}}
