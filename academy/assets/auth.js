@@ -66,10 +66,18 @@ async function listRequests(){
  card.append(timeline);
  if(pay.payment_status==='PAGO_CONFIRMADO'&&cert?.status==='PENDENTE_EMISSAO'){const notice=document.createElement('div');notice.className='academy-cert-pending';const h=document.createElement('strong');h.textContent='Pagamento confirmado. Certificado aguardando emissão.';const sub=document.createElement('p');sub.textContent='A equipe está finalizando o arquivo PDF. Você não precisa pagar novamente.';const button=document.createElement('button');button.type='button';button.className='primary';button.textContent='Gerar e visualizar meu certificado';button.onclick=async()=>{
    button.disabled=true;button.textContent='Gerando certificado…';
+   const viewer=window.open('','_blank');
+   if(viewer){viewer.document.title='Certificado Academy';viewer.document.body.textContent='Preparando certificado…'}
    try{const {data,error}=await db.functions.invoke('academy-issue-certificate',{body:{request_id:item.id}});
-    if(error||data?.error||!data?.issued){let detail=data?.error||error?.message||'Não foi possível emitir';if(error?.context){try{const e=await error.context.json();detail=e.error||detail}catch{}}sub.textContent='Emissão ainda indisponível: '+detail+'. A equipe poderá concluir pelo painel administrativo.';return}
-    sub.textContent='Certificado preparado. Abrindo o acesso ao PDF…';await listRequests();
-   }catch(e){sub.textContent='Não conseguimos concluir a emissão agora. Consulte a equipe.'}
+    if(error||data?.error||!data?.issued){if(viewer)viewer.close();let detail=data?.error||error?.message||'Não foi possível emitir';if(error?.context){try{const e=await error.context.json();detail=e.error||detail}catch{}}sub.textContent='Emissão ainda indisponível: '+detail+'. A equipe poderá concluir pelo painel administrativo.';return}
+    const {data:ready}=await db.from('academy_certificates').select('pdf_path,status').eq('request_id',item.id).maybeSingle();
+    if(ready?.status==='EMITIDO'&&ready.pdf_path){
+      const {data:link,error:linkError}=await db.storage.from('academy-certificados').createSignedUrl(ready.pdf_path,120);
+      if(!linkError&&link?.signedUrl){if(viewer)viewer.location.href=link.signedUrl;sub.textContent=viewer?'Certificado aberto. Você também poderá baixá-lo nesta página.':'Certificado emitido. Use o botão Visualizar e baixar certificado PDF abaixo.'}
+      else{if(viewer)viewer.close();sub.textContent='Certificado emitido, mas a visualização ainda não carregou. Atualize a página.'}
+    }else{if(viewer)viewer.close();sub.textContent='Emissão solicitada. Atualize a situação para verificar o arquivo.'}
+    await listRequests();
+   }catch(e){if(viewer)viewer.close();sub.textContent='Não conseguimos concluir a emissão agora. Consulte a equipe.'}
    finally{button.disabled=false;button.textContent='Gerar e visualizar meu certificado'}
   };
   const refresh=document.createElement('button');refresh.type='button';refresh.className='plain-action';refresh.textContent='Atualizar situação';refresh.onclick=()=>listRequests();
