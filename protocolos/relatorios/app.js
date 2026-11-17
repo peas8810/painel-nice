@@ -36,10 +36,11 @@
   }
   function render(){
     if(!history)return;
-    const f=filters();selected=M.filter(records,f);const summary=M.summarize(selected);
+    const f=filters();selected=M.filter(records,f);const summary=M.summarize(selected),protocolCoverage=M.summarize(records);
     const metrics=[['Registros de ações',F.format(summary.total),'Formalizações distintas após reconciliação'],['Protocolos NICE',F.format(summary.protocols),'Identificadores vinculados ao recorte'],['Ações com finalização',F.format(summary.closed),'Encerramento administrativo registrado'],['Público previsto',summary.expectedN?F.format(summary.expected):'ND',`Planejamento informado em ${F.format(summary.expectedN)} registros`]];
     $('metrics').innerHTML=metrics.map(([label,n,note])=>`<article class="metric"><span>${label}</span><strong>${n}</strong><small>${note}</small></article>`).join('');
     $('scope').textContent=[f.unit||'Todos os campus e unidades',f.course||'Todos os cursos',f.year||'Todos os anos'].join(' · ')+` · ${F.format(summary.total)} registros`;
+    $('protocolCoverage').textContent=`Planilha de protocolos integrada: ${F.format(protocolCoverage.live)} formalizações vinculadas a ${F.format(protocolCoverage.protocols)} números NICE na base completa. Neste recorte: ${F.format(summary.live)} formalizações e ${F.format(summary.protocols)} números NICE. Essas ações já entram nos totais, nas estatísticas e no PDF, uma vez por formalização.`;
     bars('courseChart',summary.courses.slice(0,10));bars('unitChart',summary.units);bars('yearChart',summary.years);bars('odsChart',summary.ods.slice(0,8),n=>'ODS '+n+' · '+(history.labels[n]||''));
     const odsNumbers=Array.from({length:17},(_,i)=>i+1);
     $('heatmap').innerHTML=table(['Curso',...odsNumbers.map(n=>String(n))],summary.courses.map(([course,n])=>[
@@ -52,7 +53,7 @@
     projectRows();
     const params=new URLSearchParams();Object.entries(f).forEach(([k,v])=>{if(v)params.set(k,v);});
     window.history.replaceState(null,'',location.pathname+(params.size?'?'+params:''));
-    snapshot={filters:{...f},records:selected,comparisonRecords:M.filter(records,{unit:f.unit,year:f.year}),summary,history,updatedAt:live?.synced_at||null,warning:$('warning').hidden?'':$('warning').textContent};
+    snapshot={filters:{...f},records:selected,comparisonRecords:M.filter(records,{unit:f.unit,year:f.year}),summary,protocolCoverage,history,updatedAt:live?.synced_at||null,warning:$('warning').hidden?'':$('warning').textContent};
     $('pdf').disabled=!selected.length||loading;$('dashboard').setAttribute('aria-busy','false');
   }
   async function fetchJSON(url){const response=await fetch(url+(url.includes('?')?'&':'?')+'v='+Date.now(),{cache:'no-store'});if(!response.ok)throw Error('Não foi possível atualizar a fonte.');const data=await response.json();if(data.ok===false)throw Error('A fonte informou uma falha.');return data;}

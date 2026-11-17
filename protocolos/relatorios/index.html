@@ -6,7 +6,7 @@
   <title>Relatórios por curso · Sistema de Gestão de Protocolos e Análise de Dados®</title>
   <link rel="icon" href="../../assets/amonia-logo.svg" type="image/svg+xml">
   <link rel="stylesheet" href="reports.css?v=20261117c">
-  <script defer src="vendor/pdf-lib.min.js"></script><script defer src="model.js?v=20261117d"></script><script defer src="narrative.js?v=20261117b"></script><script defer src="pdf.js?v=20261117b"></script><script defer src="app.js?v=20261117b"></script>
+  <script defer src="vendor/pdf-lib.min.js"></script><script defer src="model.js?v=20261117d"></script><script defer src="narrative.js?v=20261117b"></script><script defer src="pdf.js?v=20261117e"></script><script defer src="app.js?v=20261117e"></script>
 </head>
 <body>
   <a class="skip" href="#conteudo">Ir para o conteúdo</a>
@@ -19,6 +19,7 @@
     <div id="dashboard" aria-busy="true">
       <section id="metrics" class="metrics" aria-label="Indicadores gerais"></section>
       <p id="scope" class="scope"></p>
+      <p id="protocolCoverage" class="scope" aria-live="polite"></p>
       <div class="grid"><section class="panel"><h2>Registros por curso</h2><div id="courseChart" class="bars"></div></section><section class="panel"><h2>Campus e unidades</h2><div id="unitChart" class="bars"></div></section></div>
       <div class="grid"><section class="panel"><h2>Evolução dos registros</h2><div id="yearChart" class="bars"></div></section><section class="panel"><h2>Associação às ODS</h2><div id="odsChart" class="bars"></div><p class="note">Aderência temática sugerida ou informada no cadastro, sujeita à validação institucional.</p></section></div>
       <section class="panel"><h2>Mapa de calor por curso e ODS</h2><p class="note">Percentual de registros do curso associados a cada ODS. Uma ação pode mencionar mais de um curso e mais de uma ODS.</p><div id="heatmap" class="table-wrap"></div></section>

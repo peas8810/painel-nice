@@ -54,6 +54,9 @@
     table(['Indicador','Valor','Interpretação'],[
       ['Registros distintos',F.format(s.total),'Formalizações após reconciliação administrativa'],['Protocolos NICE',F.format(s.protocols),'Identificadores vinculados às formalizações'],['Ações com finalização',F.format(s.closed),'Encerramento administrativo'],['Público previsto',s.expectedN?F.format(s.expected):'ND',`Planejamento informado em ${s.expectedN} registros`]
     ],[175,75,width-250]);
+    const coverage=snapshot.protocolCoverage||M.summarize(h.records);
+    section('Inclusão da planilha de protocolos');
+    text(`A base completa integra ${F.format(coverage.live)} formalizações da planilha de protocolos, vinculadas a ${F.format(coverage.protocols)} números NICE. Dentro dos filtros deste relatório, ${F.format(s.live)} dessas formalizações e ${F.format(s.protocols)} identificadores estão incluídos nos ${F.format(s.total)} registros distintos do recorte. Esses dados compõem os cálculos por curso, as distribuições, o público previsto, as associações às ODS e as análises estatísticas, conforme a disponibilidade de cada campo. Uma mesma origem com vários números NICE é contada apenas uma vez como ação. Os números da planilha não são somados novamente ao histórico consolidado.`);
     text('O público previsto representa planejamento e pode conter as mesmas pessoas em ações diferentes. Resultados comunitários dependem de evidências de execução e medidas antes e depois da intervenção. ND indica dado ausente ou insuficiente.');
     section('Escopo documental');text('O histórico foi reconciliado a partir das planilhas originais. Protocolos associados à mesma formalização são agrupados. Registros históricos sem vínculo NICE mantêm um identificador analítico. Os registros com indício de teste e os campos sem identificação conservam sua sinalização para revisão.');
     newPage('Análise contextual do portfólio');
