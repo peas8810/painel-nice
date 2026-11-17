@@ -151,8 +151,17 @@ async function loadManualPix(){
   const ids=[...new Set(rows.map(x=>x.request_id))];
   const certs=ids.length?await db.from('academy_certificates').select('request_id,status,pdf_path,certificate_code').in('request_id',ids):{data:[]};
   const certificates=new Map((certs.data||[]).map(x=>[x.request_id,x]));
-  status.textContent=rows.length+' comprovante(s), '+rows.filter(x=>x.status==='PENDENTE').length+' aguardando conferência.';
-  for(const r of rows){
+  const pendingCount=rows.filter(x=>x.status==='PENDENTE').length;
+  const confirmedCount=rows.filter(x=>x.status==='CONFIRMADO').length;
+  const readyCount=rows.filter(x=>x.status==='CONFIRMADO'&&certificates.get(x.request_id)?.status==='EMITIDO').length;
+  status.textContent=pendingCount?'Existem '+pendingCount+' comprovante(s) aguardando conferência.':'Não há comprovantes pendentes de conferência.';
+  const metrics=document.createElement('div');metrics.className='stat-grid academy-pix-metrics';
+  for(const [label,value] of [['Recebidos',rows.length],['Aguardando conferência',pendingCount],['Pagamentos confirmados',confirmedCount],['Certificados emitidos',readyCount]]){
+   const card=document.createElement('div');card.className='stat';const big=document.createElement('strong');big.textContent=value;const small=document.createElement('span');small.textContent=label;card.append(big,small);metrics.append(card)}
+  root.append(metrics);
+  const list=document.createElement('div');root.append(list);
+  const sorted=[...rows].sort((a,b)=>(a.status==='PENDENTE'?0:1)-(b.status==='PENDENTE'?0:1));
+  for(const r of sorted){
    const card=document.createElement('section');card.className='panel';card.style.margin='12px 0';card.style.padding='16px';
    const title=document.createElement('strong');title.textContent='Pedido '+r.request_id.slice(0,8)+' — '+r.status;card.append(title);
    const meta=document.createElement('p');meta.className='status';meta.textContent='Valor '+(r.amount_cents/100).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})+' · '+new Date(r.created_at).toLocaleString('pt-BR')+' · '+r.file_name;card.append(meta);
@@ -209,7 +218,7 @@ async function loadManualPix(){
     }
     card.append(actions)
    }
-   root.append(card)
+   list.append(card)
   }
  }catch(e){status.textContent='Não foi possível carregar comprovantes: '+e.message}
 }
