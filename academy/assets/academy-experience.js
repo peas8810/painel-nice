@@ -7,6 +7,8 @@
   id=aliases[id]||id;const target=screens.find(x=>x.id===id);if(!target)return false;
   for(const s of screens)s.hidden=s!==target;
   for(const a of nav.querySelectorAll('a')){if(a.hash==='#'+id)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');}
+  const more=nav.querySelector('.academy-more-nav');
+  if(more&&more.open)more.open=false;
   if(history&&location.hash!=='#'+id)window.history.pushState(null,'','#'+id);
   if(focus){const h=target.querySelector('h2,h3');if(h){h.tabIndex=-1;h.focus({preventScroll:true});}target.scrollIntoView({behavior:'auto',block:'start'});}
   return true;
