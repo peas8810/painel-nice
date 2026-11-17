@@ -37,3 +37,50 @@ body{font-size:17px!important;line-height:1.6!important}
 body:has(#student-view:not([hidden]))>header{display:none}body:has(#student-view:not([hidden]))>div[style]{display:none}
 #advanced-navigation #academy-navigation{background:#f3f6f8!important;border:0!important;padding:12px!important}#advanced-navigation #academy-navigation a{color:#173449!important;font-size:16px!important}
 @media(max-width:760px){.portal-wrap{padding:20px 16px 40px!important}#student-view .simple-choices{grid-template-columns:1fr}#student-view .simple-choices a{min-height:0;padding:22px}#student-view .portal-card{padding:22px 18px!important}#student-view .mobile-quick-nav a{font-size:15px!important;padding:9px 12px!important}#student-view .two{grid-template-columns:1fr}#student-view .wizard-actions{flex-direction:row;flex-wrap:wrap}#student-view .wizard-actions button{width:auto;min-width:120px;flex:1}#student-view .simple-details{padding:14px}#student-view .portal-card h2{font-size:25px!important}}
+
+
+/* Academy student UX: single-purpose dashboard + accessible, compact navigation */
+#student-view .portal-heading{border:0!important;background:linear-gradient(120deg,#f5fafb,#fff)!important;padding:22px 24px!important;border-radius:18px!important;margin:4px 0 16px!important}
+#student-view .portal-heading h1{font-size:clamp(24px,3.1vw,34px)!important;margin:4px 0 8px!important}
+#student-view .portal-heading .dashboard-intro{font-size:15px!important;line-height:1.5!important;margin:0 0 8px!important;max-width:650px}
+#student-view #student-email{font-size:13px!important;color:#62798a!important;overflow-wrap:anywhere}
+#student-view #academy-logout{font-size:13px!important;min-height:38px!important;padding:6px 12px!important}
+#student-view .mobile-quick-nav{display:flex!important;align-items:center!important;gap:9px!important;margin-bottom:12px!important;padding:12px 0!important;border-bottom:0!important;flex-wrap:wrap!important}
+#student-view .mobile-quick-nav>a{display:inline-flex!important;align-items:center!important;justify-content:center!important;min-height:44px!important;padding:9px 16px!important;border-radius:12px!important;border:1px solid #dae4e9!important;color:#244456!important;background:white!important;text-decoration:none!important;font-size:15px!important;font-weight:650!important}
+#student-view .mobile-quick-nav>a:hover{background:#eff7f8!important;border-color:#8cb0bd!important}
+#student-view .mobile-quick-nav>a[aria-current=page]{background:#173b4c!important;color:#fff!important;border-color:#173b4c!important}
+#student-view .academy-more-nav{position:relative;margin:0!important;padding:0!important;border:0!important;background:transparent!important}
+#student-view .academy-more-nav>summary{display:flex;align-items:center;min-height:44px;cursor:pointer;border:1px solid #dae4e9;border-radius:12px;padding:9px 16px;font-size:15px!important;font-weight:650!important;line-height:1.25!important;color:#244456!important;list-style:none;background:white;white-space:nowrap}
+#student-view .academy-more-nav>summary::-webkit-details-marker{display:none}
+#student-view .academy-more-nav>summary:after{content:"⌄";margin-left:9px;color:#657b89}
+#student-view .academy-more-links{position:absolute;right:0;top:calc(100% + 7px);z-index:30;min-width:190px;background:white;border:1px solid #d5e3e9;box-shadow:0 12px 28px rgba(10,40,55,.13);border-radius:13px;padding:6px;display:flex;flex-direction:column;gap:2px}
+#student-view .academy-more-links a{display:block;padding:11px 13px;min-height:44px;color:#173b4c!important;border-radius:8px;text-decoration:none!important;font-size:15px!important}
+#student-view .academy-more-links a:hover{background:#edf6f8}
+#student-view .academy-home-top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin:0 0 24px}
+#student-view .academy-overline{font-size:12px!important;letter-spacing:.11em;font-weight:750;color:#49828b!important}
+#student-view .academy-home-top h2{margin:5px 0 6px!important;font-size:clamp(25px,3vw,32px)!important}
+#student-view .academy-home-subtitle{font-size:15px!important;margin:0!important;color:#597080!important}
+#student-view .academy-help-link{font-size:14px!important;text-decoration:none;border:1px solid #c5d9df;border-radius:10px;padding:11px 16px;color:#173c4e!important;background:#f6fafb;font-weight:700;min-height:44px}
+#student-view .simple-choices{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px!important;margin:0 0 22px!important}
+#student-view .simple-choices a{min-height:190px!important;background:#fff!important;border:1px solid #dbe6eb!important;border-radius:17px!important;padding:21px!important;gap:9px!important;box-shadow:0 3px 14px rgba(11,47,62,.045);color:#1b3b4b!important;transition:transform .16s,box-shadow .16s,border-color .16s}
+#student-view .simple-choices a:first-child{border:2px solid #a6cdd0!important;background:linear-gradient(150deg,#f1faf9,#fff)!important}
+#student-view .simple-choices a:hover{transform:translateY(-2px);box-shadow:0 10px 22px rgba(11,47,62,.09);border-color:#4a9aa5!important}
+#student-view .simple-choices a .academy-choice-icon{display:grid;place-items:center;width:39px;height:39px;border-radius:12px;background:#e8f2f3;color:#146676!important;font-size:25px!important;font-weight:700;line-height:1!important}
+#student-view .simple-choices a strong{font-size:19px!important;line-height:1.3!important;color:#16394b!important}
+#student-view .simple-choices a>span:not(.academy-choice-icon){font-size:14px!important;color:#5d7280!important;line-height:1.45!important}
+#student-view .simple-choices a b{font-size:14px!important;margin-top:auto!important;color:#12687b!important;text-decoration:none!important}
+#student-view .academy-how-it-works{padding:16px 20px!important;border:1px solid #dbe5e9!important;border-radius:13px!important;background:#fbfdfd!important;margin:0!important}
+#student-view .academy-how-it-works summary{font-size:15px!important;font-weight:700!important;color:#284c5c!important;cursor:pointer}
+#student-view .academy-how-it-works .simple-steps{margin:16px 0 8px!important}
+#student-view .academy-how-it-works .simple-steps li{margin-bottom:7px!important;font-size:15px!important}
+#student-view .academy-how-it-works p{font-size:14px!important}
+#student-view .request-item{border:1px solid #dce6eb!important;border-radius:16px!important;box-shadow:0 2px 12px rgba(18,46,61,.035)!important;display:flex;flex-direction:column;gap:10px!important;margin:13px 0!important}
+#student-view .request-item>strong{font-size:21px!important}
+#student-view .request-item .request-status{align-self:flex-start;border-radius:999px!important}
+#student-view .request-item>.primary{border-radius:12px!important}
+#student-view .request-item details{margin-top:6px!important}
+#student-view .request-item details>summary{font-size:14px!important}
+#student-view .portal-card{border:1px solid #e5ecef!important;box-shadow:0 3px 14px rgba(12,41,54,.03)!important}
+@media(max-width:820px){#student-view .simple-choices{grid-template-columns:1fr!important}#student-view .simple-choices a{min-height:130px!important;padding:17px!important}#student-view .mobile-quick-nav>a{flex:1 1 auto!important}#student-view .academy-more-nav{flex:1 1 auto}#student-view .academy-more-nav>summary{justify-content:center}}
+@media(max-width:500px){#student-view .portal-heading{padding:16px!important}#student-view .mobile-quick-nav{gap:7px!important}#student-view .mobile-quick-nav>a{font-size:14px!important;padding:8px 10px!important}#student-view .academy-more-nav>summary{font-size:14px!important;padding:8px 10px!important}#student-view .academy-more-links{left:0;right:0}#student-view .portal-card{padding:20px 16px!important}#student-view .academy-home-top h2{font-size:25px!important}}
+@media(prefers-reduced-motion:reduce){#student-view .simple-choices a{transition:none}}
