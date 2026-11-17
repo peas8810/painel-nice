@@ -148,6 +148,9 @@ async function loadManualPix(){
  try{
   const data=await manualPixInvoke({action:'list'});
   const rows=data.receipts||[];root.replaceChildren();
+  const ids=[...new Set(rows.map(x=>x.request_id))];
+  const certs=ids.length?await db.from('academy_certificates').select('request_id,status,pdf_path,certificate_code').in('request_id',ids):{data:[]};
+  const certificates=new Map((certs.data||[]).map(x=>[x.request_id,x]));
   status.textContent=rows.length+' comprovante(s), '+rows.filter(x=>x.status==='PENDENTE').length+' aguardando conferência.';
   for(const r of rows){
    const card=document.createElement('section');card.className='panel';card.style.margin='12px 0';card.style.padding='16px';
@@ -170,9 +173,23 @@ async function loadManualPix(){
     finally{preview.disabled=false;preview.textContent='Atualizar visualização'}
    };card.append(preview,display);
    if(r.status==='CONFIRMADO'){
-    const notice=document.createElement('div');notice.className='warning';notice.style.marginTop='12px';notice.textContent='Pagamento registrado como confirmado. O certificado ainda precisa ser emitido para liberar o PDF ao aluno.';card.append(notice);
-    const issue=document.createElement('button');issue.type='button';issue.className='btn';issue.textContent='Gerar e publicar certificado';
-    issue.onclick=async()=>{if(!window.confirm('Gerar o PDF de certificado deste protocolo com a situação financeira já confirmada?'))return;issue.disabled=true;issue.textContent='Gerando certificado…';try{const response=await invokeAcademy('academy-issue-certificate',{request_id:r.request_id},'manual-pix-admin-status');if(response?.issued){status.textContent='Certificado gerado: '+response.code+'. O aluno poderá baixar na aba Meus certificados.';issue.textContent='Certificado gerado'}else{issue.disabled=false;issue.textContent='Tentar emissão novamente'}}catch(e){issue.disabled=false;issue.textContent='Tentar emissão novamente';status.textContent='Emissão não concluída: '+e.message}};card.append(issue);
+    const certificate=certificates.get(r.request_id);
+    const ready=certificate?.status==='EMITIDO'&&!!certificate?.pdf_path;
+    const notice=document.createElement('div');notice.className=ready?'tag':'warning';notice.style.marginTop='12px';
+    notice.textContent=ready?'Pagamento confirmado e certificado emitido. O aluno já pode visualizar e baixar o PDF.':'Pagamento confirmado. Certificado ainda aguardando geração do PDF.';
+    card.append(notice);
+    if(ready){
+      const see=document.createElement('button');see.type='button';see.className='btn';see.textContent='Visualizar certificado PDF';
+      see.onclick=async()=>{
+       const tab=window.open('','_blank');if(tab){tab.document.title='Abrindo certificado';tab.document.body.textContent='Preparando PDF protegido…'}
+       const {data:link,error}=await db.storage.from('academy-certificados').createSignedUrl(certificate.pdf_path,120);
+       if(error||!link?.signedUrl){if(tab)tab.close();status.textContent='Falha ao carregar certificado: '+(error?.message||'Arquivo indisponível');return}
+       if(tab)tab.location.href=link.signedUrl;else location.href=link.signedUrl
+      };card.append(see)
+    }else{
+      const issue=document.createElement('button');issue.type='button';issue.className='btn';issue.textContent='Gerar e publicar certificado';
+      issue.onclick=async()=>{if(!window.confirm('Gerar o PDF de certificado deste protocolo com a situação financeira já confirmada?'))return;issue.disabled=true;issue.textContent='Gerando certificado…';try{const response=await invokeAcademy('academy-issue-certificate',{request_id:r.request_id},'manual-pix-admin-status');if(response?.issued){await loadManualPix();await reloadCertificates();status.textContent='Certificado gerado: '+response.code+'. Abra a opção Visualizar certificado PDF.'}else{issue.disabled=false;issue.textContent='Tentar emissão novamente'}}catch(e){issue.disabled=false;issue.textContent='Tentar emissão novamente';status.textContent='Emissão não concluída: '+e.message}};card.append(issue);
+    }
    }
    if(r.status==='PENDENTE'){
     const checkbox=document.createElement('label');checkbox.style.margin='10px 0';
