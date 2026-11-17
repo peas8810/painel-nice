@@ -10,6 +10,25 @@ if(!cfg.url||!cfg.publishableKey||!window.supabase?.createClient){display('loadi
 const db=window.supabase.createClient(cfg.url,cfg.publishableKey);window.academyDb=db;
 let currentUser=null, currentRevision=0, editingRequestId=null;
 const academyIssuanceAttempted=new Set();
+
+const academyPdfObjects=new Set();
+async function academyGetCertificatePdf(requestId){
+ const {data,error}=await db.functions.invoke('academy-certificate-access',{body:{request_id:requestId,action:'download'}});
+ if(error||!(data instanceof Blob)||data.type!=='application/pdf'){
+  let msg=error?.message||'O arquivo PDF não foi retornado.';
+  if(error?.context){try{const d=await error.context.json();msg=d.error||d.message||msg}catch{}}
+  throw new Error(msg);
+ }
+ if(data.size<100)throw new Error('Arquivo PDF vazio.');
+ const objectUrl=URL.createObjectURL(data);
+ academyPdfObjects.add(objectUrl);
+ return objectUrl;
+}
+function academyDownloadPdf(objectUrl,code){
+ const a=document.createElement('a');a.href=objectUrl;a.download=(code||'certificado-academy')+'.pdf';document.body.append(a);a.click();a.remove();
+}
+window.addEventListener('pagehide',()=>{for(const url of academyPdfObjects)URL.revokeObjectURL(url);academyPdfObjects.clear()});
+
 $('google-login').addEventListener('click',async()=>{
  const button=$('google-login');
  button.disabled=true;
@@ -105,24 +124,34 @@ async function listRequests(){
    },300);
   }
  }
- if(pay.checkout_url&&pay.payment_status==='AGUARDANDO_PAGAMENTO'){const link=document.createElement('a');link.href=pay.checkout_url;link.rel='noopener noreferrer';link.target='_blank';link.textContent='Gerar link para pagar · Mercado Pago (teste)';link.className='academy-pay-main';card.append(link)}else if(item.status==='APROVADO'&&pay.payment_status==='AGUARDANDO_CHECKOUT'){p.textContent='Pagamento aprovado pela equipe. Cobrança ainda não criada.';const start=document.createElement('button');start.type='button';start.className='primary academy-pay-main';start.textContent='Gerar link para pagar · Mercado Pago (teste)';start.onclick=async()=>{start.disabled=true;const label=start.textContent;start.textContent='Preparando pagamento…';try{const {data:result,error}=await db.functions.invoke('academy-checkout',{body:{request_id:item.id}});if(error||result?.error||!result?.checkout_url){let detail=result?.error||'';if(error?.context){try{const payload=await error.context.json();detail=payload?.error||detail;if(payload?.provider_status)detail+=' (Mercado Pago HTTP '+String(payload.provider_status)+', '+String(payload.reason_code||'SEM_CODIGO')+(payload.provider_error_code?', '+String(payload.provider_error_code):'')+')'}catch{}}const msg=detail||error?.message||'Cobrança temporariamente indisponível';p.textContent='Não foi possível gerar o pagamento: '+msg;return}const u=new URL(result.checkout_url);if(u.protocol!=='https:'||!(u.hostname==='mercadopago.com.br'||u.hostname.endsWith('.mercadopago.com.br')||u.hostname==='mercadopago.com'||u.hostname.endsWith('.mercadopago.com'))){p.textContent='Link de pagamento não reconhecido. Contate o suporte.';return}await listRequests();}catch(e){p.textContent='Falha ao preparar o pagamento. Tente novamente ou fale com a equipe.'}finally{start.disabled=false;start.textContent=label}};card.append(start)}}if(item.status==='APROVADO'&&pay&&['AGUARDANDO_CHECKOUT','AGUARDANDO_PAGAMENTO'].includes(pay.payment_status)&&!cert){attachManualPix(card,item,pay)}if(cert){const c=document.createElement('small');c.textContent='Certificado: '+({EMITIDO:'disponível para visualizar e baixar',PENDENTE_EMISSAO:'em emissão',REVOGADO:'revogado, sem validade'}[cert.status]||'em preparação')+(cert.status==='EMITIDO'?' · Código '+cert.certificate_code+(cert.issued_at?' · Emitido em '+new Date(cert.issued_at).toLocaleDateString('pt-BR'):''):'');card.append(c);if(cert.status==='EMITIDO'&&cert.pdf_path){const button=document.createElement('button');button.type='button';button.className='plain-action';button.textContent='Visualizar e baixar certificado PDF';button.className='academy-certificate-main';button.onclick=async()=>{
-   button.disabled=true;button.textContent='Preparando visualização segura…';
-   try{
-    const {data:url,error}=await db.storage.from('academy-certificados').createSignedUrl(cert.pdf_path,300);
-    if(error||!url?.signedUrl){message('evidence-status','Não foi possível abrir o PDF: '+(error?.message||'Arquivo indisponível'));return}
-    let preview=card.querySelector('.academy-certificate-preview');
-    if(!preview){preview=document.createElement('section');preview.className='academy-certificate-preview';card.insertBefore(preview,button.nextSibling)}
-    preview.replaceChildren();
-    const headline=document.createElement('strong');headline.textContent='Prévia do seu certificado';preview.append(headline);
-    const links=document.createElement('div');links.className='academy-certificate-preview-links';
-    const a=document.createElement('a');a.href=url.signedUrl;a.target='_blank';a.rel='noopener noreferrer';a.textContent='Abrir PDF em nova aba / salvar';links.append(a);
-    const verify=document.createElement('a');verify.href='../validar/?codigo='+encodeURIComponent(cert.certificate_code);verify.target='_blank';verify.rel='noopener noreferrer';verify.textContent='Verificar autenticidade';links.append(verify);
-    preview.append(links);
-    const frame=document.createElement('iframe');frame.title='Prévia do certificado '+cert.certificate_code;frame.src=url.signedUrl;frame.loading='lazy';preview.append(frame);
-    preview.scrollIntoView({behavior:'smooth',block:'nearest'});
-   }catch{message('evidence-status','Não foi possível carregar a visualização. Tente novamente.')}
-   finally{button.disabled=false;button.textContent='Visualizar e baixar certificado PDF'}
-  };card.append(button);const link=document.createElement('a');link.href='../validar/?codigo='+encodeURIComponent(cert.certificate_code);link.textContent='Validar autenticidade';link.target='_blank';link.rel='noopener noreferrer';card.append(link)}}const actions=document.createElement('div');actions.className='actions';if(['ENVIADA','EM_ANALISE','PENDENTE_DOCUMENTOS','INCONCLUSIVO'].includes(item.status)&&!pay&&!cert){const edit=document.createElement('button');edit.type='button';edit.className='plain-action';edit.textContent='Corrigir dados';edit.onclick=()=>editRequest(item);const del=document.createElement('button');del.type='button';del.className='plain-action';del.textContent='Cancelar pedido';del.onclick=()=>deleteRequest(item);actions.append(edit,del)}const duplicate=document.createElement('button');duplicate.type='button';duplicate.className='plain-action';duplicate.textContent='Usar como modelo de outro pedido';duplicate.onclick=()=>{resetEdit();$('activity').value=item.activity;$('start').value=item.start_date;$('end').value=item.end_date;$('hours').value=String(item.hours_declared);$('description').value=item.description;const type=$('activity-type');if(![...type.options].some(o=>o.value===item.activity_type)){const op=document.createElement('option');op.value=item.activity_type;op.textContent=item.activity_type;type.append(op)}type.value=item.activity_type;window.academyOpenSection?.('new-request');window.academyWizardSetStep?.(1);$('request').scrollIntoView({behavior:'smooth'});message('request-status','Preenchemos os campos com o pedido anterior. Confira os dados e envie os documentos da nova atividade.')};actions.append(duplicate);const chat=document.createElement('button');chat.type='button';chat.className='plain-action';chat.textContent='Falar com a equipe';chat.onclick=()=>window.academyOpenConversation?.(item.id,item.activity);actions.append(chat);
+ if(pay.checkout_url&&pay.payment_status==='AGUARDANDO_PAGAMENTO'){const link=document.createElement('a');link.href=pay.checkout_url;link.rel='noopener noreferrer';link.target='_blank';link.textContent='Gerar link para pagar · Mercado Pago (teste)';link.className='academy-pay-main';card.append(link)}else if(item.status==='APROVADO'&&pay.payment_status==='AGUARDANDO_CHECKOUT'){p.textContent='Pagamento aprovado pela equipe. Cobrança ainda não criada.';const start=document.createElement('button');start.type='button';start.className='primary academy-pay-main';start.textContent='Gerar link para pagar · Mercado Pago (teste)';start.onclick=async()=>{start.disabled=true;const label=start.textContent;start.textContent='Preparando pagamento…';try{const {data:result,error}=await db.functions.invoke('academy-checkout',{body:{request_id:item.id}});if(error||result?.error||!result?.checkout_url){let detail=result?.error||'';if(error?.context){try{const payload=await error.context.json();detail=payload?.error||detail;if(payload?.provider_status)detail+=' (Mercado Pago HTTP '+String(payload.provider_status)+', '+String(payload.reason_code||'SEM_CODIGO')+(payload.provider_error_code?', '+String(payload.provider_error_code):'')+')'}catch{}}const msg=detail||error?.message||'Cobrança temporariamente indisponível';p.textContent='Não foi possível gerar o pagamento: '+msg;return}const u=new URL(result.checkout_url);if(u.protocol!=='https:'||!(u.hostname==='mercadopago.com.br'||u.hostname.endsWith('.mercadopago.com.br')||u.hostname==='mercadopago.com'||u.hostname.endsWith('.mercadopago.com'))){p.textContent='Link de pagamento não reconhecido. Contate o suporte.';return}await listRequests();}catch(e){p.textContent='Falha ao preparar o pagamento. Tente novamente ou fale com a equipe.'}finally{start.disabled=false;start.textContent=label}};card.append(start)}}if(item.status==='APROVADO'&&pay&&['AGUARDANDO_CHECKOUT','AGUARDANDO_PAGAMENTO'].includes(pay.payment_status)&&!cert){attachManualPix(card,item,pay)}if(cert){const c=document.createElement('small');c.textContent='Certificado: '+({EMITIDO:'disponível para visualizar e baixar',PENDENTE_EMISSAO:'em emissão',REVOGADO:'revogado, sem validade'}[cert.status]||'em preparação')+(cert.status==='EMITIDO'?' · Código '+cert.certificate_code+(cert.issued_at?' · Emitido em '+new Date(cert.issued_at).toLocaleDateString('pt-BR'):''):'');card.append(c);if(cert.status==='EMITIDO'&&cert.pdf_path){const button=document.createElement('button');button.type='button';button.className='plain-action';button.textContent='Visualizar certificado';button.className='academy-certificate-main';button.onclick=async()=>{
+ button.disabled=true;button.textContent='Carregando PDF…';
+ try{
+  let preview=card.querySelector('.academy-certificate-preview');
+  if(!preview){preview=document.createElement('section');preview.className='academy-certificate-preview';card.insertBefore(preview,button.nextSibling)}
+  preview.replaceChildren();
+  const objectUrl=await academyGetCertificatePdf(item.id);
+  const headline=document.createElement('strong');headline.textContent='Seu certificado está pronto';preview.append(headline);
+  const actions=document.createElement('div');actions.className='academy-certificate-preview-links';
+  const download=document.createElement('button');download.type='button';download.className='academy-pdf-download';download.textContent='Baixar PDF';download.onclick=()=>academyDownloadPdf(objectUrl,cert.certificate_code);actions.append(download);
+  const external=document.createElement('a');external.href=objectUrl;external.target='_blank';external.rel='noopener noreferrer';external.textContent='Abrir PDF em nova aba';actions.append(external);
+  const verify=document.createElement('a');verify.href='../validar/?codigo='+encodeURIComponent(cert.certificate_code);verify.target='_blank';verify.rel='noopener noreferrer';verify.textContent='Validar autenticidade';actions.append(verify);
+  preview.append(actions);
+  const frame=document.createElement('iframe');frame.title='Prévia do certificado '+cert.certificate_code;frame.src=objectUrl;frame.loading='lazy';preview.append(frame);
+  preview.scrollIntoView({behavior:'smooth',block:'nearest'});
+ }catch(e){
+  let errorBox=card.querySelector('.academy-certificate-download-error');
+  if(!errorBox){errorBox=document.createElement('p');errorBox.className='academy-certificate-download-error';card.append(errorBox)}
+  errorBox.textContent='Não foi possível abrir o PDF: '+e.message;
+ }finally{button.disabled=false;button.textContent='Visualizar certificado'}
+ };
+ const directDownload=document.createElement('button');directDownload.type='button';directDownload.className='academy-certificate-main academy-download-direct';directDownload.textContent='Baixar certificado PDF';directDownload.onclick=async()=>{
+  directDownload.disabled=true;directDownload.textContent='Preparando download…';
+  try{const url=await academyGetCertificatePdf(item.id);academyDownloadPdf(url,cert.certificate_code)}
+  catch(e){let box=card.querySelector('.academy-certificate-download-error');if(!box){box=document.createElement('p');box.className='academy-certificate-download-error';card.append(box)}box.textContent='Não foi possível baixar: '+e.message}
+  finally{directDownload.disabled=false;directDownload.textContent='Baixar certificado PDF'}
+ };
+ card.append(directDownload);card.append(button);const link=document.createElement('a');link.href='../validar/?codigo='+encodeURIComponent(cert.certificate_code);link.textContent='Validar autenticidade';link.target='_blank';link.rel='noopener noreferrer';card.append(link)}}const actions=document.createElement('div');actions.className='actions';if(['ENVIADA','EM_ANALISE','PENDENTE_DOCUMENTOS','INCONCLUSIVO'].includes(item.status)&&!pay&&!cert){const edit=document.createElement('button');edit.type='button';edit.className='plain-action';edit.textContent='Corrigir dados';edit.onclick=()=>editRequest(item);const del=document.createElement('button');del.type='button';del.className='plain-action';del.textContent='Cancelar pedido';del.onclick=()=>deleteRequest(item);actions.append(edit,del)}const duplicate=document.createElement('button');duplicate.type='button';duplicate.className='plain-action';duplicate.textContent='Usar como modelo de outro pedido';duplicate.onclick=()=>{resetEdit();$('activity').value=item.activity;$('start').value=item.start_date;$('end').value=item.end_date;$('hours').value=String(item.hours_declared);$('description').value=item.description;const type=$('activity-type');if(![...type.options].some(o=>o.value===item.activity_type)){const op=document.createElement('option');op.value=item.activity_type;op.textContent=item.activity_type;type.append(op)}type.value=item.activity_type;window.academyOpenSection?.('new-request');window.academyWizardSetStep?.(1);$('request').scrollIntoView({behavior:'smooth'});message('request-status','Preenchemos os campos com o pedido anterior. Confira os dados e envie os documentos da nova atividade.')};actions.append(duplicate);const chat=document.createElement('button');chat.type='button';chat.className='plain-action';chat.textContent='Falar com a equipe';chat.onclick=()=>window.academyOpenConversation?.(item.id,item.activity);actions.append(chat);
 if(['APROVADO','REPROVADO'].includes(item.status)){
  const feedback=document.createElement('button');feedback.type='button';feedback.className='plain-action';feedback.textContent='Avaliar experiência';
  feedback.onclick=async()=>{const reply=prompt('Como foi sua experiência no Academy? Dê uma nota de 1 a 5.');if(reply===null)return;const score=Number(reply);if(!Number.isInteger(score)||score<1||score>5){message('evidence-status','Informe uma nota entre 1 e 5.');return}
