@@ -94,3 +94,23 @@ body:has(#student-view:not([hidden]))>header{display:none}body:has(#student-view
 #student-view .academy-next-step a{display:inline-flex;align-items:center;justify-content:center;min-height:45px;padding:10px 15px;border-radius:11px;color:#fff!important;background:#174859!important;text-decoration:none!important;font-weight:700;font-size:14px!important}
 #student-view .academy-next-step a:hover{background:#0b6574!important}
 @media(max-width:530px){#student-view .academy-next-step a{width:100%}}
+
+
+/* Pix payments: explicit choice, compact setup, clear copy and status actions. */
+#student-view .academy-pix-panel{border:1px solid #9bd7ce!important;border-radius:14px!important;background:#f1faf8!important;padding:0!important;margin:10px 0!important;overflow:hidden}
+#student-view .academy-pix-panel>summary{display:flex;align-items:center;min-height:55px;padding:13px 17px;cursor:pointer;color:#0b665c!important;font-size:17px!important;font-weight:750!important;list-style:none}
+#student-view .academy-pix-panel>summary::-webkit-details-marker{display:none}
+#student-view .academy-pix-panel>summary:before{content:"◇";display:grid;place-items:center;border-radius:10px;color:#0b7766;background:#dcf4ed;width:34px;height:34px;margin-right:12px;font-size:23px}
+#student-view .academy-pix-panel>summary:after{content:"⌄";margin-left:auto;color:#247769;font-size:20px}
+#student-view .academy-pix-panel[open]>summary:after{content:"⌃"}
+#student-view .academy-pix-inner{padding:17px;border-top:1px solid #c9e7df;background:#fff}
+#student-view .academy-pix-inner>p{color:#536a72!important;font-size:14px!important;margin:0 0 14px!important;line-height:1.5!important}
+#student-view .academy-pix-inner label{display:block;font-size:15px!important;font-weight:650!important;margin:0 0 13px!important}
+#student-view .academy-pix-inner label input{display:block;width:100%;max-width:340px;border-radius:10px!important;border:1px solid #b2cbd0!important;padding:11px 13px;font-size:17px!important;margin:7px 0}
+#student-view .academy-pix-inner>button{display:inline-flex;align-items:center;justify-content:center;min-height:46px!important;padding:10px 18px!important;border-radius:10px!important;margin:5px 8px 5px 0!important}
+#student-view .academy-pix-inner>button.primary{background:#0d7869!important;color:#fff!important;border:1px solid #0d7869!important}
+#student-view .academy-pix-result{display:flex;flex-direction:column;gap:9px;color:#1d4752!important;font-size:15px!important;overflow-wrap:anywhere;margin:10px 0}
+#student-view .academy-pix-result textarea{display:block;width:100%;font-family:ui-monospace,monospace!important;resize:none;padding:12px!important;border:1px solid #a5cac4!important;border-radius:10px!important;font-size:13px!important}
+#student-view .academy-pix-result a{color:#08736a!important;font-weight:700;text-decoration:underline}
+#student-view .academy-pix-result button{background:white;color:#086b60;border:1px solid #93c5b9;border-radius:9px;min-height:42px;padding:8px 13px;align-self:flex-start;font:inherit;cursor:pointer}
+@media(max-width:600px){#student-view .academy-pix-inner>button{width:100%}#student-view .academy-pix-panel>summary{font-size:15px!important;padding:12px}}
