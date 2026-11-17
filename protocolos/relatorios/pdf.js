@@ -1,7 +1,7 @@
 (function(root){
   'use strict';
   async function build(snapshot){
-    const {PDFDocument,StandardFonts,rgb}=root.PDFLib,M=root.NiceCourseReports,N=root.NiceCourseNarrative;
+    const {PDFDocument,StandardFonts,rgb}=root.PDFLib,M=root.NiceCourseReports,N=root.NiceCourseNarrative,C=root.NiceCourseCertificates;
     const pdf=await PDFDocument.create(),font=await pdf.embedFont(StandardFonts.Helvetica),bold=await pdf.embedFont(StandardFonts.HelveticaBold);
     const W=595.28,H=841.89,margin=43,width=W-2*margin,navy=rgb(.09,.21,.36),gray=rgb(.35,.41,.47),pale=rgb(.95,.97,.98),line=rgb(.85,.89,.92);
     let page,y;
@@ -61,6 +61,29 @@
     section('Escopo documental');text('O histórico foi reconciliado a partir das planilhas originais. Protocolos associados à mesma formalização são agrupados. Registros históricos sem vínculo NICE mantêm um identificador analítico. Os registros com indício de teste e os campos sem identificação conservam sua sinalização para revisão.');
     newPage('Análise contextual do portfólio');
     N.introduction(snapshot).forEach(paragraph=>text(paragraph));
+    newPage('Certificação e evidências documentais');
+    const cert=snapshot.certificateStats;
+    if(C)C.paragraphs(cert).forEach(paragraph=>text(paragraph));
+    else text('A fonte de certificação não foi carregada nesta emissão. Indicadores de certificados: ND.');
+    if(cert){
+      const countText=value=>Number.isFinite(value)?F.format(value):'ND';
+      text('Fonte: '+cert.source+' | '+(cert.updatedAt?new Date(cert.updatedAt).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo'}):'data não disponível'));
+      if(cert.warning)text(cert.warning,{color:rgb(.55,.3,.1)});
+      text(`Conferência do arquivo enviado: ${countText(cert.snapshot.responses)} respostas de protocolo, ${countText(cert.snapshot.identifiers)} identificadores NICE, ${countText(cert.snapshot.certificates)} emissões e ${countText(cert.snapshot.bookRecords)} lançamentos no Livro Digital. As respostas e os identificadores já estão no histórico de formalizações; os dados de certificação complementam a análise sem aumentar artificialmente o número de ações.`);
+      section('Certificação por curso no recorte');
+      table(['Curso','Ações vinculadas','Emissões','Vigentes','Revogadas','Registro no Livro'],cert.courses.filter(c=>c.actions).map(c=>[c.course,String(c.actions),F.format(c.total),F.format(c.valid),F.format(c.revoked),F.format(c.registered)]),[175,70,65,65,65,width-440]);
+      if(!cert.scope.actions)text('Nenhuma emissão pôde ser atribuída com precisão às formalizações deste recorte. Isso não comprova ausência de certificação do curso; os vínculos precisam ser regularizados.');
+      section('Rastreabilidade da certificação no recorte');
+      table(['Formalização / protocolos','Eventos','Emissões','Vigentes','Livro'],cert.actions.map(a=>[a.id+' / '+a.protocols.join(', '),a.events.join(', '),String(a.total),String(a.valid),String(a.registered)]),[245,75,65,65,width-450]);
+      section('Emissões por instituição informada na fonte completa');
+      table(['Instituição','Emissões'],cert.institutions.map(([name,count])=>[name,F.format(count)]),[width-90,90]);
+      text('Esta distribuição descreve toda a fonte de certificação, inclusive instituições diferentes da AlfaUnipac e registros sem instituição informada. Ela não atribui essas emissões aos cursos sem vínculo explícito.');
+      if(cert.snapshot.inventory.length){
+        newPage('Cobertura das abas do arquivo enviado');
+        text('O inventário registra as linhas preenchidas de cada aba e sua função na análise. As contagens das abas auxiliares não são somadas como formalizações, pessoas ou certificados adicionais. Dados pessoais e configurações privadas permanecem fora do relatório.');
+        table(['Aba do arquivo','Linhas','Uso na análise'],cert.snapshot.inventory.map(s=>[s.sheet,F.format(s.rows),s.use]),[205,55,width-260]);
+      }
+    }
     newPage('Distribuição das ações');
     section('Por campus ou unidade');table(['Campus ou unidade','Registros'],s.units.map(([name,n])=>[name,F.format(n)]),[width-90,90]);
     section('Por curso');table(['Curso','Registros'],s.courses.map(([name,n])=>[name,F.format(n)]),[width-90,90]);
@@ -117,6 +140,8 @@
       if(row.protocols.length)text('Vínculos: '+row.protocols.map(id=>id+' '+(row.states[id]|| (row.closed_protocols.includes(id)?'FINALIZADO':'situação anterior'))).join('; '),{size:9});
       const comparisonCourse=f.course||row.courses[0];
       N.actionAnalysis(row,courseGroups.get(comparisonCourse)||[],h,comparisonCourse).forEach(paragraph=>text(paragraph,{size:9.5}));
+      const ce=cert?.actions.find(a=>a.id===row.id);
+      if(ce)text(`Evidência de certificação vinculada: ${F.format(ce.total)} emissões nos eventos ${ce.events.join(', ')}, com ${F.format(ce.valid)} vigentes, ${F.format(ce.revoked)} revogadas e ${F.format(ce.registered)} com registro no Livro Digital. Essa evidência complementa o acompanhamento documental e não equivale a pessoas únicas ou a benefício comunitário medido.`,{size:9.5});
       // Yield during large exports so the page can continue responding.
       if(++actionIndex%100===0)await new Promise(resolve=>setTimeout(resolve,0));
     }
