@@ -37,6 +37,24 @@ async function listRequests(){
  const {data:payments}=await db.from('academy_payment_releases').select('request_id,payment_status,checkout_url').in('request_id',(data||[]).map(x=>x.id).length?(data||[]).map(x=>x.id):['00000000-0000-0000-0000-000000000000']);
  const {data:certs}=await db.from('academy_certificates').select('request_id,status,certificate_code,pdf_path').in('request_id',(data||[]).map(x=>x.id).length?(data||[]).map(x=>x.id):['00000000-0000-0000-0000-000000000000']);
  const payById=new Map((payments||[]).map(x=>[x.request_id,x])),certById=new Map((certs||[]).map(x=>[x.request_id,x]));
+ const nextCard=$('academy-next-step');
+ if(nextCard){
+   const latest=(data||[]).find(x=>['PENDENTE_DOCUMENTOS','INCONCLUSIVO','APROVADO','EM_ANALISE','ENVIADA'].includes(x.status))||(data||[])[0];
+   nextCard.hidden=!latest;
+   if(latest){
+     const payment=payById.get(latest.id),cert=certById.get(latest.id);
+     let title='Acompanhe seu pedido',description='Confira o andamento da análise.',link='Ver pedido →';
+     if(latest.status==='PENDENTE_DOCUMENTOS'||latest.status==='INCONCLUSIVO'){title='Você precisa enviar documentos';description=latest.activity+' — confira o que falta para continuar.';link='Ver documentos →'}
+     else if(cert?.status==='EMITIDO'){title='Seu certificado está disponível';description=latest.activity+' — acesse seus certificados.';link='Ver certificados →'}
+     else if(payment?.payment_status==='AGUARDANDO_PAGAMENTO'){title='Pagamento disponível';description=latest.activity+' — abra seu pedido e escolha o pagamento.';link='Ver pagamento →'}
+     else if(latest.status==='APROVADO'){title='Pedido aprovado';description=latest.activity+' — acompanhe a próxima etapa.'}
+     else if(latest.status==='EM_ANALISE'){title='Sua solicitação está em análise';description=latest.activity+' — avisaremos quando houver novidades.'}
+     $('academy-next-step-title').textContent=title;
+     $('academy-next-step-description').textContent=description;
+     $('academy-next-step-link').textContent=link;
+     $('academy-next-step-link').href=cert?.status==='EMITIDO'?'#certificate-wallet':'#my-requests';
+   }
+ }
  const select=$('evidence-request');select.replaceChildren();(data||[]).filter(x=>!['REPROVADO','APROVADO'].includes(x.status)).forEach(x=>{const o=document.createElement('option');o.value=x.id;o.textContent=x.activity+' · '+x.id.slice(0,8);select.append(o)});
  await listEvidence();
  if(!data?.length){tracking.textContent='Você ainda não fez um pedido. Clique em “Pedir certificado” para começar.';window.dispatchEvent(new Event('academy-requests-loaded'));return}
