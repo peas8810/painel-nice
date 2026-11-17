@@ -169,3 +169,13 @@ body:has(#student-view:not([hidden]))>header{display:none}body:has(#student-view
 #student-view .request-item .academy-certificate-main:hover{background:#095449!important}
 @media(max-width:900px){#student-view .academy-payment-timeline{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:520px){#student-view .academy-payment-timeline{grid-template-columns:1fr}#student-view .academy-payment-step{min-height:43px}#student-view .academy-cert-pending button.primary{width:100%}}
+
+
+/* Secure in-page certificate PDF preview after issuance */
+#student-view .academy-certificate-preview{display:flex;flex-direction:column;gap:13px;margin:16px 0 10px;padding:17px;border:1px solid #bfd8d6;background:#f5fbfa;border-radius:14px;width:100%}
+#student-view .academy-certificate-preview>strong{color:#155c54!important;font-size:18px!important}
+#student-view .academy-certificate-preview-links{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+#student-view .academy-certificate-preview-links a{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:10px 14px;background:#fff;border:1px solid #a9cec8;color:#0b6257!important;border-radius:10px;font-size:14px!important;font-weight:700;text-decoration:none!important}
+#student-view .academy-certificate-preview-links a:first-child{background:#0b6d60;color:#fff!important;border-color:#0b6d60}
+#student-view .academy-certificate-preview iframe{display:block;width:100%;min-height:560px;height:min(80vh,720px);border:1px solid #c9d8da;border-radius:9px;background:white}
+@media(max-width:700px){#student-view .academy-certificate-preview{padding:11px}#student-view .academy-certificate-preview iframe{min-height:420px;height:65vh}#student-view .academy-certificate-preview-links a{width:100%}}
