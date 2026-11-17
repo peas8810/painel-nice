@@ -151,3 +151,21 @@ body:has(#student-view:not([hidden]))>header{display:none}body:has(#student-view
 #student-view .academy-cert-pending button{align-self:flex-start;min-height:44px;background:#fff;border:1px solid #a2c9d6;border-radius:9px;color:#14576c;padding:9px 15px;font:700 14px inherit;cursor:pointer}
 #student-view .academy-certificate-main{display:flex!important;width:100%;align-items:center;justify-content:center;border:1px solid #0b766b!important;background:#0b766b!important;color:#fff!important;min-height:54px;padding:12px 18px!important;font-size:16px!important;font-weight:700!important;border-radius:11px!important;cursor:pointer}
 @media(max-width:630px){#student-view .academy-payment-timeline{grid-template-columns:1fr}#student-view .academy-payment-step{min-height:44px}}
+
+
+/* Academy certification progress dashboard — 4 lifecycle steps and actionable output */
+#student-view .academy-payment-timeline{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:18px 0!important}
+#student-view .academy-payment-step{display:flex;align-items:center;gap:9px;padding:13px 11px;min-height:68px;border-radius:13px;border:1px solid #dce7eb;background:#f7fafb;color:#607985;font-size:13px!important;font-weight:650;line-height:1.35}
+#student-view .academy-payment-step>span:first-child{flex:none;width:27px;height:27px;border-radius:50%;display:grid;place-items:center;background:#e7eff2;color:#647c87;font-size:17px}
+#student-view .academy-payment-step.completed{background:#ebf7f1;border-color:#9bd9bc;color:#12634d}
+#student-view .academy-payment-step.completed>span:first-child{background:#c9efdc;color:#0a714e}
+#student-view .academy-payment-step.active{background:#fff9eb;border-color:#efd394;color:#715416}
+#student-view .academy-payment-step.active>span:first-child{background:#ffe8a9;color:#705316}
+#student-view .academy-cert-pending{background:#f4f8fa;border:1px solid #b7d4dc;border-radius:16px;padding:19px!important;gap:11px!important}
+#student-view .academy-cert-pending>strong{font-size:19px!important;color:#153b4d!important}
+#student-view .academy-cert-pending button.primary{background:#173c4f!important;color:#fff!important;border-color:#173c4f!important;border-radius:10px;font-size:16px!important;padding:12px 19px!important;min-height:50px}
+#student-view .request-item>.request-status{font-size:15px!important;padding:8px 14px!important}
+#student-view .request-item .academy-certificate-main{display:flex;align-items:center;justify-content:center;min-height:59px;border-radius:12px;background:#076b60!important;color:#fff!important;border:1px solid #076b60!important;font-size:17px!important;font-weight:750!important}
+#student-view .request-item .academy-certificate-main:hover{background:#095449!important}
+@media(max-width:900px){#student-view .academy-payment-timeline{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:520px){#student-view .academy-payment-timeline{grid-template-columns:1fr}#student-view .academy-payment-step{min-height:43px}#student-view .academy-cert-pending button.primary{width:100%}}
