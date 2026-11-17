@@ -11,7 +11,7 @@ async function verify(code){
   const u=cfg.url+'/functions/v1/academy-verify?codigo='+encodeURIComponent(code)+(report?'&tipo=relatorio':'');
   const r=await fetch(u,{headers:{apikey:cfg.publishableKey}}),data=await r.json();
   if(!r.ok||!data.valid){$('status').textContent=data.error||'Documento não autenticado.';$('status').className='status invalid';return}
-  $('status').textContent='Documento autêntico · registro ativo';$('status').className='status valid';
+  $('status').textContent=data.environment==='production'?'Documento autêntico · registro ativo':'Registro de teste válido · homologação técnica sem valor comercial';$('status').className='status valid';
   [['Código',data.code],['Titular',data.name],['Atividade',data.activity],['Carga horária validada',data.hours+' hora(s)'],['Período',data.period.start+' a '+data.period.end],['Emissão',new Date(data.issued_at).toLocaleDateString('pt-BR')],['Emissor',data.issuer],['CNPJ do emissor',data.issuer_cnpj||'53.275.018/0001-62']].forEach(([a,b])=>line(a,b));
   if(report){line('Evidências documentalmente verificadas',data.documentos_verificados);line('Análise registrada em',data.analise_concluida_em?new Date(data.analise_concluida_em).toLocaleDateString('pt-BR'):'—')}
   line('Ressalva',data.qualification);
