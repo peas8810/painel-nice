@@ -1,0 +1,17 @@
+{
+  "id": 18,
+  "status": "EMISSAO_ABERTA",
+  "protocolo_nice": "",
+  "titulo": "Atividades Extraclasse de Simulados do ENADE",
+  "tipo": "Simulados",
+  "data_evento": "2026-11-12",
+  "campus_unidade": "Teófilo Otoni",
+  "local": "",
+  "carga_horaria": "30",
+  "responsavel": "Francisco Esteves",
+  "descricao": "",
+  "emissao_inicio": "2026-11-13T19:39:00.000Z",
+  "emissao_fim": "2026-12-18T19:39:00.000Z",
+  "certificados_emitidos": 0,
+  "updated_at": "2026-11-18T19:39:44.969Z"
+}
