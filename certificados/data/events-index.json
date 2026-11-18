@@ -1,6 +1,15 @@
 {
-  "updated_at": "2026-11-09T19:10:01.001Z",
+  "updated_at": "2026-11-18T19:39:48.353Z",
   "events": [
+    {
+      "id": 18,
+      "titulo": "Atividades Extraclasse de Simulados do ENADE",
+      "data_evento": "2026-11-12",
+      "campus_unidade": "Teófilo Otoni",
+      "protocolo_nice": "",
+      "status": "EMISSAO_ABERTA",
+      "certificados_emitidos": 0
+    },
     {
       "id": 17,
       "titulo": "Currículo e Carreira",
