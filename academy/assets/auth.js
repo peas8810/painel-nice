@@ -145,18 +145,18 @@ async function listRequests(){
     finally{buttonRef.disabled=false;buttonRef.textContent='Gerar link para pagar · Mercado Pago (teste)'}
    },350)
   }}}if(item.status==='APROVADO'&&pay&&['AGUARDANDO_CHECKOUT','AGUARDANDO_PAGAMENTO'].includes(pay.payment_status)){attachManualPix(card,item,pay)}if(cert){const c=document.createElement('small');c.textContent='Certificado: '+({EMITIDO:'disponível para visualizar e baixar',PENDENTE_EMISSAO:'em emissão',REVOGADO:'revogado, sem validade'}[cert.status]||'em preparação')+(cert.status==='EMITIDO'?' · Código '+cert.certificate_code+(cert.issued_at?' · Emitido em '+new Date(cert.issued_at).toLocaleDateString('pt-BR'):''):'');card.append(c);if(cert.status==='EMITIDO'&&cert.pdf_path){
- if(Number(cert.design_version||1)<3){
-  const upgrade=document.createElement('button');upgrade.type='button';upgrade.className='academy-upgrade-diploma';upgrade.textContent='Atualizar certificado com ementa e relatório';card.append(upgrade);
+ if(Number(cert.design_version||1)<4){
+  const upgrade=document.createElement('button');upgrade.type='button';upgrade.className='academy-upgrade-diploma';upgrade.textContent='Atualizar certificado conforme modelo oficial do Academy';card.append(upgrade);
   const status=document.createElement('p');status.className='academy-upgrade-status';card.append(status);
   const perform=async()=>{
-   upgrade.disabled=true;upgrade.textContent='Gerando segunda página com ementa…';
+   upgrade.disabled=true;upgrade.textContent='Aplicando o modelo oficial e preservando a ementa…';
    try{
     const {data,error}=await db.functions.invoke('academy-redesign-certificate',{body:{request_id:item.id}});
     if(error||data?.error||!data?.updated){let detail=data?.error||error?.message||'Atualização indisponível';if(error?.context){try{const v=await error.context.json();detail=v.error||detail}catch{}}throw new Error(detail)}
-    status.textContent='Certificado atualizado com ementa. Recarregando…';
+    status.textContent='Certificado atualizado conforme o modelo oficial. Recarregando…';
     await listRequests();
    }catch(e){status.textContent='Não foi possível aplicar o novo visual: '+e.message}
-   finally{upgrade.disabled=false;upgrade.textContent='Atualizar certificado com ementa e relatório'}
+   finally{upgrade.disabled=false;upgrade.textContent='Atualizar certificado conforme modelo oficial do Academy'}
   };
   upgrade.onclick=perform;
   if(!academyDiplomaUpgradeAttempted.has(item.id)){academyDiplomaUpgradeAttempted.add(item.id);setTimeout(perform,400)}
