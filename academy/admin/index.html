@@ -99,11 +99,20 @@ async function renderEvidence(id){const el=$('request-evidence');el.replaceChild
 $('release-payment').addEventListener('click',async()=>{if(!chosen)return;if(!confirm('Liberar protocolo aprovado para a etapa financeira? Nenhum pagamento será confirmado automaticamente.'))return;const {error}=await db.rpc('academy_admin_release_payment',{p_id:chosen.id});$('release-feedback').textContent=error?'Falha: '+error.message:'Protocolo liberado para preparação da cobrança. O convite por e-mail ainda não foi enviado.'});
 async function invokeAcademy(name,payload,messageId){
  const element=$(messageId);element.textContent='Processando operação segura…';
- const {data,error}=await db.functions.invoke(name,{body:payload||{}});
- if(error){element.textContent='Operação não concluída: '+error.message;return null}
- if(data?.error){element.textContent='Operação indisponível: '+data.error;return null}
- element.textContent=data?.message||'Operação registrada. Confira o status atualizado.';
- return data
+ try{
+  const {data,error}=await db.functions.invoke(name,{body:payload||{}});
+  if(error){
+   let detail='';
+   if(error.context&&typeof error.context.json==='function'){
+    try{const problem=await error.context.json();detail=String(problem?.error||problem?.message||problem?.detail||'').slice(0,320)}catch{}
+   }
+   element.textContent='Operação não concluída: '+(detail||error.message||'Falha na função de pagamento.');
+   return null;
+  }
+  if(data?.error){element.textContent='Operação indisponível: '+data.error;return null}
+  element.textContent=data?.message||'Operação registrada. Confira o status atualizado.';
+  return data;
+ }catch(err){element.textContent='Não foi possível comunicar com o servidor: '+String(err?.message||err).slice(0,200);return null}
 }
 async function reloadNotifications(){
  const box=$('notifications-summary');box.replaceChildren();
