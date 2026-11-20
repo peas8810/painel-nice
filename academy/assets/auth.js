@@ -64,6 +64,7 @@ $('academy-group-claim').addEventListener('submit',async event=>{
   if(error||!data?.request_id)throw Error(error?.message||'Não foi possível validar o código.');
   note.textContent=(data.existing?'Este código já está vinculado à sua conta. ':'Código validado. ')+'Valor individual: '+(data.price_cents/100).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})+'. Abra o pedido em “Meus pedidos” e pague por Pix.';
   await listRequests();
+  window.academyOpenSection?.('my-requests');
   const target=document.getElementById('my-requests');
   if(target)target.scrollIntoView({behavior:'smooth',block:'start'});
  }catch(e){note.textContent='Não foi possível utilizar o código: '+String(e.message||e).slice(0,200)}
