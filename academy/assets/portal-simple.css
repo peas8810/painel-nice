@@ -284,3 +284,13 @@ body:has(#student-view:not([hidden])){background:#f5f8fa!important;color:var(--a
  #student-view .academy-group-example-paper{margin:14px;padding:24px 13px}
 }
 @media(prefers-reduced-motion:reduce){#student-view #academy-group-claim .academy-group-submit:hover{transform:none!important}}
+
+/* Student dashboard: clear four-action navigation */
+#student-view #academy-home .simple-choices{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:14px!important}
+#student-view #academy-home .simple-choices a{min-height:175px!important;padding:24px!important;background:#fff!important;border:1px solid #d8e5ea!important;border-radius:16px!important;box-shadow:0 3px 13px rgba(18,59,79,.025)}
+#student-view #academy-home .simple-choices a:first-child{border:2px solid #83c6b7!important;background:#f2faf7!important}
+#student-view #academy-home .simple-choices a strong{font-size:20px!important;line-height:1.25!important;color:#193d4e}
+#student-view #academy-home .simple-choices a span:not(.academy-choice-icon){font-size:14px!important;line-height:1.5!important;color:#5d7785}
+#student-view #academy-home .simple-choices a b{font-size:14px!important;color:#0f786e;text-decoration:none}
+#student-view #academy-home .simple-choices a:hover{border-color:#81b9bc!important;background:#f5fafb!important;transform:translateY(-1px)}
+@media(max-width:700px){#student-view #academy-home .simple-choices{grid-template-columns:1fr!important}#student-view #academy-home .simple-choices a{min-height:0!important;padding:19px!important}}
