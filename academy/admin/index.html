@@ -173,7 +173,7 @@ $('academy-group-capacity').addEventListener('input',academyGroupQuote);
 async function academyGroupRefresh(){
  const [sources,projects]=await Promise.all([
   db.from('academy_requests').select('id,activity,status,hours_verified').eq('status','APROVADO').order('created_at',{ascending:false}).limit(250),
-  db.from('academy_group_projects').select('id,title,status,capacity,unit_price_cents,created_at,expires_at').order('created_at',{ascending:false}).limit(100)
+  db.rpc('academy_group_admin_summary')
  ]);
  const sel=$('academy-group-source');const keep=sel.value;sel.replaceChildren();
  let o=document.createElement('option');o.value='';o.textContent='Selecione atividade aprovada';sel.append(o);
@@ -184,7 +184,7 @@ async function academyGroupRefresh(){
  if(!(projects.data||[]).length){area.textContent='Nenhum projeto coletivo cadastrado.';return}
  for(const p of projects.data){
   const line=document.createElement('div');line.className='admin-row';
-  const info=document.createElement('span');info.textContent=p.title+' · '+p.capacity+' códigos · '+academyBrl(p.unit_price_cents)+'/unid. · '+p.status+' · '+p.id.slice(0,8);line.append(info);area.append(line)
+  const info=document.createElement('span');info.textContent=p.title+' · '+p.capacity+' códigos · '+academyBrl(p.unit_price_cents)+'/unid. · '+p.status+' · Resgatados '+p.claimed+' / Pagos '+p.paid+' / Emitidos '+p.issued+' · '+p.id.slice(0,8);line.append(info);area.append(line)
  }
 }
 $('academy-group-refresh').addEventListener('click',academyGroupRefresh);
