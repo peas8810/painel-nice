@@ -49,6 +49,27 @@ async function loadActivityTypes(){
 }
 
 
+
+// Project voucher: inline guidance, paste normalization and helpful input errors.
+const academyGroupCodeInput=$('academy-group-code');
+const academyGroupNameInput=$('academy-group-fullname');
+const academyGroupStatus=$('academy-group-claim-status');
+academyGroupCodeInput.addEventListener('input',()=>{
+ const raw=academyGroupCodeInput.value.toUpperCase().replace(/\s+/g,'').replace(/[^A-Z0-9-]/g,'');
+ academyGroupCodeInput.value=raw.startsWith('ACA')&&!raw.startsWith('ACA-')&&raw.length>3?'ACA-'+raw.slice(3):raw;
+ academyGroupCodeInput.setCustomValidity('');
+ academyGroupStatus.textContent='';
+});
+academyGroupNameInput.addEventListener('input',()=>{
+ academyGroupNameInput.setCustomValidity('');
+ academyGroupStatus.textContent='';
+});
+academyGroupCodeInput.addEventListener('blur',()=>{
+ if(academyGroupCodeInput.value&& !/^ACA-[0-9A-F]{24}$/.test(academyGroupCodeInput.value)){
+  academyGroupCodeInput.setCustomValidity('O código deve começar com ACA- e conter 24 caracteres depois do hífen.');
+ }else academyGroupCodeInput.setCustomValidity('');
+});
+
 $('academy-group-claim').addEventListener('submit',async event=>{
  event.preventDefault();
  const note=$('academy-group-claim-status'),code=$('academy-group-code').value.trim().toUpperCase();
@@ -57,7 +78,7 @@ $('academy-group-claim').addEventListener('submit',async event=>{
  if(!/^ACA-[0-9A-F]{24}$/.test(code)){note.textContent='Código inválido. Confira os 24 caracteres e tente novamente.';return}
  if(name.length<5||name.length>180||name.split(' ').length<2){note.textContent='Informe nome e sobrenome completos.';return}
  if(!$('academy-group-confirm').checked){note.textContent='Confirme a revisão do nome e das condições.';return}
- if(!confirm('CONFIRMAÇÃO FINAL\n\nNome no certificado: '+name+'\n\nSua emissão inicial e duas correções são gratuitas. Após esse limite, uma nova correção exigirá pagamento do mesmo valor unitário do pacote.\n\nVocê verificou todos os dados?'))return;
+ // The mandatory review checkbox directly above acts as explicit informed confirmation.
  const button=event.currentTarget.querySelector('button[type=submit]');button.disabled=true;note.textContent='Validando o código e vinculando o certificado…';
  try{
   const {data,error}=await db.rpc('academy_group_redeem',{p_code:code,p_legal_name:name,p_confirm:true});
@@ -67,7 +88,16 @@ $('academy-group-claim').addEventListener('submit',async event=>{
   window.academyOpenSection?.('my-requests');
   const target=document.getElementById('my-requests');
   if(target)target.scrollIntoView({behavior:'smooth',block:'start'});
- }catch(e){note.textContent='Não foi possível utilizar o código: '+String(e.message||e).slice(0,200)}
+ }catch(e){
+  const message=String(e.message||e);
+  const friendly=/PROJECT_AWAITING_CONFIRMED_PIX|PROJECT_NOT_ACTIVE/.test(message)?'O projeto ainda não teve o Pix integral confirmado. Solicite ao responsável que acompanhe a conferência bancária.'
+   :/INVALID_OR_USED_CODE|INVALID_CODE/.test(message)?'Código não encontrado. Confira todos os caracteres com o responsável pelo projeto.'
+   :/CODE_ALREADY_USED/.test(message)?'Este código já foi utilizado por outro participante. Solicite outro código ao responsável.'
+   :/LOGIN_REQUIRED/.test(message)?'Sua sessão expirou. Entre novamente na sua conta para continuar.'
+   :/FULL_NAME_REQUIRED/.test(message)?'Informe nome e sobrenome completos, exatamente como devem aparecer no certificado.'
+   :'Não foi possível validar o código neste momento. Confira os dados e tente novamente.';
+  note.textContent=friendly;
+ }
  finally{button.disabled=false}
 });
 
