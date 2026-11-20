@@ -62,7 +62,7 @@ $('academy-group-claim').addEventListener('submit',async event=>{
  try{
   const {data,error}=await db.rpc('academy_group_redeem',{p_code:code,p_legal_name:name,p_confirm:true});
   if(error||!data?.request_id)throw Error(error?.message||'Não foi possível validar o código.');
-  note.textContent=(data.existing?'Este código já está vinculado à sua conta. ':'Código validado. ')+'Valor individual: '+(data.price_cents/100).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})+'. Abra o pedido em “Meus pedidos” e pague por Pix.';
+  note.textContent=(data.existing?'Este código já está vinculado à sua conta. ':'Código validado. ')+(Number.isInteger(data.price_cents)?'Valor individual: '+(data.price_cents/100).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})+'. ':'')+'Abra o pedido em “Meus pedidos” e pague por Pix.';
   await listRequests();
   window.academyOpenSection?.('my-requests');
   const target=document.getElementById('my-requests');
