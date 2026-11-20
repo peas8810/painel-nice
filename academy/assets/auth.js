@@ -81,6 +81,8 @@ async function listRequests(){
  const {data:payments}=await db.from('academy_payment_releases').select('request_id,payment_status,checkout_url,amount_cents').in('request_id',(data||[]).map(x=>x.id).length?(data||[]).map(x=>x.id):['00000000-0000-0000-0000-000000000000']);
  const {data:certs}=await db.from('academy_certificates').select('request_id,status,certificate_code,pdf_path,issued_at,design_version').in('request_id',(data||[]).map(x=>x.id).length?(data||[]).map(x=>x.id):['00000000-0000-0000-0000-000000000000']);
  const payById=new Map((payments||[]).map(x=>[x.request_id,x])),certById=new Map((certs||[]).map(x=>[x.request_id,x]));
+ const {data:groupSlots}=await db.from('academy_group_slots').select('id,request_id,legal_name,corrections_used,paid_correction_credits').in('request_id',(data||[]).map(x=>x.id).length?(data||[]).map(x=>x.id):['00000000-0000-0000-0000-000000000000']);
+ const groupByRequest=new Map((groupSlots||[]).map(x=>[x.request_id,x]));
  const nextCard=$('academy-next-step');
  if(nextCard){
    const latest=(data||[]).find(x=>['PENDENTE_DOCUMENTOS','INCONCLUSIVO','APROVADO','EM_ANALISE','ENVIADA'].includes(x.status))||(data||[])[0];
@@ -195,7 +197,7 @@ if(item.status==='APROVADO'&&pay&&['AGUARDANDO_CHECKOUT','AGUARDANDO_PAGAMENTO']
   catch(e){let box=card.querySelector('.academy-certificate-download-error');if(!box){box=document.createElement('p');box.className='academy-certificate-download-error';card.append(box)}box.textContent='Não foi possível baixar: '+e.message}
   finally{directDownload.disabled=false;directDownload.textContent='Baixar certificado PDF'}
  };
- card.append(directDownload);card.append(button);const link=document.createElement('a');link.href='../validar/?codigo='+encodeURIComponent(cert.certificate_code);link.textContent='Validar autenticidade';link.target='_blank';link.rel='noopener noreferrer';card.append(link)}}const actions=document.createElement('div');actions.className='actions';if(['ENVIADA','EM_ANALISE','PENDENTE_DOCUMENTOS','INCONCLUSIVO'].includes(item.status)&&!pay&&!cert){const edit=document.createElement('button');edit.type='button';edit.className='plain-action';edit.textContent='Corrigir dados';edit.onclick=()=>editRequest(item);const del=document.createElement('button');del.type='button';del.className='plain-action';del.textContent='Cancelar pedido';del.onclick=()=>deleteRequest(item);actions.append(edit,del)}const duplicate=document.createElement('button');duplicate.type='button';duplicate.className='plain-action';duplicate.textContent='Usar como modelo de outro pedido';duplicate.onclick=()=>{resetEdit();$('activity').value=item.activity;$('start').value=item.start_date;$('end').value=item.end_date;$('hours').value=String(item.hours_declared);$('description').value=item.description;const type=$('activity-type');if(![...type.options].some(o=>o.value===item.activity_type)){const op=document.createElement('option');op.value=item.activity_type;op.textContent=item.activity_type;type.append(op)}type.value=item.activity_type;window.academyOpenSection?.('new-request');window.academyWizardSetStep?.(1);$('request').scrollIntoView({behavior:'smooth'});message('request-status','Preenchemos os campos com o pedido anterior. Confira os dados e envie os documentos da nova atividade.')};actions.append(duplicate);const chat=document.createElement('button');chat.type='button';chat.className='plain-action';chat.textContent='Falar com a equipe';chat.onclick=()=>window.academyOpenConversation?.(item.id,item.activity);actions.append(chat);
+ card.append(directDownload);card.append(button);const link=document.createElement('a');link.href='../validar/?codigo='+encodeURIComponent(cert.certificate_code);link.textContent='Validar autenticidade';link.target='_blank';link.rel='noopener noreferrer';card.append(link)}}if(groupByRequest.has(item.id)&&cert?.status==='EMITIDO'&&cert.pdf_path){attachGroupReissues(card,item,groupByRequest.get(item.id));}const actions=document.createElement('div');actions.className='actions';if(['ENVIADA','EM_ANALISE','PENDENTE_DOCUMENTOS','INCONCLUSIVO'].includes(item.status)&&!pay&&!cert){const edit=document.createElement('button');edit.type='button';edit.className='plain-action';edit.textContent='Corrigir dados';edit.onclick=()=>editRequest(item);const del=document.createElement('button');del.type='button';del.className='plain-action';del.textContent='Cancelar pedido';del.onclick=()=>deleteRequest(item);actions.append(edit,del)}const duplicate=document.createElement('button');duplicate.type='button';duplicate.className='plain-action';duplicate.textContent='Usar como modelo de outro pedido';duplicate.onclick=()=>{resetEdit();$('activity').value=item.activity;$('start').value=item.start_date;$('end').value=item.end_date;$('hours').value=String(item.hours_declared);$('description').value=item.description;const type=$('activity-type');if(![...type.options].some(o=>o.value===item.activity_type)){const op=document.createElement('option');op.value=item.activity_type;op.textContent=item.activity_type;type.append(op)}type.value=item.activity_type;window.academyOpenSection?.('new-request');window.academyWizardSetStep?.(1);$('request').scrollIntoView({behavior:'smooth'});message('request-status','Preenchemos os campos com o pedido anterior. Confira os dados e envie os documentos da nova atividade.')};actions.append(duplicate);const chat=document.createElement('button');chat.type='button';chat.className='plain-action';chat.textContent='Falar com a equipe';chat.onclick=()=>window.academyOpenConversation?.(item.id,item.activity);actions.append(chat);
 if(['APROVADO','REPROVADO'].includes(item.status)){
  const feedback=document.createElement('button');feedback.type='button';feedback.className='plain-action';feedback.textContent='Avaliar experiência';
  feedback.onclick=async()=>{const reply=prompt('Como foi sua experiência no Academy? Dê uma nota de 1 a 5.');if(reply===null)return;const score=Number(reply);if(!Number.isInteger(score)||score<1||score>5){message('evidence-status','Informe uma nota entre 1 e 5.');return}
@@ -207,6 +209,66 @@ if(['APROVADO','REPROVADO'].includes(item.status)){
 }
 const more=document.createElement('details'),summary=document.createElement('summary');summary.textContent='Outras opções deste pedido';more.append(summary,actions);if(['ENVIADA','EM_ANALISE','PENDENTE_DOCUMENTOS','INCONCLUSIVO'].includes(item.status)){const send=document.createElement('button');send.type='button';send.className='primary';send.textContent='Enviar fotos e documentos';send.onclick=()=>{$('evidence-request').value=item.id;window.academyOpenSection?.('upload-section');};card.append(send);}card.append(more);tracking.appendChild(card)}window.dispatchEvent(new Event('academy-requests-loaded'))
 }
+
+function attachGroupReissues(card,item,slot){
+ const root=document.createElement('section');root.className='card';root.style.cssText='margin-top:16px;padding:18px;border:1px solid #cae4e1;border-radius:12px';
+ const head=document.createElement('h3');head.textContent='Correções do certificado coletivo';root.append(head);
+ const quota=document.createElement('p');quota.textContent='Nome atual no documento: '+slot.legal_name+' · Correções gratuitas restantes: '+Math.max(0,2-slot.corrections_used)+' · Créditos de correção pagos: '+slot.paid_correction_credits;root.append(quota);
+ const label=document.createElement('label');label.textContent='Nome completo corrigido';
+ const input=document.createElement('input');input.type='text';input.maxLength=180;input.value=slot.legal_name;input.style.width='100%';label.append(input);root.append(label);
+ const warning=document.createElement('p');warning.className='notice';warning.textContent='Confira todas as letras antes de confirmar. A emissão original e duas correções são gratuitas; uma correção posterior custa o preço unitário do pacote.';root.append(warning);
+ const button=document.createElement('button');button.className='primary';button.type='button';button.textContent='Confirmar correção e gerar novo PDF';root.append(button);
+ const result=document.createElement('p');result.setAttribute('role','status');root.append(result);
+ button.onclick=async()=>{
+  const name=input.value.trim().replace(/\s+/g,' ');
+  if(name===slot.legal_name){result.textContent='Altere o nome antes de solicitar uma correção.';return}
+  if(name.length<5||!name.includes(' ')){result.textContent='Informe o nome completo com sobrenome.';return}
+  if(slot.corrections_used>=2&&!slot.paid_correction_credits){result.textContent='As duas correções gratuitas se esgotaram. Solicite o Pix para uma nova via.';return}
+  if(!confirm('Confirma este nome para substituir o PDF atual?\n\n'+name+'\n\nUma tentativa de correção será consumida. Esta operação ficará registrada no histórico de auditoria.'))return;
+  button.disabled=true;result.textContent='Reemitindo documento…';
+  try{
+   const {data,error}=await db.functions.invoke('academy-group-revision',{body:{request_id:item.id,name,confirmed:true}});
+   if(error||data?.error||!data?.reissued){let err=data?.error||error?.message||'Falha na reemissão';if(error?.context){try{const out=await error.context.json();err=out.error||out.message||err}catch{}}throw Error(err)}
+   result.textContent='Certificado atualizado. Recarregando para baixar a versão corrigida…';await listRequests();
+  }catch(e){result.textContent='Não foi possível concluir: '+e.message}
+  finally{button.disabled=false}
+ };
+ if(slot.corrections_used>=2&&!slot.paid_correction_credits){
+  const paid=document.createElement('button');paid.type='button';paid.className='plain-action';paid.textContent='Pagar correção adicional por Pix';root.append(paid);
+  paid.onclick=async()=>{
+   paid.disabled=true;result.textContent='Preparando cobrança Pix da nova via…';
+   try{
+    const {data:d,error:e}=await db.functions.invoke('academy-group-extra-pix',{body:{action:'begin',request_id:item.id}});
+    if(e||d?.error){let msg=d?.message||d?.error||e?.message||'Falha ao preparar Pix';if(e?.context){try{const out=await e.context.json();msg=out.message||out.error||msg}catch{}}throw Error(msg)}
+    let area=root.querySelector('.academy-extra-pix');if(!area){area=document.createElement('div');area.className='academy-extra-pix';root.append(area)}area.replaceChildren();
+    const title=document.createElement('p');title.textContent='Valor da nova correção: '+(d.amount_cents/100).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})+' · Chave Pix CNPJ: 53.275.018/0001-62';area.append(title);
+    if(d.brcode&&window.QRCode){const qr=document.createElement('div');area.append(qr);new window.QRCode(qr,{text:d.brcode,width:190,height:190})}
+    const copy=document.createElement('button');copy.className='plain-action';copy.type='button';copy.textContent='Copiar Pix copia e cola';copy.onclick=()=>navigator.clipboard.writeText(d.brcode);area.append(copy);
+    const upload=document.createElement('input');upload.type='file';upload.accept='application/pdf,image/jpeg,image/png';area.append(upload);
+    const send=document.createElement('button');send.type='button';send.className='primary';send.textContent='Enviar comprovante da correção';area.append(send);
+    const receiptStatus=document.createElement('p');area.append(receiptStatus);
+    if(d.status!=='AGUARDANDO_PIX'){send.disabled=true;receiptStatus.textContent='Comprovante já enviado. Aguardando conferência bancária.'}
+    send.onclick=async()=>{
+     const file=upload.files?.[0];if(!file||!['application/pdf','image/jpeg','image/png'].includes(file.type)||file.size<=0||file.size>5*1024*1024){receiptStatus.textContent='Selecione PDF/JPG/PNG de até 5 MB.';return}
+     send.disabled=true;receiptStatus.textContent='Enviando comprovante…';
+     try{
+      const ext=file.type==='application/pdf'?'pdf':file.type==='image/png'?'png':'jpg';
+      const path=currentUser.id+'/'+item.id+'/'+crypto.randomUUID()+'.'+ext;
+      const {error:storageError}=await db.storage.from('academy-pix-comprovantes').upload(path,file,{contentType:file.type,upsert:false});
+      if(storageError)throw Error(storageError.message);
+      const {data:res,error:reqErr}=await db.functions.invoke('academy-group-extra-pix',{body:{action:'submit',order_id:d.order_id,file_path:path,file_name:file.name}});
+      if(reqErr||res?.error)throw Error(res?.message||res?.error||reqErr?.message);
+      receiptStatus.textContent='Comprovante recebido. Após a confirmação do crédito, a correção ficará liberada.';
+     }catch(ex){send.disabled=false;receiptStatus.textContent='Falha no envio: '+ex.message}
+    };
+    result.textContent='Pagamento exclusivamente por Pix direto. Confirme os dados do recebedor no aplicativo do banco.';
+   }catch(e){result.textContent='Não foi possível iniciar o Pix: '+e.message}
+   finally{paid.disabled=false}
+  };
+ }
+ card.append(root);
+}
+
 function attachManualPix(card,item,pay){
  const panel=document.createElement('details');panel.className='academy-pix-panel academy-pix-manual';
  const summary=document.createElement('summary');summary.textContent='Ou pagar por Pix direto à Editora UJN';panel.append(summary);
