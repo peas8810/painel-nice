@@ -44,6 +44,28 @@ table{border-collapse:separate;border-spacing:0;width:100%;background:white}th{b
 .review-box{border-top:1px solid #edf0f3}
 .warning{border-radius:13px}
 @media(max-width:760px){.top{padding:22px 16px}.wrap{padding:15px 12px 85px}.panel{padding:17px;border-radius:15px}.admin-tabs{position:sticky;top:0;z-index:20;display:flex;overflow-x:auto;flex-wrap:nowrap;scroll-snap-type:x mandatory;scrollbar-width:none;margin:0 0 14px;box-shadow:0 5px 18px #0b213810}.admin-tabs button{flex:0 0 auto;white-space:nowrap;scroll-snap-align:start}.actions{gap:10px}.btn{min-height:48px}td,th{padding:11px 10px}table{font-size:12px}.stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* Experience polish: finance and collective project setup */
+#groups-panel>.panel{padding:clamp(18px,3vw,34px);border-color:#d8e4e8;box-shadow:0 10px 35px rgba(12,41,59,.045)}
+#groups-panel>.panel>h2{font-size:clamp(22px,3vw,29px);letter-spacing:-.035em;color:#17374b}
+#groups-panel>.panel>.status{max-width:800px;font-size:14px;line-height:1.7;color:#587180}
+#groups-panel>.panel>.review-box:first-of-type{display:grid;gap:17px!important;max-width:780px!important;background:#f8fbfc;border:1px solid #dfe8ec;border-radius:18px;padding:clamp(16px,3vw,28px);margin-top:24px}
+#groups-panel>.panel>.review-box:first-of-type label{display:grid;gap:9px;font-size:15px;font-weight:750;color:#193e50;margin:0}
+#groups-panel input[type=number],#groups-panel select{display:block;width:100%;min-height:55px;padding:13px 16px;border:1.5px solid #bacfd7;border-radius:12px;font-size:16px;background:#fff;color:#163d4e}
+#groups-panel input:focus-visible,#groups-panel select:focus-visible,#groups-panel textarea:focus-visible{outline:3px solid rgba(20,122,129,.35);outline-offset:2px}
+#groups-panel #academy-group-quote{font-size:17px!important;line-height:1.5;border:1px solid #cbe5dd;border-radius:12px;padding:16px;background:#ebf8f3;font-weight:750;color:#126250}
+#groups-panel #academy-group-create{min-height:54px;border-radius:12px;background:#08756a;border:1px solid #08756a;color:#fff;font-size:16px}
+#groups-panel #academy-group-create:hover{background:#065f55}
+#groups-panel #academy-group-status{font-size:14px;line-height:1.6;margin:0;overflow-wrap:anywhere}
+#groups-panel #academy-group-generated{padding:22px;background:#f7fbfa;border:1px solid #d2e7e2;border-radius:16px;overflow-wrap:anywhere}
+#groups-panel #academy-group-code-list{max-height:340px;overflow:auto;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:14px}
+#groups-panel #academy-group-projects>.panel{border:1px solid #dbe6e9;border-radius:16px;padding:clamp(14px,2vw,22px);background:white;box-shadow:none}
+#groups-panel #academy-group-projects>.panel h3{margin:0 0 12px;font-size:20px;color:#193b4d}
+#groups-panel #academy-group-projects>.panel .status{font-size:14px;line-height:1.5}
+#groups-panel #academy-group-projects>.panel input[type=file]{max-width:100%;background:#f8fafb;border-style:dashed}
+#groups-panel #academy-group-projects>.panel textarea{min-height:105px;font-size:15px}
+#groups-panel #academy-group-projects>.panel .btn{min-height:47px;max-width:100%}
+@media(max-width:600px){#groups-panel>.panel{padding:16px}#groups-panel>.panel>.review-box:first-of-type{padding:17px}#groups-panel #academy-group-create{width:100%}#groups-panel #academy-group-projects>.panel .btn{width:100%}}
 </style><link rel="stylesheet" href="../assets/academy-theme.css?v=5"></head><body>
 <header class="top"><a href="../">‹ Voltar ao Academy</a><h1>Administração · Protocolo Academy</h1><p>Gestão de solicitações no próprio site</p></header>
 <main class="wrap"><div class="warning"><b>Homologação controlada:</b> acompanhamento e decisões básicas estão ativos. Comprovantes, cobranças e emissão comercial continuam bloqueados até homologação dos módulos.</div>
