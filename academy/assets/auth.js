@@ -48,6 +48,28 @@ async function loadActivityTypes(){
  if(types.includes(selection))input.value=selection;
 }
 
+
+$('academy-group-claim').addEventListener('submit',async event=>{
+ event.preventDefault();
+ const note=$('academy-group-claim-status'),code=$('academy-group-code').value.trim().toUpperCase();
+ const name=$('academy-group-fullname').value.trim().replace(/\s+/g,' ');
+ if(!currentUser){note.textContent='Entre com sua conta do Academy antes de utilizar o código.';return}
+ if(!/^ACA-[0-9A-F]{24}$/.test(code)){note.textContent='Código inválido. Confira os 24 caracteres e tente novamente.';return}
+ if(name.length<5||name.length>180||name.split(' ').length<2){note.textContent='Informe nome e sobrenome completos.';return}
+ if(!$('academy-group-confirm').checked){note.textContent='Confirme a revisão do nome e das condições.';return}
+ if(!confirm('CONFIRMAÇÃO FINAL\n\nNome no certificado: '+name+'\n\nSua emissão inicial e duas correções são gratuitas. Após esse limite, uma nova correção exigirá pagamento do mesmo valor unitário do pacote.\n\nVocê verificou todos os dados?'))return;
+ const button=event.currentTarget.querySelector('button[type=submit]');button.disabled=true;note.textContent='Validando o código e vinculando o certificado…';
+ try{
+  const {data,error}=await db.rpc('academy_group_redeem',{p_code:code,p_legal_name:name,p_confirm:true});
+  if(error||!data?.request_id)throw Error(error?.message||'Não foi possível validar o código.');
+  note.textContent=(data.existing?'Este código já está vinculado à sua conta. ':'Código validado. ')+'Valor individual: '+(data.price_cents/100).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})+'. Abra o pedido em “Meus pedidos” e pague por Pix.';
+  await listRequests();
+  const target=document.getElementById('my-requests');
+  if(target)target.scrollIntoView({behavior:'smooth',block:'start'});
+ }catch(e){note.textContent='Não foi possível utilizar o código: '+String(e.message||e).slice(0,200)}
+ finally{button.disabled=false}
+});
+
 async function listRequests(){
  const revision=++currentRevision;
  if(!currentUser)return;
