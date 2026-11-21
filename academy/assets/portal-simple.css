@@ -294,3 +294,63 @@ body:has(#student-view:not([hidden])){background:#f5f8fa!important;color:var(--a
 #student-view #academy-home .simple-choices a b{font-size:14px!important;color:#0f786e;text-decoration:none}
 #student-view #academy-home .simple-choices a:hover{border-color:#81b9bc!important;background:#f5fafb!important;transform:translateY(-1px)}
 @media(max-width:700px){#student-view #academy-home .simple-choices{grid-template-columns:1fr!important}#student-view #academy-home .simple-choices a{min-height:0!important;padding:19px!important}}
+
+
+/* Form system v1.2 — general student requests, uploads, identity and auth */
+#visitor-view :is(#academy-login,#register,#academy-new-password),
+#student-view :is(#request,.wizard-panel,.academy-group-form){min-width:0}
+#visitor-view .portal-auth-card form>label:not(.check),
+#student-view #request .wizard-panel>label:not(.check),
+#student-view #request .wizard-panel .two>label,
+#student-view #new-request .wizard-panel>label,
+#student-view #academy-account label:not(.check){
+ display:flex!important;flex-direction:column!important;align-items:stretch!important;gap:8px!important;
+ max-width:100%!important;min-width:0!important;
+ margin:0 0 18px!important;font-size:14px!important;line-height:1.5!important;
+ color:#214357!important;font-weight:730!important;
+}
+#visitor-view .portal-auth-card form :is(input:not([type=checkbox]),select,textarea),
+#student-view :is(#new-request,#academy-account,#upload-section) :is(input:not([type=checkbox]):not([type=file]),select,textarea){
+ box-sizing:border-box!important;display:block!important;width:100%!important;max-width:100%!important;
+ min-width:0!important;min-height:52px!important;padding:12px 15px!important;
+ background:white!important;border:1.5px solid #c2d3dc!important;border-radius:12px!important;
+ font-family:inherit!important;font-size:16px!important;font-weight:450!important;line-height:1.45!important;
+ color:#17394b!important;box-shadow:0 2px 5px rgba(25,65,83,.025)!important;
+}
+#visitor-view .portal-auth-card form :is(input,select,textarea)::placeholder,
+#student-view #request :is(input,select,textarea)::placeholder{color:#8a9eaa!important;opacity:1!important}
+#visitor-view .portal-auth-card form :is(input,select,textarea):focus-visible,
+#student-view :is(#new-request,#academy-account,#upload-section) :is(input,select,textarea):focus-visible{
+ border-color:#158477!important;outline:3px solid rgba(20,126,119,.18)!important;outline-offset:1px!important
+}
+#visitor-view .portal-auth-card :is(button.primary,.google-login),
+#student-view :is(#new-request,#upload-section,#academy-account) button.primary{
+ min-height:51px!important;border-radius:11px!important;padding:11px 18px!important;
+ font-size:15px!important;font-weight:730!important
+}
+#visitor-view .portal-auth-card :is(button.primary,.google-login){width:100%!important}
+#student-view #new-request .wizard-panel{width:100%;max-width:850px;gap:18px}
+#student-view #new-request .two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+#student-view #new-request .wizard-progress{margin:17px 0!important}
+#student-view #new-request #wizard-progress{width:100%;height:9px;accent-color:#0d7668}
+#student-view :is(#new-request,#upload-section,#academy-account,#my-requests,#certificate-wallet) h2{font-size:clamp(22px,3vw,30px)!important;line-height:1.25!important;margin-top:0}
+#student-view :is(#new-request,#upload-section,#academy-account,#my-requests,#certificate-wallet) .field-help{
+ font-size:12px!important;line-height:1.5!important;color:#647e8c!important;font-weight:450!important
+}
+#student-view .wizard-actions{display:flex;align-items:center;flex-wrap:wrap;gap:11px;max-width:850px}
+#student-view .wizard-actions button{min-height:48px!important;border-radius:10px!important;flex:1 1 140px}
+#student-view #my-requests .request-item{padding:clamp(15px,2.4vw,25px)!important}
+#student-view #my-requests .request-item .actions>button,
+#student-view #my-requests .request-item .actions>a{min-height:45px!important;max-width:100%;border-radius:10px}
+#student-view #my-requests .request-item .academy-payment-timeline{margin-top:17px!important}
+#student-view #my-requests .request-search-label{display:grid;gap:8px}
+#student-view #my-requests .request-search-label input{width:100%;min-height:50px;border-radius:11px;font-size:16px}
+#student-view #certificate-wallet a,
+#student-view #my-requests a{overflow-wrap:anywhere}
+#student-view .notice[role=status]:not(:empty){overflow-wrap:anywhere}
+@media(max-width:680px){
+ #student-view #new-request .two{grid-template-columns:1fr;gap:0}
+ #student-view .wizard-actions button{flex:1 1 100%}
+ #visitor-view .portal-auth-card{max-width:100%}
+ #student-view :is(#new-request,#upload-section,#academy-account) :is(input,textarea,select){font-size:16px!important}
+}
