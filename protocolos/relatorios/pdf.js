@@ -69,18 +69,18 @@
       const countText=value=>Number.isFinite(value)?F.format(value):'ND';
       text('Fonte: '+cert.source+' | '+(cert.updatedAt?new Date(cert.updatedAt).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo'}):'data não disponível'));
       if(cert.warning)text(cert.warning,{color:rgb(.55,.3,.1)});
-      text(`Conferência do arquivo enviado: ${countText(cert.snapshot.responses)} respostas de protocolo, ${countText(cert.snapshot.identifiers)} identificadores NICE, ${countText(cert.snapshot.certificates)} emissões e ${countText(cert.snapshot.bookRecords)} lançamentos no Livro Digital. As respostas e os identificadores já estão no histórico de formalizações; os dados de certificação complementam a análise sem aumentar artificialmente o número de ações.`);
+      text(`Conferência do arquivo enviado no recorte AlfaUnipac: ${countText(cert.snapshot.responses)} respostas de protocolo, ${countText(cert.snapshot.identifiers)} identificadores NICE, ${countText(cert.snapshot.certificates)} emissões e ${countText(cert.snapshot.bookRecords)} emissões com referência no Livro Digital. As respostas e os identificadores já estão no histórico de formalizações; os dados de certificação complementam a análise sem aumentar artificialmente o número de ações.`);
       section('Certificação por curso no recorte');
       table(['Curso','Ações vinculadas','Emissões','Vigentes','Revogadas','Registro no Livro'],cert.courses.filter(c=>c.actions).map(c=>[c.course,String(c.actions),F.format(c.total),F.format(c.valid),F.format(c.revoked),F.format(c.registered)]),[175,70,65,65,65,width-440]);
       if(!cert.scope.actions)text('Nenhuma emissão pôde ser atribuída com precisão às formalizações deste recorte. Isso não comprova ausência de certificação do curso; os vínculos precisam ser regularizados.');
       section('Rastreabilidade da certificação no recorte');
       table(['Formalização / protocolos','Eventos','Emissões','Vigentes','Livro'],cert.actions.map(a=>[a.id+' / '+a.protocols.join(', '),a.events.join(', '),String(a.total),String(a.valid),String(a.registered)]),[245,75,65,65,width-450]);
-      section('Emissões por instituição informada na fonte completa');
+      ensure(110);section('Emissões da AlfaUnipac');
       table(['Instituição','Emissões'],cert.institutions.map(([name,count])=>[name,F.format(count)]),[width-90,90]);
-      text('Esta distribuição descreve toda a fonte de certificação, inclusive instituições diferentes da AlfaUnipac e registros sem instituição informada. Ela não atribui essas emissões aos cursos sem vínculo explícito.');
+      text('A tabela e os indicadores de certificação consideram somente emissões cuja instituição informada é AlfaUnipac. A atribuição aos cursos mantém a exigência de vínculo explícito com protocolo NICE.');
       if(cert.snapshot.inventory.length){
-        newPage('Cobertura das abas do arquivo enviado');
-        text('O inventário registra as linhas preenchidas de cada aba e sua função na análise. As contagens das abas auxiliares não são somadas como formalizações, pessoas ou certificados adicionais. Dados pessoais e configurações privadas permanecem fora do relatório.');
+        newPage('Cobertura dos dados da AlfaUnipac');
+        text('O inventário apresenta as formalizações conciliadas e o recorte AlfaUnipac da certificação. Livro Digital não é somado como emissão adicional. Dados pessoais e configurações privadas permanecem fora do relatório.');
         table(['Aba do arquivo','Linhas','Uso na análise'],cert.snapshot.inventory.map(s=>[s.sheet,F.format(s.rows),s.use]),[205,55,width-260]);
       }
     }

@@ -1,5 +1,12 @@
 # Enriquecimento pela planilha enviada em 17/11/2026
 
+Atualização em 24/11/2026: dashboard e PDFs de cursos consideram exclusivamente
+certificados cuja instituição emissora é AlfaUnipac. Emissões de terceiros e sem
+instituição informada ficam fora dos totais, vínculos, correlações e quadros por
+curso. A identificação é normalizada por caixa e espaços, sem reatribuir registros.
+As contagens do inventário exibido também usam esse recorte; o arquivo original
+permanece preservado como fonte. Os números abaixo documentam a auditoria original.
+
 O arquivo `FORMALIZAÇÃO DE EVENTOS - AlfaUnipac (respostas) (2).xlsx` confirma as
 329 respostas e os 368 IDs já reconciliados. A diferença de precisão dos carimbos
 entre XLSX e Google Sheets é inferior a meio segundo; não representa novas ações.
