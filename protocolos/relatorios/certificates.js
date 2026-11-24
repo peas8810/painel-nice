@@ -73,13 +73,18 @@
     const F=new Intl.NumberFormat('pt-BR'),g=stats.global,s=stats.scope,c=stats.correlation;
     return [
       `A base de certificação da AlfaUnipac contém ${F.format(g.total)} códigos distintos: ${F.format(g.valid)} com situação ENVIADO ou ATIVO e ${F.format(g.revoked)} com situação REVOGADO. Há ${F.format(g.registered)} certificados com referência de registro no Livro Digital. Todos os cálculos de certificação deste relatório consideram exclusivamente a instituição AlfaUnipac. Livro e backup não são somados como novos certificados ou ações.`,
-      `A vinculação exige protocolo NICE completo e existente. Na base completa, ${F.format(g.linked)} emissões possuem esse vínculo e ${F.format(g.unlinked)} permanecem sem atribuição precisa a uma formalização. Nos filtros deste relatório, há vínculo preciso em ${F.format(s.actions)} ${s.actions===1?'formalização':'formalizações'} e ${F.format(s.events)} ${s.events===1?'evento':'eventos'} de certificação, com ${F.format(s.total)} emissões: ${F.format(s.valid)} com situação ENVIADO ou ATIVO e ${F.format(s.revoked)} com situação REVOGADO. As emissões sem vínculo ficam na análise geral da fonte e não são distribuídas artificialmente entre cursos.`,
+      `A vinculação exige protocolo NICE completo e existente. Na base completa, ${F.format(g.linked)} emissões possuem esse vínculo e ${F.format(g.unlinked)} permanecem sem atribuição precisa a uma formalização. `+(s.total===0&&g.unlinked>0?'Nos filtros deste relatório, a quantidade de emissões não foi apurada: a vinculação documental está pendente. A ausência de vínculo confirmado não significa que o curso não certificou.':`Nos filtros deste relatório, há vínculo preciso em ${F.format(s.actions)} ${s.actions===1?'formalização':'formalizações'} e ${F.format(s.events)} ${s.events===1?'evento':'eventos'} de certificação, com ${F.format(s.total)} emissões confirmadas: ${F.format(s.valid)} com situação ENVIADO ou ATIVO e ${F.format(s.revoked)} com situação REVOGADO.`)+' As emissões sem vínculo ficam na análise geral da fonte e não são distribuídas artificialmente entre cursos.',
       `A certificação constitui evidência documental de emissão. Ela não corresponde automaticamente a participantes únicos, à população atendida ou a ganhos sociais medidos. Um titular pode receber vários certificados; papéis como palestrante e organizador também podem ser certificados. Por isso, o público previsto permanece separado e não é substituído ou acrescido do número de certificados. Ações multicursos compartilham a mesma evidência e os totais dos cursos podem se sobrepor.`,
       stats.snapshot.bookRecords===null?'O inventário do arquivo enviado está indisponível; as emissões desta análise utilizam apenas a fonte pública identificada.':`No arquivo enviado, ${F.format(stats.snapshot.bookRecords)} emissões da AlfaUnipac possuem referência no Livro Digital. Registros de outras instituições ou sem instituição emissora identificada ficam fora dos totais e das análises de certificação deste relatório.`,
       c.value===null?`A associação entre público previsto e certificações vigentes por formalização permanece ND (n=${c.n} pares válidos), por dados insuficientes ou ausência de variação.`:`A correlação de Spearman entre público previsto e certificações vigentes por formalização é ${c.value.toFixed(3).replace('.',',')} (n=${c.n} pares válidos). O resultado relaciona planejamento e documentação, sem medir benefício comunitário ou significância estatística; a amostra e a cobertura dos vínculos devem acompanhar a interpretação.`
     ];
   }
-  const api={normalize,resolve,analyze,paragraphs};
+  function displayScope(stats){
+    if(!stats)return {total:null,valid:null,registered:null,pending:true};
+    const pending=stats.scope.total===0&&stats.global.unlinked>0;
+    return {total:pending?null:stats.scope.total,valid:pending?null:stats.scope.valid,registered:pending?null:stats.scope.registered,pending};
+  }
+  const api={normalize,resolve,analyze,paragraphs,displayScope};
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   root.NiceCourseCertificates=api;
 })(typeof window!=='undefined'?window:globalThis);

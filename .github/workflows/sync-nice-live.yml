@@ -9,6 +9,8 @@ on:
   push:
     paths:
       - '.github/workflows/sync-nice-live.yml'
+      - 'scripts/sync_report_receipts.py'
+      - 'protocolos/relatorios/politica-relatorios.json'
 
 permissions:
   contents: write
@@ -77,6 +79,10 @@ jobs:
           fetch_public stats /tmp/stats.json
           fetch_public projects /tmp/projects.json '&limit=500'
           fetch_public cert_dashboard /tmp/cert_dashboard.json
+
+      - name: Verificar recebimentos de relatório final
+        run: |
+          python scripts/sync_report_receipts.py --projects /tmp/projects.json --previous protocolos/live-data.json --policy protocolos/relatorios/politica-relatorios.json --api 'https://script.google.com/macros/s/AKfycby2HN1DU9SXupv2WlthavWzXMr5k1RsdpzDL-Dahd9NN2-TvDvEqT-wqMM6F9fP2DnY/exec'
 
       - name: Validar e gerar cache público
         shell: bash

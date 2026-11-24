@@ -7,6 +7,9 @@ on:
       - 'apps-script/**'
       - 'scripts/plan_protocol_import.py'
       - 'scripts/import_certificate_evidence.py'
+      - 'scripts/sync_report_receipts.py'
+      - 'tests/report-compliance.test.cjs'
+      - 'tests/test_sync_report_receipts.py'
       - 'tests/course-certificates.test.cjs'
       - 'tests/test_protocol_import.py'
       - '.github/workflows/validate-protocolos.yml'
@@ -16,6 +19,9 @@ on:
       - 'apps-script/**'
       - 'scripts/plan_protocol_import.py'
       - 'scripts/import_certificate_evidence.py'
+      - 'scripts/sync_report_receipts.py'
+      - 'tests/report-compliance.test.cjs'
+      - 'tests/test_sync_report_receipts.py'
       - 'tests/course-certificates.test.cjs'
       - 'tests/test_protocol_import.py'
 
@@ -34,12 +40,16 @@ jobs:
           node --check protocolos/relatorios/model.js
           node --check protocolos/relatorios/narrative.js
           node --check protocolos/relatorios/certificates.js
+          node --check protocolos/relatorios/compliance.js
           node --check protocolos/relatorios/app.js
           node --check protocolos/relatorios/pdf.js
           node --test tests/course-reports.test.cjs
           node --test tests/course-certificates.test.cjs
+          node --test tests/report-compliance.test.cjs
       - name: Validate historical protocol importer
         run: python -m unittest discover -s tests -p test_protocol_import.py
+      - name: Validate report receipt synchronization
+        run: python -m unittest discover -s tests -p test_sync_report_receipts.py
       - name: Validate Apps Script syntax
         run: |
           cp apps-script/SistemaNICE.gs /tmp/SistemaNICE.js

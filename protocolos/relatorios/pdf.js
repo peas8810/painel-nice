@@ -1,7 +1,7 @@
 (function(root){
   'use strict';
   async function build(snapshot){
-    const {PDFDocument,StandardFonts,rgb}=root.PDFLib,M=root.NiceCourseReports,N=root.NiceCourseNarrative,C=root.NiceCourseCertificates;
+    const {PDFDocument,StandardFonts,rgb}=root.PDFLib,M=root.NiceCourseReports,N=root.NiceCourseNarrative,C=root.NiceCourseCertificates,R=root.NiceReportCompliance;
     const pdf=await PDFDocument.create(),font=await pdf.embedFont(StandardFonts.Helvetica),bold=await pdf.embedFont(StandardFonts.HelveticaBold);
     const W=595.28,H=841.89,margin=43,width=W-2*margin,navy=rgb(.09,.21,.36),gray=rgb(.35,.41,.47),pale=rgb(.95,.97,.98),line=rgb(.85,.89,.92);
     let page,y;
@@ -61,6 +61,23 @@
     section('Escopo documental');text('O histórico foi reconciliado a partir das planilhas originais. Protocolos associados à mesma formalização são agrupados. Registros históricos sem vínculo NICE mantêm um identificador analítico. Os registros com indício de teste e os campos sem identificação conservam sua sinalização para revisão.');
     newPage('Análise contextual do portfólio');
     N.introduction(snapshot).forEach(paragraph=>text(paragraph));
+    newPage('Produção histórica, documentação e cumprimento');
+    const compliance=snapshot.complianceStats||(R?R.analyze(r,snapshot.reportPolicy||{}):null);
+    if(R)R.paragraphs(compliance).forEach(paragraph=>text(paragraph));
+    if(compliance){
+      section('Dimensões da análise');
+      table(['Dimensão','Valor no recorte','Interpretação'],[
+        ['Produção registrada',F.format(s.total),'Todas as formalizações distintas, inclusive o histórico'],
+        ['Encerramentos administrativos',F.format(s.closed),'Estado cadastral, sem presumir recebimento ou benefício'],
+        ['Recebimentos confirmados',compliance.documentaryReceived===0&&compliance.documentaryUnknown?'Não apurado':F.format(compliance.documentaryReceived),'Somente confirmação consultada na fonte de recebimento'],
+        ['Relatórios exigíveis',compliance.configured?F.format(compliance.eligible):'Marco pendente','Após o marco, com prazo já vencido'],
+        ['Taxa de entrega',R.rateText(compliance),'Entregas confirmadas / mesmo conjunto de exigíveis'],
+        ['Execução e resultados comprovados','ND','Exigem validação das evidências e medidas de resultado']
+      ],[160,100,width-260]);
+      section('Enquadramento por curso');
+      table(['Curso','Histórico','Fluxo atual','Exigíveis','Entregas confirmadas','Taxa'],compliance.courses.map(c=>[c.course,compliance.configured?F.format(c.historical):'ND',compliance.configured?F.format(c.current):'ND',compliance.configured?F.format(c.eligible):'ND',compliance.configured&&!(c.received===0&&c.unknown)?F.format(c.received):'ND',R.rateText(c)]),[160,55,65,65,65,width-410]);
+      text('O ano e a data original são conservados na importação. Prazos ausentes ou divergentes e recebimentos sem consulta confirmada permanecem a verificar. O acervo de artigos e projetos conserva seus tipos de cadastro; certificados e documentos não são somados como novas ações.');
+    }
     newPage('Certificação e evidências documentais');
     const cert=snapshot.certificateStats;
     if(C)C.paragraphs(cert).forEach(paragraph=>text(paragraph));
@@ -93,7 +110,7 @@
     newPage('Comparação estatística dos cursos');
     text('A referência comparativa mantém campus/unidade e ano selecionados e inclui todos os cursos. Ações compartilhadas pertencem a mais de um curso. Percentuais de presença utilizam formalizações distintas como denominador; não somam necessariamente 100%. Encerramento é administrativo e público é planejado.');
     const courseStats=M.summarize(comparison).courses.map(([course])=>N.statistics(course,comparison));
-    table(['Curso','Registros / presença','Finalizadas / taxa','Estimativa: n / cobertura','Mediana prevista'],courseStats.map(c=>[c.course,F.format(c.s.total)+' / '+N.pct(c.s.total,comparison.length),F.format(c.s.closed)+' / '+N.pct(c.s.closed,c.s.total),F.format(c.s.expectedN)+' / '+N.pct(c.s.expectedN,c.s.total),c.median===null?'ND':N.number(c.median)]),[145,90,90,100,width-425]);
+    table(['Curso','Registros / presença','Encerramentos','Estimativa: n / cobertura','Mediana prevista'],courseStats.map(c=>[c.course,F.format(c.s.total)+' / '+N.pct(c.s.total,comparison.length),F.format(c.s.closed),F.format(c.s.expectedN)+' / '+N.pct(c.s.expectedN,c.s.total),c.median===null?'ND':N.number(c.median)]),[145,90,90,100,width-425]);
     text('A mediana considera somente registros com estimativa válida. Diferenças de volume e cobertura não demonstram superioridade de um curso; faltam denominadores como alunos matriculados, carga horária e recursos empregados.');
     for(const course of courseNames){
       newPage('Análise do curso: '+course);
@@ -138,6 +155,8 @@
     for(const row of r){
       ensure(140);section(row.id+' - '+(row.titles.join(' / ')||row.type||'Ação sem título informado'));
       if(row.protocols.length)text('Vínculos: '+row.protocols.map(id=>id+' '+(row.states[id]|| (row.closed_protocols.includes(id)?'FINALIZADO':'situação anterior'))).join('; '),{size:9});
+      const regime=compliance?.details.find(d=>d.id===row.id);
+      if(regime)text('Regime documental: '+({historical:'Histórico anterior à exigência',current:'Fluxo atual',unclassified:'A verificar'}[regime.cohort])+'. '+regime.reason+'.',{size:9});
       const comparisonCourse=f.course||row.courses[0];
       N.actionAnalysis(row,courseGroups.get(comparisonCourse)||[],h,comparisonCourse).forEach(paragraph=>text(paragraph,{size:9.5}));
       const ce=cert?.actions.find(a=>a.id===row.id);

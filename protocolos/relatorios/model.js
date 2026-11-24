@@ -36,7 +36,7 @@
   function fingerprint(p){return [p.data_protocolo,p.curso,p.unidade,p.tema||p.titulo,p.responsavel].map(norm).join('|');}
   function year(value){const d=new Date(value);return Number.isNaN(d.getTime())?null:Number(new Intl.DateTimeFormat('en',{year:'numeric',timeZone:'America/Sao_Paulo'}).format(d));}
   function merge(history,live){
-    const records=(history.records||[]).map(row=>({...row,courses:[...row.courses],ods:[...row.ods],protocols:[...row.protocols],closed_protocols:[...row.closed_protocols],states:{},titles:[],live:false}));
+    const records=(history.records||[]).map(row=>({...row,courses:[...row.courses],ods:[...row.ods],protocols:[...row.protocols],closed_protocols:[...row.closed_protocols],states:{},protocol_details:{},titles:[],live:false}));
     const byProtocol=new Map(records.flatMap(row=>row.protocols.map(id=>[id,row])));
     const byFingerprint=new Map();
     const projects=live?.projects?.projects||[];
@@ -46,7 +46,7 @@
       if(!/^NICE-\d{4}-\d{5}$/.test(p.id||''))return;
       let row=byProtocol.get(p.id)||byFingerprint.get(fingerprint(p));
       if(!row){
-        row={id:p.id,year:year(p.data_protocolo),courses:courses(p.curso),unit:unit(p.unidade),type:clean(p.titulo),ods:ods(p),expected:null,protocols:[],closed_protocols:[],placeholder:false,states:{},titles:[],live:true};
+        row={id:p.id,year:year(p.data_protocolo),courses:courses(p.curso),unit:unit(p.unidade),type:clean(p.titulo),ods:ods(p),expected:null,protocols:[],closed_protocols:[],placeholder:false,states:{},protocol_details:{},titles:[],live:true};
         records.push(row);
       }
       row.live=true;
@@ -57,8 +57,10 @@
       if(!row.placeholder&&(!unclassifiedHistory||incomingCourses.every(c=>Object.hasOwn(aliases,c))))row.courses=incomingCourses;
       const incomingUnit=unit(p.unidade);
       if(incomingUnit!=='Unidade não identificada'||!row.unit)row.unit=incomingUnit;
-      row.year=year(p.data_protocolo)||row.year;
+      row.year=/^(19|20)\d{2}-\d{2}-\d{2}$/.test(row.original_protocol_date||'')?Number(row.original_protocol_date.slice(0,4)):(year(p.data_protocolo)||row.year);
       row.protocols=[...new Set([...row.protocols,p.id])];row.states[p.id]=p.status||'PROTOCOLADO';
+      row.protocol_details[p.id]={data_protocolo:p.data_protocolo||'',prazo_relatorio:p.prazo_relatorio||'',data_relatorio:p.data_relatorio||'',
+        relatorio_recebido:typeof p.relatorio_recebido==='boolean'?p.relatorio_recebido:null,relatorio_verificacao_status:p.relatorio_verificacao_status||'',relatorio_verificado_em:p.relatorio_verificado_em||''};
       row.closed_protocols=row.closed_protocols.filter(id=>id!==p.id);
       if(p.status==='FINALIZADO')row.closed_protocols.push(p.id);
       const title=clean(p.tema||p.titulo).replace(/\b[^\s@]+@[^\s@]+\.[^\s@]+\b/g,'').slice(0,220);

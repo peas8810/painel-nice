@@ -18,6 +18,11 @@ test('curso e unidade só recebem emissões via protocolo completo existente',()
  assert.equal(s.scope.total,0);assert.equal(s.global.total,5);
  const both=C.analyze(d,rows,rows);assert.equal(both.courses.find(c=>c.course==='Farmácia').valid,1);assert.equal(both.courses.find(c=>c.course==='Direito').valid,1);
  assert.equal(both.scope.valid,1); // shared course evidence is not added twice globally
+ assert.equal(C.displayScope(s).total,null);assert.equal(C.displayScope(s).pending,true);
+});
+test('zero emissões só é apresentado como zero quando não há vínculos pendentes na fonte',()=>{
+ const source={...baseline,certificates:[]};const s=C.analyze(C.resolve(source,null),rows,rows);
+ assert.equal(C.displayScope(s).total,0);assert.equal(C.displayScope(s).pending,false);
 });
 test('cache mais novo incompleto não reduz a cobertura do arquivo',()=>{
  const d=C.resolve(baseline,{ok:true,updated_at:'2026-11-17T21:00:00Z',certificates:[],events:[]});

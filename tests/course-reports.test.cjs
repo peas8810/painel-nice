@@ -59,7 +59,7 @@ test('ODS e correlação tratam dados ausentes e variância nula',()=>{
   assert.equal(M.spearman([{a:null,b:2},{a:3,b:null}],r=>r.a,r=>r.b).n,0);
 });
 test('a base pública contém somente os campos analíticos permitidos',()=>{
-  const allowed=['id','year','courses','unit','type','ods','expected','protocols','closed_protocols','placeholder','context'];
+  const allowed=['id','year','courses','unit','type','ods','expected','protocols','closed_protocols','placeholder','context','original_protocol_date'];
   assert(history.records.every(row=>Object.keys(row).every(k=>allowed.includes(k))));
   assert(!fs.readFileSync('protocolos/relatorios/historico.json','utf8').includes('@'));
   assert(history.records.every(r=>Object.entries(r.context||{}).every(([key,values])=>['themes','formats','audiences'].includes(key)&&values.every(id=>N[key][id]))));
