@@ -1,0 +1,17 @@
+{
+  "id": 19,
+  "status": "EMISSAO_ABERTA",
+  "protocolo_nice": "",
+  "titulo": "Vacina+ Vida: Protegendo nossos pequenos",
+  "tipo": "Projeo de Extensão",
+  "data_evento": "2026-11-03",
+  "campus_unidade": "Teófilo Otoni",
+  "local": "Teófilo Otoni",
+  "carga_horaria": "10",
+  "responsavel": "Maicon Chaves",
+  "descricao": "Ação de arrecadação de fraldas e estão solicitando a contabilização das horas acadêmicas referentes à atividade realizada.",
+  "emissao_inicio": "2026-11-24T18:05:00.000Z",
+  "emissao_fim": "2026-12-24T18:05:00.000Z",
+  "certificados_emitidos": 0,
+  "updated_at": "2026-11-24T18:05:32.153Z"
+}
