@@ -56,18 +56,22 @@
       const z=document.createElement("option"); z.value=""; z.textContent=first; s.appendChild(z);
       values.forEach(v=>{const o=document.createElement("option");o.value=v;o.textContent=v;s.appendChild(o)});
     }
-    fillSelect("fy",uniq(P.map(x=>x.year)).map(String));
-    fillSelect("fc",uniq(P.map(x=>x.course)));
-    fillSelect("ft",uniq(P.map(x=>x.type)));
-    fillSelect("fm",uniq(P.map(x=>x.mod)));
-    fillSelect("fu",uniq(P.map(x=>x.unit)));
-    fillSelect("fr",uniq(P.map(x=>x.reach)));
-    fillSelect("iy",uniq(P.map(x=>x.year)).map(String),"Todos os anos");
+    const filterFields={fy:"year",fc:"course",ft:"type",fm:"mod",fu:"unit",fr:"reach",iy:"year"};
+    function updateFilterOptions(){
+      for(const [id,field] of Object.entries(filterFields)){
+        const selected=q("#"+id).value;
+        const values=uniq(P.map(x=>String(x[field]??"")));
+        if(selected&&!values.includes(selected)) values.push(selected);
+        fillSelect(id,values,id==="iy"?"Todos os anos":"Todos");
+        q("#"+id).value=selected;
+      }
+    }
+    updateFilterOptions();
 
     function canvas(id){
       const c=q("#"+id); if(!c) return null;
       const d=window.devicePixelRatio||1, rect=c.getBoundingClientRect();
-      const w=Math.max(320,rect.width), h=300;
+      const w=Math.max(1,rect.width), h=300;
       c.width=w*d; c.height=h*d; c.style.height=h+"px";
       const ctx=c.getContext("2d"); ctx.setTransform(d,0,0,d,0,0); ctx.clearRect(0,0,w,h);
       ctx.font="11px Segoe UI"; return {ctx,w,h};
@@ -75,23 +79,23 @@
     function hbar(id, rows){
       const z=canvas(id); if(!z) return; const {ctx,w,h}=z;
       if(!rows.length){ctx.fillStyle="#64748b";ctx.fillText("Sem dados.",15,25);return}
-      const max=Math.max(...rows.map(r=>r[1]),1), left=175, right=45, topm=14, bottom=18, gap=5;
+      const max=Math.max(...rows.map(r=>r[1]),1), left=Math.min(175,w*.43), right=42, topm=14, bottom=18, gap=5;
       const bh=Math.max(11,(h-topm-bottom-gap*(rows.length-1))/rows.length);
       rows.forEach((r,i)=>{
         const y=topm+i*(bh+gap), bw=(w-left-right)*(r[1]/max);
         ctx.fillStyle=i===0?"#e97824":"#2f75b5"; ctx.fillRect(left,y,bw,bh);
         ctx.fillStyle="#334155";ctx.textAlign="right";ctx.textBaseline="middle";
         let label=String(r[0]); if(label.length>28) label=label.slice(0,26)+"…";
-        ctx.fillText(label,left-7,y+bh/2);
+        ctx.fillText(label,left-7,y+bh/2,left-10);
         ctx.textAlign="left";ctx.fillStyle="#64748b";
         ctx.fillText(F.format(Math.round(r[1])),Math.min(w-42,left+bw+5),y+bh/2);
       });
     }
     function annual(p){
       const z=canvas("annual"); if(!z) return; const {ctx,w,h}=z;
-      const years=uniq(P.map(x=>x.year)).sort(), f=currentFilters();
+      const f=currentFilters(), years=uniq(P.map(x=>x.year)).filter(y=>!f.year||String(y)===f.year);
       const rows=years.map(y=>[y,p.filter(x=>x.year===y).length,
-        R.filter(x=>x.year===y&&(!f.course||x.course===f.course)&&(!f.type||x.type===f.type)).length]);
+        R.filter(x=>x.year===y&&rMatch(x,f)).length]);
       const max=Math.max(...rows.flatMap(r=>[r[1],r[2]]),1), left=40,right=12,topm=26,bottom=38;
       const pw=w-left-right,ph=h-topm-bottom,gw=pw/rows.length,bw=Math.min(31,gw*.28);
       rows.forEach((r,i)=>{
@@ -111,11 +115,14 @@
     }}
     const pMatch=(x,f)=>(!f.year||String(x.year)===f.year)&&(!f.course||x.course===f.course)&&
       (!f.type||x.type===f.type)&&(!f.mod||x.mod===f.mod)&&(!f.unit||x.unit===f.unit)&&(!f.reach||x.reach===f.reach);
-    const rMatch=(x,f)=>(!f.year||String(x.year)===f.year)&&(!f.course||x.course===f.course)&&(!f.type||x.type===f.type);
+    const rMatch=(x,f)=>x._live?pMatch(x,f):
+      (!f.year||String(x.year)===f.year)&&(!f.course||x.course===f.course)&&(!f.type||x.type===f.type);
 
     function updateOverview(){
       const f=currentFilters(), p=P.filter(x=>pMatch(x,f)), r=R.filter(x=>rMatch(x,f));
       q("#kp").textContent=F.format(p.length);q("#kr").textContent=F.format(r.length);
+      q("#report-scope").textContent=f.mod||f.unit||f.reach?
+        "Histórico de relatórios filtrado por ano, curso e tipo":"Entregas históricas e encerramentos no NICE";
       q("#ki").textContent=F.format(sum(p,"inf"));q("#kc").textContent=F.format(sum(p,"part"));
       q("#ks").textContent=F.format(sum(p,"stud"));
       const ppl=new Set();p.forEach(x=>x.people.forEach(z=>ppl.add(z)));q("#kd").textContent=F.format(ppl.size);
@@ -243,6 +250,11 @@
       qa(".tab").forEach(x=>x.classList.toggle("on",x.id===btn.dataset.tab));
       setTimeout(()=>{if(btn.dataset.tab==="visao")updateOverview();if(btn.dataset.tab==="intel")updateIntelligence()},0);
     }));
+    window.addEventListener("nice:projects-updated",()=>{
+      updateFilterOptions();
+      if(q("#visao").classList.contains("on"))updateOverview();
+      if(q("#intel").classList.contains("on"))updateIntelligence();
+    });
     window.addEventListener("resize",()=>{clearTimeout(window.__niceRT);window.__niceRT=setTimeout(()=>{
       if(q("#visao").classList.contains("on"))updateOverview();
       if(q("#intel").classList.contains("on"))updateIntelligence();

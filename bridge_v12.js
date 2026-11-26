@@ -64,11 +64,11 @@
       if(raw.n!==1320||raw.rn!==379||!raw.p||!raw.r)throw new Error('base incompleta');
       if(window.__NICE_UI_STARTED)return;
       const s=document.createElement('script');
-      s.src='dashboard_v12.js?ts='+Date.now();
+      s.src='dashboard_v12.js?v=20261126';
       s.onload=()=>{
         console.info('NICE: dashboard carregado');
         const live=document.createElement('script');
-        live.src='live_intelligence.js?ts='+Date.now();
+        live.src='live_intelligence.js?v=20261126';
         live.onload=()=>console.info('NICE: integração analítica ao vivo carregada');
         live.onerror=()=>console.warn('NICE: não foi possível carregar a integração analítica ao vivo.');
         document.body.appendChild(live);

@@ -11,7 +11,7 @@ window.NICE_PORTAL_CONFIG = Object.freeze({
 });
 
 (()=>{
-  const icon='../assets/amonia-logo.svg';
+  const icon=new URL('../assets/amonia-logo.svg',document.currentScript.src).href;
 
   let favicon=document.querySelector('link[rel="icon"]');
   if(!favicon){

@@ -10,11 +10,12 @@
 <link rel="stylesheet" href="intel_v11.css">
 <link rel="stylesheet" href="docintel_v1.css">
 <link rel="stylesheet" href="table-pages.css?v=20260930">
+<link rel="stylesheet" href="overview.css?v=20261126">
 </head>
 <body>
 <header class="top">
   <div class="brand"><div class="logo">N</div><div><h1>NICE · Inteligência de Extensão e Eventos</h1><p>AlfaUnipac · Base consolidada 2021–2026 · 2026 parcial</p></div></div>
-  <div class="status">Base até 04/09/2026</div>
+  <div class="status" id="nice-sync-state" data-state="loading" role="status">Conectando à base NICE</div>
 </header>
 <nav class="tabs">
   <button class="on" data-tab="visao">Visão Geral</button>
@@ -24,11 +25,22 @@
 <a href="certificados/cursos/">Cursos e Eventos</a><a href="relatorios/">Relatórios e indicadores</a></nav>
 <main>
 <section id="visao" class="tab on">
+<div class="overview-heading">
+  <div><p>AlfaUnipac · NICE</p><h2>Extensão e eventos</h2></div>
+  <button class="ghost" id="nice-refresh" type="button" disabled>Atualizar agora</button>
+</div>
+<section class="operations" aria-labelledby="operations-title">
+  <div><h3 id="operations-title">Controle de protocolos</h3><p id="nice-source">Consultando a base operacional</p></div>
+  <div><span>Protocolos no controle</span><strong id="nice-ops-total">—</strong></div>
+  <div><span>Finalizados</span><strong id="nice-ops-closed">—</strong></div>
+  <div><span>Em aberto</span><strong id="nice-ops-open">—</strong></div>
+</section>
+<div class="overview-section"><h3>Indicadores institucionais</h3><p>Histórico e controle atual · use os filtros para definir o recorte</p></div>
 <div class="card filters">
-  <div class="filter"><label>Ano</label><select id="fy"></select></div><div class="filter"><label>Curso</label><select id="fc"></select></div><div class="filter"><label>Tipo</label><select id="ft"></select></div><div class="filter"><label>Modalidade</label><select id="fm"></select></div><div class="filter"><label>Unidade/campus</label><select id="fu"></select></div><div class="filter"><label>Alcance</label><select id="fr"></select></div><div class="actions"><button class="primary" id="csv">Baixar CSV filtrado</button><button class="ghost" id="reset">Limpar filtros</button></div>
+  <div class="filter"><label for="fy">Ano</label><select id="fy"></select></div><div class="filter"><label for="fc">Curso</label><select id="fc"></select></div><div class="filter"><label for="ft">Tipo</label><select id="ft"></select></div><div class="filter"><label for="fm">Modalidade</label><select id="fm"></select></div><div class="filter"><label for="fu">Unidade/campus</label><select id="fu"></select></div><div class="filter"><label for="fr">Alcance</label><select id="fr"></select></div><div class="actions"><button class="primary" id="csv">Baixar CSV filtrado</button><button class="ghost" id="reset">Limpar filtros</button></div>
 </div>
 <div class="kpis">
-  <div class="kpi"><span>Protocolos</span><strong id="kp">–</strong><small>Ações registradas</small></div><div class="kpi"><span>Relatórios finais</span><strong id="kr">–</strong><small>Ações documentadas</small></div><div class="kpi o"><span>Participações informadas</span><strong id="ki">–</strong><small>Preenchidas nos formulários</small></div><div class="kpi g"><span>Participações consolidadas</span><strong id="kc">–</strong><small>Inclui estimativas identificadas</small></div><div class="kpi"><span>Alunos estimados</span><strong id="ks">–</strong><small>Estimativa gerencial</small></div><div class="kpi o"><span>Docentes/responsáveis</span><strong id="kd">–</strong><small>Identidades textuais distintas</small></div><div class="kpi g"><span>Extensão/social</span><strong id="ke">–</strong><small>Ações classificadas</small></div><div class="kpi"><span>Externo/misto</span><strong id="kx">–</strong><small>Interação com a comunidade</small></div>
+  <div class="kpi"><span>Protocolos</span><strong id="kp">–</strong><small>Ações registradas</small></div><div class="kpi"><span>Relatórios finais</span><strong id="kr">–</strong><small id="report-scope">Entregas históricas e encerramentos no NICE</small></div><div class="kpi o"><span>Participações informadas</span><strong id="ki">–</strong><small>Preenchidas nos formulários</small></div><div class="kpi g"><span>Participações consolidadas</span><strong id="kc">–</strong><small>Inclui estimativas identificadas</small></div><div class="kpi"><span>Alunos estimados</span><strong id="ks">–</strong><small>Estimativa gerencial</small></div><div class="kpi o"><span>Docentes/responsáveis</span><strong id="kd">–</strong><small>Identidades textuais distintas</small></div><div class="kpi g"><span>Extensão/social</span><strong id="ke">–</strong><small>Ações classificadas</small></div><div class="kpi"><span>Externo/misto</span><strong id="kx">–</strong><small>Interação com a comunidade</small></div>
 </div>
 <div class="grid"><div class="card"><h2>Evolução anual</h2><p class="desc">Protocolos e relatórios finais.</p><canvas id="annual"></canvas></div><div class="card"><h2>Top cursos por eventos</h2><p class="desc">Cursos com maior número de ações vinculadas.</p><canvas id="courses"></canvas></div></div>
 <div class="grid"><div class="card"><h2>Tipos de ação</h2><p class="desc">Distribuição das iniciativas.</p><canvas id="types"></canvas></div><div class="card"><h2>Perfil de alcance</h2><p class="desc">Público interno, externo, misto ou não identificado.</p><canvas id="reach"></canvas></div></div>
@@ -59,6 +71,6 @@
 </main>
 <footer>NICE · Núcleo Integrado de Ciência e Extensão · Painel institucional de apoio à decisão</footer>
 <script>window.__NICE_LOADER_ACTIVE=true;</script>
-<script src="model_1.js"></script><script src="bootstrap.js"></script><script src="bridge_v12.js"></script><script>document.write('<script src="docintel_json_v2.js?ts='+Date.now()+'"><\/script>')</script>
+<script src="protocolos/config.js?v=20261126"></script><script src="model_1.js"></script><script src="bootstrap.js"></script><script src="bridge_v12.js?v=20261126"></script><script>document.write('<script src="docintel_json_v2.js?ts='+Date.now()+'"><\/script>')</script>
 <script src="table-pages.js?v=20260930"></script>
 </body></html>

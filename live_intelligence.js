@@ -3,7 +3,11 @@
   window.__NICE_LIVE_INTELLIGENCE=true;
 
   const CACHE_URL='protocolos/live-data.json';
-  const REFRESH_MS=60000;
+  const API_URL=window.NICE_PORTAL_CONFIG?.API_URL;
+  const REFRESH_MS=30000;
+  const PUBLIC_LIMIT=500;
+  const F=new Intl.NumberFormat('pt-BR');
+  const clock=new Intl.DateTimeFormat('pt-BR',{timeZone:'America/Sao_Paulo',dateStyle:'short',timeStyle:'medium'});
   const norm=s=>String(s??'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
   const yes=v=>/^(sim|s|yes|true|1)$/i.test(String(v??'').trim());
   const cleanUnit=v=>{
@@ -54,64 +58,83 @@
     ods:String(p.ods||'').trim(),
     people:livePeople(p)
   });
-  const toReport=p=>({id:'REL-'+p.id,_live:true,year:yearOf(p),type:inferType(p),course:String(p.curso||'Não informado').trim()||'Não informado'});
+  const toReport=p=>({...p,id:'REL-'+p.id});
+  const state=document.getElementById('nice-sync-state');
+  const source=document.getElementById('nice-source');
+  const refresh=document.getElementById('nice-refresh');
+  let inFlight=false, lastAttempt=0, appliedAt=0, signature='';
 
-  function addOption(id,value){
-    if(!value||value==='Não informado'||value==='Não identificado')return;
-    const s=document.getElementById(id);if(!s)return;
-    if([...s.options].some(o=>o.value===String(value)))return;
-    const o=document.createElement('option');o.value=String(value);o.textContent=String(value);s.appendChild(o);
+  async function getJSON(url) {
+    const response=await fetch(url,{cache:'no-store',signal:AbortSignal.timeout(15000)});
+    if(!response.ok) throw new Error('Fonte indisponível');
+    return response.json();
   }
 
-  function fire(id){
-    const el=document.getElementById(id);if(!el)return;
-    el.dispatchEvent(new Event('change',{bubbles:true}));
-  }
-
-  function statusBadge(data){
-    const el=document.querySelector('.top .status');if(!el)return;
-    const dt=new Date(data.synced_at||Date.now());
-    const stamp=Number.isFinite(dt.getTime())?dt.toLocaleString('pt-BR',{dateStyle:'short',timeStyle:'short'}):'';
-    el.textContent=stamp?'Dados atualizados em '+stamp:'Dados em atualização automática';
-    el.title='Base histórica consolidada + protocolos atuais sincronizados automaticamente';
-  }
-
-  function note(data,count){
-    let n=document.getElementById('nice-live-note');
-    if(!n){
-      n=document.createElement('div');n.id='nice-live-note';
-      n.style='max-width:1400px;margin:10px auto 0;padding:8px 14px;border:1px solid #cfe0ee;background:#f7fbfe;color:#476177;border-radius:10px;font:12px Segoe UI,Arial,sans-serif;text-align:center';
-      const nav=document.querySelector('.tabs');nav?.insertAdjacentElement('afterend',n);
+  function projectsOf(payload) {
+    const rows=payload?.projects;
+    if(payload?.ok!==true || !Array.isArray(rows) || payload.total!==rows.length ||
+       rows.some(row=>!row || !/^NICE-\d{4}-\d{5}$/.test(row.id) || typeof row.status!=='string') ||
+       new Set(rows.map(row=>row.id)).size!==rows.length) {
+      throw new Error('Resposta operacional inválida');
     }
-    n.textContent=`Base integrada automaticamente: histórico consolidado + ${count} protocolo${count===1?'':'s'} do sistema atual, incluindo campos analíticos disponíveis. Sincronização operacional pelo GitHub.`;
+    return rows;
   }
 
-  async function sync(){
-    try{
-      if(!Array.isArray(window.__NICE_PROTOCOLS)||!Array.isArray(window.__NICE_REPORTS))return;
-      const r=await fetch(CACHE_URL+'?ts='+Date.now(),{cache:'no-store'});
-      if(!r.ok)throw new Error('cache indisponível');
-      const data=await r.json();
-      const projects=Array.isArray(data?.projects?.projects)?data.projects.projects:[];
-      const P=window.__NICE_PROTOCOLS,R=window.__NICE_REPORTS;
-      for(let i=P.length-1;i>=0;i--)if(P[i]?._live)P.splice(i,1);
-      for(let i=R.length-1;i>=0;i--)if(R[i]?._live)R.splice(i,1);
-      projects.forEach(p=>{
-        const x=toProtocol(p);P.push(x);
-        addOption('fy',x.year);addOption('fc',x.course);addOption('ft',x.type);addOption('fm',x.mod);addOption('fu',x.unit);addOption('fr',x.reach);addOption('iy',x.year);
-        if(String(p.status||'').toUpperCase()==='FINALIZADO')R.push(toReport(p));
-      });
-      statusBadge(data);note(data,projects.length);
-      fire('fy');fire('iy');
-      window.dispatchEvent(new Event('resize'));
-      console.info('NICE: inteligência atualizada com',projects.length,'protocolos atuais.');
-    }catch(err){console.warn('NICE: integração ao vivo indisponível',err);}
+  function apply(projects, timestamp, mode) {
+    const protocols=projects.map(toProtocol);
+    const reports=protocols.filter((_,i)=>projects[i].status==='FINALIZADO').map(toReport);
+    const nextSignature=JSON.stringify([protocols,reports]);
+    if(nextSignature!==signature) {
+      const P=window.__NICE_PROTOCOLS, R=window.__NICE_REPORTS;
+      P.splice(0,P.length,...P.filter(p=>!p._live),...protocols);
+      R.splice(0,R.length,...R.filter(r=>!r._live),...reports);
+      signature=nextSignature;
+      window.dispatchEvent(new Event('nice:projects-updated'));
+    }
+    appliedAt=timestamp;
+    const bounded=projects.length===PUBLIC_LIMIT;
+    const open=projects.filter(p=>!['FINALIZADO','CANCELADO'].includes(p.status)).length;
+    for(const [field, value] of [['total',projects.length],['closed',reports.length],['open',open]]) {
+      document.getElementById('nice-ops-'+field).textContent=F.format(value);
+    }
+    source.textContent=bounded?'Exibindo somente os 500 protocolos mais recentes':
+      mode==='live'?'Consulta direta · a cada 30 s':'Usando a última cópia publicada';
+    state.dataset.state=mode;
+    state.textContent=(mode==='live'?'Consulta ao vivo · ':'Cópia publicada · ')+clock.format(timestamp);
   }
 
-  let tries=0;
-  const wait=()=>{
-    if(Array.isArray(window.__NICE_PROTOCOLS)&&Array.isArray(window.__NICE_REPORTS)){sync();setInterval(sync,REFRESH_MS);return;}
-    if(tries++<120)setTimeout(wait,250);
-  };
-  wait();
+  async function sync(manual=false) {
+    if(inFlight || (!manual && document.hidden)) return;
+    inFlight=true;
+    lastAttempt=Date.now();
+    refresh.disabled=true;
+    try {
+      const url=new URL(API_URL);
+      url.search=new URLSearchParams({action:'projects',limit:PUBLIC_LIMIT,_:lastAttempt});
+      apply(projectsOf(await getJSON(url)),Date.now(),'live');
+    } catch(directError) {
+      try {
+        const data=await getJSON(CACHE_URL+'?ts='+Date.now());
+        const time=Date.parse(data?.synced_at);
+        if(data?.ok!==true || !Number.isFinite(time) || time<appliedAt) throw directError;
+        apply(projectsOf(data.projects),time,'cache');
+      } catch {
+        state.dataset.state='stale';
+        state.textContent=appliedAt?'Última atualização · '+clock.format(appliedAt):'Consulta operacional indisponível';
+        source.textContent=appliedAt?'Conexão indisponível · exibindo os últimos dados obtidos':
+          'Controle indisponível · histórico disponível abaixo';
+      }
+    } finally {
+      refresh.disabled=false;
+      inFlight=false;
+    }
+  }
+
+  refresh.addEventListener('click',()=>sync(true));
+  document.addEventListener('visibilitychange',()=>{
+    if(Date.now()-lastAttempt>=REFRESH_MS) sync();
+  });
+  window.addEventListener('online',()=>sync());
+  sync();
+  setInterval(sync,REFRESH_MS);
 })();
