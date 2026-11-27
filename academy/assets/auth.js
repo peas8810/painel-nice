@@ -31,12 +31,41 @@ function academyDownloadPdf(objectUrl,code){
 }
 window.addEventListener('pagehide',()=>{for(const url of academyPdfObjects)URL.revokeObjectURL(url);academyPdfObjects.clear()});
 
+async function academyCheckGoogleProvider(){
+ try{
+  const response=await fetch(cfg.url+'/auth/v1/settings',{headers:{apikey:cfg.publishableKey},signal:AbortSignal.timeout(7000)});
+  if(!response.ok)return null;
+  const settings=await response.json();
+  if(settings?.external && typeof settings.external.google==='boolean')return settings.external.google;
+  return null;
+ }catch{return null}
+}
+const academyOauthError=new URLSearchParams(location.search).get('error_description')||
+ new URLSearchParams(location.hash.slice(1)).get('error_description');
+if(academyOauthError && /provider is not enabled|unsupported provider/i.test(academyOauthError)){
+ message('google-login-status','O acesso pelo Google ainda não foi ativado no Academy. Use e-mail e senha enquanto a configuração é concluída.');
+}
 $('google-login').addEventListener('click',async()=>{
- const button=$('google-login');
+ const button=$('google-login');if(button.disabled)return;
  button.disabled=true;
- message('google-login-status','Redirecionando para o Google…');
- const {error}=await db.auth.signInWithOAuth({provider:'google',options:{redirectTo:location.origin+'/academy/portal/'}});
- if(error){message('google-login-status','Não foi possível entrar com Google: '+error.message);button.disabled=false}
+ message('google-login-status','Verificando acesso pelo Google…');
+ try{
+  const googleEnabled=await academyCheckGoogleProvider();
+  if(googleEnabled===false){
+   message('google-login-status','Login Google indisponível: o provedor está desativado no Supabase do Academy. A equipe precisa habilitá-lo em Authentication → Providers → Google. Você ainda pode entrar com e-mail e senha.');
+   button.disabled=false;return;
+  }
+  message('google-login-status','Abrindo o Google para autenticação…');
+  const {data,error}=await db.auth.signInWithOAuth({provider:'google',options:{redirectTo:new URL('/academy/portal/',location.origin).href}});
+  if(error)throw error;
+  if(!data?.url){
+   message('google-login-status','Não foi possível abrir a autenticação do Google. Tente novamente ou entre com e-mail e senha.');
+   button.disabled=false;
+  }
+ }catch(error){
+  message('google-login-status','Não foi possível entrar com Google: '+String(error?.message||error).slice(0,160)+'. Você pode usar e-mail e senha.');
+  button.disabled=false;
+ }
 });
 async function loadActivityTypes(){
  const input=$('activity-type');
